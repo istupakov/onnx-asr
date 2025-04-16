@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 import preprocessors
-from onnx_asr import Preprocessor
+from onnx_asr import Preprocessor, pad_list
 
 
 @pytest.mark.parametrize(
@@ -14,7 +14,7 @@ from onnx_asr import Preprocessor
     ],
 )
 def test_gigaam_preprocessor(preprocessor, equal, waveforms):
-    waveforms, lens = preprocessors.pad_list(waveforms)
+    waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessors.gigaam_preprocessor_origin(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
 
@@ -29,14 +29,14 @@ def test_gigaam_preprocessor(preprocessor, equal, waveforms):
 @pytest.mark.parametrize(
     "preprocessor",
     [
-        pytest.param(preprocessors.kaldi_preprocessor_torch, id="torch"),
+        pytest.param(lambda x, lens: pad_list(preprocessors.kaldi_preprocessor_torch(x, lens)), id="torch"),
         pytest.param(preprocessors.KaldiPreprocessor, id="onnx_func"),
         pytest.param(Preprocessor("kaldi"), id="onnx_model"),
     ],
 )
 def test_kaldi_preprocessor(preprocessor, waveforms):
-    waveforms, lens = preprocessors.pad_list(waveforms)
-    expected, expected_lens = preprocessors.kaldi_preprocessor_origin(waveforms, lens)
+    waveforms, lens = pad_list(waveforms)
+    expected, expected_lens = pad_list(preprocessors.kaldi_preprocessor_origin(waveforms, lens))
     actual, actual_lens = preprocessor(waveforms, lens)
 
     assert expected.shape[1] == max(expected_lens)
@@ -53,7 +53,7 @@ def test_kaldi_preprocessor(preprocessor, waveforms):
     ],
 )
 def test_nemo_preprocessor(preprocessor, atol, waveforms):
-    waveforms, lens = preprocessors.pad_list(waveforms)
+    waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessors.nemo_preprocessor_origin(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
 
@@ -71,7 +71,7 @@ def test_nemo_preprocessor(preprocessor, atol, waveforms):
     ],
 )
 def test_whisper_preprocessor(preprocessor, equal, waveforms):
-    waveforms, lens = preprocessors.pad_list(waveforms)
+    waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessors.whisper_preprocessor_origin(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
 

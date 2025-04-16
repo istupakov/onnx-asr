@@ -7,8 +7,6 @@ from onnx.helper import make_tensor
 from onnxscript import FLOAT, INT64, script, graph
 from onnxscript import opset17 as op
 
-from .utils import pad_list
-
 sample_rate = 16_000
 n_fft = 512
 win_length = 400
@@ -43,7 +41,7 @@ def kaldi_preprocessor_origin(waveforms, lens):
         fbank.input_finished()
         results.append(np.array([fbank.get_frame(i) for i in range(fbank.num_frames_ready)]))
 
-    return pad_list(results)
+    return results
 
 
 def kaldi_preprocessor_torch(waveforms, lens):
@@ -58,7 +56,7 @@ def kaldi_preprocessor_torch(waveforms, lens):
             ).numpy()
         )
 
-    return pad_list(results)
+    return results
 
 
 @script()
@@ -69,7 +67,7 @@ def symmetric_pad(waveforms, lens):
         pad_right = op.Constant(value_int=win_length // 2)
 
         return op.Concat(
-            waveform[pad_left - 1:: -1], waveform[:len], waveform[len - 1: len - pad_right - 1: -1], waveform[len:], axis=-1
+            waveform[pad_left - 1 :: -1], waveform[:len], waveform[len - 1 : len - pad_right - 1 : -1], waveform[len:], axis=-1
         )
 
     return op.Scan(waveforms, lens, body=pad, num_scan_inputs=2)
@@ -82,7 +80,7 @@ def sliding_window(waveform):
 
     X0 = waveform[:, : win_length - hop_length]
     X = op.Reshape(
-        waveform[:, win_length - hop_length:],
+        waveform[:, win_length - hop_length :],
         shape=op.Constant(value=make_tensor("sliding_shape", TensorProto.INT64, (3,), [0, -1, hop_length])),
     )
 
