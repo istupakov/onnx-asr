@@ -1,0 +1,138 @@
+import torch
+import torchaudio
+import numpy as np
+import kaldi_native_fbank as knf
+from onnx import TensorProto
+from onnx.helper import make_tensor
+from onnxscript import FLOAT, INT64, script, graph
+from onnxscript import opset17 as op
+
+from .utils import pad_list
+
+sample_rate = 16_000
+n_fft = 512
+win_length = 400
+hop_length = 160
+num_mel_bins = 80
+
+snip_edges = False
+dither = 0.0
+remove_dc_offset = True
+preemphasis_coefficient = 0.97
+
+low_freq = 20
+high_freq = -400
+
+float_eps = float(np.finfo(np.float32).eps)
+
+mel_banks, _ = torchaudio.compliance.kaldi.get_mel_banks(num_mel_bins, n_fft, sample_rate, low_freq, high_freq, 0, 0, 1)
+mel_banks = torch.nn.functional.pad(mel_banks, (0, 1)).T
+
+
+def kaldi_preprocessor_origin(waveforms, lens):
+    opts = knf.FbankOptions()
+    opts.frame_opts.dither = dither
+    opts.frame_opts.snip_edges = snip_edges
+    opts.mel_opts.num_bins = num_mel_bins
+    opts.mel_opts.high_freq = high_freq
+
+    results = []
+    for waveform, len in zip(waveforms, lens):
+        fbank = knf.OnlineFbank(opts)
+        fbank.accept_waveform(sample_rate, waveform[:len])
+        fbank.input_finished()
+        results.append(np.array([fbank.get_frame(i) for i in range(fbank.num_frames_ready)]))
+
+    return pad_list(results)
+
+
+def kaldi_preprocessor_torch(waveforms, lens):
+    results = []
+    for waveform, len in zip(waveforms, lens):
+        results.append(
+            torchaudio.compliance.kaldi.fbank(
+                torch.from_numpy(waveform[:len]).unsqueeze(0).contiguous(),
+                snip_edges=snip_edges,
+                num_mel_bins=num_mel_bins,
+                high_freq=high_freq,
+            ).numpy()
+        )
+
+    return pad_list(results)
+
+
+@script()
+def symmetric_pad(waveforms, lens):
+    @graph()
+    def pad(waveform, len):
+        pad_left = op.Constant(value_int=win_length // 2 - hop_length // 2)
+        pad_right = op.Constant(value_int=win_length // 2)
+
+        return op.Concat(
+            waveform[pad_left - 1:: -1], waveform[:len], waveform[len - 1: len - pad_right - 1: -1], waveform[len:], axis=-1
+        )
+
+    return op.Scan(waveforms, lens, body=pad, num_scan_inputs=2)
+
+
+@script()
+def sliding_window(waveform):
+    samples = op.Shape(waveform)[-1]
+    waveform = waveform[:, : samples - (samples + hop_length - win_length) % hop_length]
+
+    X0 = waveform[:, : win_length - hop_length]
+    X = op.Reshape(
+        waveform[:, win_length - hop_length:],
+        shape=op.Constant(value=make_tensor("sliding_shape", TensorProto.INT64, (3,), [0, -1, hop_length])),
+    )
+
+    @graph()
+    def sliding_buffer(prev, curr):
+        hop_len = op.Constant(value_int=hop_length // 1)
+        frame = op.Concat(prev, curr, axis=-1)
+        next = frame[:, hop_len:]
+        return next, frame
+
+    _, frames = op.Scan(X0, X, body=sliding_buffer, num_scan_inputs=1, scan_input_axes=[1], scan_output_axes=[1])
+    return frames
+
+
+@script()
+def normalize(frames):
+    if dither != 0.0:
+        frames = frames + dither * op.RandomNormalLike(frames)
+
+    if remove_dc_offset:
+        mean = op.ReduceMean(frames, axes=[-1])
+        frames = frames - mean
+
+    if preemphasis_coefficient != 0.0:
+        offset = op.Pad(frames, pads=[0, 0, 1, 0, 0, -1], mode="edge")
+        frames = frames - preemphasis_coefficient * offset
+
+    return frames
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Kaldi models")
+def KaldiPreprocessor(
+    waveforms: FLOAT["batch_size", "N"],  # noqa: F821
+    waveforms_lens: INT64["batch_size"],  # noqa: F821
+) -> tuple[FLOAT["batch_size", "T", num_mel_bins], INT64["batch_size"]]:  # noqa: F821
+    waveforms = symmetric_pad(waveforms, waveforms_lens)
+    frames = sliding_window(waveforms)
+    frames = normalize(frames)
+
+    povey_window = op.Pow(op.HannWindow(win_length, periodic=0), 0.85)
+    frames = povey_window * frames
+
+    image = op.DFT(op.Unsqueeze(frames, axes=-1), n_fft, axis=-2, onesided=1)
+    spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
+
+    mel_banks_tensor = op.Constant(value=make_tensor("mel_banks", TensorProto.FLOAT, mel_banks.shape, mel_banks.numpy()))
+    mel_spectrogram = op.MatMul(spectrogram, mel_banks_tensor)
+    log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, min=float_eps))
+
+    features_lens = (waveforms_lens + hop_length / 2) / hop_length
+    mask = op.Unsqueeze(op.Range(0, op.Shape(log_mel_spectrogram)[1], 1), [0, 2]) < op.Unsqueeze(features_lens, [1, 2])
+    features = op.Where(mask, log_mel_spectrogram, 0)
+    return features, features_lens

@@ -1,0 +1,78 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "onnx-asr"
+dynamic = ["version"]
+description = 'Automatic Speech Recognition in Python using ONNX models'
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = []
+authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = ["numpy>=1.25"]
+
+[project.urls]
+Documentation = "https://github.com/istupakov/onnx-asr#readme"
+Issues = "https://github.com/istupakov/onnx-asr/issues"
+Source = "https://github.com/istupakov/onnx-asr"
+
+[project.optional-dependencies]
+dev = [
+  "onnx",
+  "onnxscript",
+  "onnxruntime",
+  "torch",
+  "torchaudio",
+  "kaldi_native_fbank",
+  "nemo_toolkit[asr]",
+  "openai-whisper",
+  "pytest>=6.0",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["*.json"]
+
+[tool.hatch.build]
+artifacts = ["*.onnx"]
+
+[tool.hatch.version]
+path = "src/onnx_asr/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = ["mypy>=1.0.0"]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/onnx_asr tests}"
+
+[tool.coverage.run]
+source_pkgs = ["onnx_asr", "tests"]
+branch = true
+parallel = true
+omit = ["src/onnx_asr/__about__.py"]
+
+[tool.coverage.paths]
+onnx_asr = ["src/onnx_asr", "*/onnx-asr/src/onnx_asr"]
+tests = ["tests", "*/onnx-asr/tests"]
+
+[tool.coverage.report]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "ignore::DeprecationWarning:onnxscript.*",
+  "ignore::DeprecationWarning:google.protobuf.*",
+  "ignore::FutureWarning:onnxscript.*",
+]
