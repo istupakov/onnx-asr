@@ -1,8 +1,10 @@
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
-from .. import Preprocessor
+from pathlib import Path
+
 from ..asr import Asr, CtcAsr, RnntAsr
+from ..preprocessors import Preprocessor
 
 
 class GigaamV2(Asr):
@@ -20,9 +22,13 @@ class GigaamV2(Asr):
 
 
 class GigaamV2Ctc(CtcAsr, GigaamV2):
-    def __init__(self, model_path: str):
+    def __init__(self, model_parts: dict[str, Path]):
         super().__init__()
-        self._model = rt.InferenceSession(model_path)
+        self._model = rt.InferenceSession(model_parts["model"])
+
+    @staticmethod
+    def _get_model_parts() -> dict[str, str]:
+        return {"model": "v2_ctc.onnx"}
 
     def _encode(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
@@ -36,11 +42,15 @@ class GigaamV2Rnnt(RnntAsr, GigaamV2):
     PRED_HIDDEN = 320
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, encoder_path: str, decoder_path: str, joiner_path: str):
+    def __init__(self, model_parts: dict[str, Path]):
         super().__init__()
-        self._encoder = rt.InferenceSession(encoder_path)
-        self._decoder = rt.InferenceSession(decoder_path)
-        self._joiner = rt.InferenceSession(joiner_path)
+        self._encoder = rt.InferenceSession(model_parts["encoder"])
+        self._decoder = rt.InferenceSession(model_parts["decoder"])
+        self._joiner = rt.InferenceSession(model_parts["joint"])
+
+    @staticmethod
+    def _get_model_parts() -> dict[str, str]:
+        return {"encoder": "v2_rnnt_encoder.onnx", "decoder": "v2_rnnt_decoder.onnx", "joint": "v2_rnnt_joint.onnx"}
 
     @property
     def _max_tokens_per_step(self) -> int:

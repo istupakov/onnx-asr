@@ -3,10 +3,16 @@ import numpy as np
 import numpy.typing as npt
 from abc import ABC, abstractmethod
 from typing import Iterator, Any
+
 from .utils import read_wav, pad_list
 
 
 class Asr(ABC):
+    @staticmethod
+    @abstractmethod
+    def _get_model_parts() -> dict[str, str]:
+        pass
+
     @property
     @abstractmethod
     def _blank_token_idx(self) -> int:
@@ -31,10 +37,7 @@ class Asr(ABC):
         text = "".join([self._vocabulary[i] for i in tokens])
         return re.sub(r"\A\u2581|\u2581\B", "", text).replace("\u2581", " ")
 
-    def recognize(self, waveform: str | npt.NDArray[np.float32]) -> str:
-        return self.recognize_batch([waveform])[0]
-
-    def recognize_batch(self, waveforms: list[str | npt.NDArray[np.float32]]) -> list[str]:
+    def _load_files(self, waveforms: list[npt.NDArray[np.float32] | str]) -> list[npt.NDArray[np.float32]]:
         for i in range(len(waveforms)):
             if isinstance(waveforms[i], str):
                 waveform, sample_rate = read_wav(waveforms[i])  # type: ignore
@@ -42,7 +45,13 @@ class Asr(ABC):
                 assert waveform.shape[1] == 1, "Supported only mono audio"
                 waveforms[i] = waveform[:, 0]
 
-        return list(map(self._decode_tokens, self._recognize(*pad_list(waveforms))))  # type: ignore
+        return waveforms  # type: ignore
+
+    def recognize(self, waveform: npt.NDArray[np.float32] | str) -> str:
+        return self.recognize_batch([waveform])[0]
+
+    def recognize_batch(self, waveforms: list[npt.NDArray[np.float32] | str]) -> list[str]:
+        return list(map(self._decode_tokens, self._recognize(*pad_list(self._load_files(waveforms)))))
 
 
 class CtcAsr(Asr):

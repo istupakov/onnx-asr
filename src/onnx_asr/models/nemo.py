@@ -1,14 +1,20 @@
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
-from .. import Preprocessor
+from pathlib import Path
+
 from ..asr import Asr, CtcAsr, RnntAsr
+from ..preprocessors import Preprocessor
 
 
 class NemoConformer(Asr):
-    def __init__(self, vocab_path: str):
+    def __init__(self, model_parts: dict[str, Path]):
         self._preprocessor = Preprocessor("nemo")
-        self._vocab = dict(np.genfromtxt(vocab_path, dtype=None, delimiter=" ", usecols=[1, 0]).tolist())
+        self._vocab = dict(np.genfromtxt(model_parts["vocab"], dtype=None, delimiter=" ", usecols=[1, 0]).tolist())
+
+    @staticmethod
+    def _get_model_parts() -> dict[str, str]:
+        return {"vocab": "vocab.txt"}
 
     @property
     def _blank_token_idx(self) -> int:
@@ -20,9 +26,13 @@ class NemoConformer(Asr):
 
 
 class NemoConformerCtc(CtcAsr, NemoConformer):
-    def __init__(self, model_path: str, vocab_path: str):
-        super().__init__(vocab_path)
-        self._model = rt.InferenceSession(model_path)
+    def __init__(self, model_parts: dict[str, Path]):
+        super().__init__(model_parts)
+        self._model = rt.InferenceSession(model_parts["model"])
+
+    @staticmethod
+    def _get_model_parts() -> dict[str, str]:
+        return {"model": "{model_name}.onnx"} | NemoConformer._get_model_parts()
 
     def _encode(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
@@ -37,10 +47,17 @@ class NemoConformerRnnt(RnntAsr, NemoConformer):
     MAX_TOKENS_PER_STEP = 10
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, encoder_path: str, decoder_joint_path: str, vocab_path: str):
-        super().__init__(vocab_path)
-        self._encoder = rt.InferenceSession(encoder_path)
-        self._decoder_joint = rt.InferenceSession(decoder_joint_path)
+    def __init__(self, model_parts: dict[str, Path]):
+        super().__init__(model_parts)
+        self._encoder = rt.InferenceSession(model_parts["encoder"])
+        self._decoder_joint = rt.InferenceSession(model_parts["decoder_joint"])
+
+    @staticmethod
+    def _get_model_parts() -> dict[str, str]:
+        return {
+            "encoder": "encoder-{model_name}.onnx",
+            "decoder_joint": "decoder_joint-{model_name}.onnx",
+        } | NemoConformer._get_model_parts()
 
     @property
     def _max_tokens_per_step(self) -> int:

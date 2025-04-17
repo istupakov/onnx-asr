@@ -17,10 +17,10 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
     """
     with wave.open(filename, mode="rb") as f:
         data = f.readframes(f.getnframes())
-        z = 0
+        zero_value = 0
         if f.getsampwidth() == 1:
             buffer = np.frombuffer(data, dtype="u1")
-            z = 1
+            zero_value = 1
         elif f.getsampwidth() == 3:
             buffer = np.zeros((len(data) // 3, 4), dtype="V1")
             buffer[:, -3:] = np.frombuffer(data, dtype="V1").reshape(-1, f.getsampwidth())
@@ -28,9 +28,8 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
         else:
             buffer = np.frombuffer(data, dtype=f"<i{f.getsampwidth()}")
 
-        return np.divide(
-            buffer.reshape(f.getnframes(), f.getnchannels()), 2 ** (8 * buffer.itemsize - 1), dtype=np.float32
-        ) - z, f.getframerate()  # type: ignore
+        max_value = 2 ** (8 * buffer.itemsize - 1)
+        return buffer.reshape(f.getnframes(), f.getnchannels()).astype(np.float32) / max_value - zero_value, f.getframerate()
 
 
 def pad_list(arrays: list[npt.NDArray[np.float32]], axis: int = 0) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:

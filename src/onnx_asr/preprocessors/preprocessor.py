@@ -8,7 +8,7 @@ from typing import Literal
 
 class Preprocessor:
     def __init__(self, name: Literal["gigaam", "kaldi", "nemo", "whisper"]):
-        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(Path(name).with_suffix(".onnx")))
+        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(Path(name).with_suffix(".onnx"))) # type: ignore
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]

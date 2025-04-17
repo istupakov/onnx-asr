@@ -1,23 +1,30 @@
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
-from .. import Preprocessor
+from pathlib import Path
+
 from ..asr import RnntAsr
+from ..preprocessors import Preprocessor
 
 
 class KaldiTransducer(RnntAsr):
     CONTEXT_SIZE = 2
 
-    def __init__(self, encoder_path: str, decoder_path: str, joiner_path: str, vocab_path: str):
+    def __init__(self, model_parts: dict[str, Path]):
         self._preprocessor = Preprocessor("kaldi")
-        self._vocab = dict(np.genfromtxt(vocab_path, dtype=None, delimiter=" ", usecols=[1, 0]).tolist())
-        self._encoder = rt.InferenceSession(encoder_path)
-        self._decoder = rt.InferenceSession(decoder_path)
-        self._joiner = rt.InferenceSession(joiner_path)
+        self._vocab = dict(np.genfromtxt(model_parts["vocab"], dtype=None, delimiter=" ", usecols=[1, 0]).tolist())
+        self._blank_idx = next(key for (key, value) in self._vocab.items() if value == "<blk>")
+        self._encoder = rt.InferenceSession(model_parts["encoder"])
+        self._decoder = rt.InferenceSession(model_parts["decoder"])
+        self._joiner = rt.InferenceSession(model_parts["joiner"])
+
+    @staticmethod
+    def _get_model_parts() -> dict[str, str]:
+        return {"encoder": "encoder.onnx", "decoder": "decoder.onnx", "joiner": "joiner.onnx", "vocab": "tokens.txt"}
 
     @property
     def _blank_token_idx(self) -> int:
-        return 0
+        return self._blank_idx
 
     @property
     def _max_tokens_per_step(self) -> int:

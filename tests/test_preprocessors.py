@@ -2,7 +2,8 @@ import pytest
 import numpy as np
 
 import preprocessors
-from onnx_asr import Preprocessor, pad_list
+from onnx_asr.utils import pad_list
+from onnx_asr.preprocessors import Preprocessor
 
 
 @pytest.mark.parametrize(
