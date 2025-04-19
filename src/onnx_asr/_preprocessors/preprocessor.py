@@ -1,14 +1,17 @@
-import numpy as np
-import numpy.typing as npt
-import onnxruntime as rt
 from importlib.resources import files
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
+import numpy.typing as npt
+import onnxruntime as rt
+
 
 class Preprocessor:
-    def __init__(self, name: Literal["gigaam", "kaldi", "nemo", "whisper"]):
-        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(Path(name).with_suffix(".onnx"))) # type: ignore
+    PreprocessorNames = Literal["gigaam", "kaldi", "nemo"]
+
+    def __init__(self, name: PreprocessorNames):
+        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(Path(name).with_suffix(".onnx")))  # type: ignore
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]

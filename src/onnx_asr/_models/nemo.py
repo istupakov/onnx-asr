@@ -1,31 +1,22 @@
+from pathlib import Path
+
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
-from pathlib import Path
 
-from ..asr import Asr, CtcAsr, RnntAsr
-from ..preprocessors import Preprocessor
+from onnx_asr.asr import Asr, _CtcAsr, _RnntAsr
 
 
 class NemoConformer(Asr):
     def __init__(self, model_parts: dict[str, Path]):
-        self._preprocessor = Preprocessor("nemo")
-        self._vocab = dict(np.genfromtxt(model_parts["vocab"], dtype=None, delimiter=" ", usecols=[1, 0]).tolist())
+        super().__init__("nemo", model_parts["vocab"])
 
     @staticmethod
     def _get_model_parts() -> dict[str, str]:
         return {"vocab": "vocab.txt"}
 
-    @property
-    def _blank_token_idx(self) -> int:
-        return len(self._vocab)
 
-    @property
-    def _vocabulary(self) -> dict[int, str]:
-        return self._vocab
-
-
-class NemoConformerCtc(CtcAsr, NemoConformer):
+class NemoConformerCtc(_CtcAsr, NemoConformer):
     def __init__(self, model_parts: dict[str, Path]):
         super().__init__(model_parts)
         self._model = rt.InferenceSession(model_parts["model"])
@@ -35,14 +26,13 @@ class NemoConformerCtc(CtcAsr, NemoConformer):
         return {"model": "{model_name}.onnx"} | NemoConformer._get_model_parts()
 
     def _encode(
-        self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
+        self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
-        features, features_lens = self._preprocessor(waveforms, waveforms_lens)
         (log_probs,) = self._model.run(["logprobs"], {"audio_signal": features, "length": features_lens})
         return log_probs, (features_lens - 1) // 8 + 1
 
 
-class NemoConformerRnnt(RnntAsr, NemoConformer):
+class NemoConformerRnnt(_RnntAsr, NemoConformer):
     PRED_HIDDEN = 640
     MAX_TOKENS_PER_STEP = 10
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
@@ -64,9 +54,8 @@ class NemoConformerRnnt(RnntAsr, NemoConformer):
         return self.MAX_TOKENS_PER_STEP
 
     def _encode(
-        self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
+        self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
-        features, features_lens = self._preprocessor(waveforms, waveforms_lens)
         encoder_out, encoder_out_lens = self._encoder.run(
             ["outputs", "encoded_lengths"], {"audio_signal": features, "length": features_lens}
         )
@@ -85,7 +74,7 @@ class NemoConformerRnnt(RnntAsr, NemoConformer):
             ["outputs", "output_states_1", "output_states_2"],
             {
                 "encoder_outputs": encoder_out[None, :, None],
-                "targets": [[[self._blank_token_idx, *prev_tokens][-1]]],
+                "targets": [[[self._blank_idx, *prev_tokens][-1]]],
                 "target_length": [1],
                 "input_states_1": prev_state[0],
                 "input_states_2": prev_state[1],

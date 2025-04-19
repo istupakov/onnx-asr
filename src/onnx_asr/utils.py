@@ -1,20 +1,13 @@
+"""Utils for ASR."""
+
 import wave
+
 import numpy as np
 import numpy.typing as npt
 
 
 def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
-    """
-    Read PCM wav file
-
-    Support PCM_U8, PCM_16, PCM_24 and PCM_32 formats.
-    Parameters:
-        filename : Path to wav file
-    Returns
-    -------
-    waveform : (frames x channels) numpy array with samples [-1, +1]
-    sample_rate : sample rate
-    """
+    """Read PCM wav file to Numpy array."""
     with wave.open(filename, mode="rb") as f:
         data = f.readframes(f.getnframes())
         zero_value = 0
@@ -33,6 +26,7 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
 
 
 def pad_list(arrays: list[npt.NDArray[np.float32]], axis: int = 0) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
+    """Pad list of Numpy arrays to common length."""
     lens = np.array([array.shape[axis] for array in arrays])
     max_len = lens.max()
 

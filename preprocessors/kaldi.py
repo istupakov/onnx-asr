@@ -1,10 +1,9 @@
+import numpy as np
 import torch
 import torchaudio
-import numpy as np
-import kaldi_native_fbank as knf
 from onnx import TensorProto
 from onnx.helper import make_tensor
-from onnxscript import FLOAT, INT64, script, graph
+from onnxscript import FLOAT, INT64, graph, script
 from onnxscript import opset17 as op
 
 sample_rate = 16_000
@@ -25,38 +24,6 @@ float_eps = float(np.finfo(np.float32).eps)
 
 mel_banks, _ = torchaudio.compliance.kaldi.get_mel_banks(num_mel_bins, n_fft, sample_rate, low_freq, high_freq, 0, 0, 1)
 mel_banks = torch.nn.functional.pad(mel_banks, (0, 1)).T
-
-
-def kaldi_preprocessor_origin(waveforms, lens):
-    opts = knf.FbankOptions()
-    opts.frame_opts.dither = dither
-    opts.frame_opts.snip_edges = snip_edges
-    opts.mel_opts.num_bins = num_mel_bins
-    opts.mel_opts.high_freq = high_freq
-
-    results = []
-    for waveform, len in zip(waveforms, lens):
-        fbank = knf.OnlineFbank(opts)
-        fbank.accept_waveform(sample_rate, waveform[:len])
-        fbank.input_finished()
-        results.append(np.array([fbank.get_frame(i) for i in range(fbank.num_frames_ready)]))
-
-    return results
-
-
-def kaldi_preprocessor_torch(waveforms, lens):
-    results = []
-    for waveform, len in zip(waveforms, lens):
-        results.append(
-            torchaudio.compliance.kaldi.fbank(
-                torch.from_numpy(waveform[:len]).unsqueeze(0).contiguous(),
-                snip_edges=snip_edges,
-                num_mel_bins=num_mel_bins,
-                high_freq=high_freq,
-            ).numpy()
-        )
-
-    return results
 
 
 @script()
@@ -98,7 +65,7 @@ def sliding_window(waveform):
 @script()
 def normalize(frames):
     if dither != 0.0:
-        frames = frames + dither * op.RandomNormalLike(frames)
+        frames = frames + op.RandomNormalLike(frames, scale=dither)
 
     if remove_dc_offset:
         mean = op.ReduceMean(frames, axes=[-1])
@@ -113,9 +80,9 @@ def normalize(frames):
 
 @script(doc_string="LogMelSpectrogram feature extractor for Kaldi models")
 def KaldiPreprocessor(
-    waveforms: FLOAT["batch_size", "N"],  # noqa: F821
-    waveforms_lens: INT64["batch_size"],  # noqa: F821
-) -> tuple[FLOAT["batch_size", "T", num_mel_bins], INT64["batch_size"]]:  # noqa: F821
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", "T", num_mel_bins], INT64["batch_size"]]:
     waveforms = symmetric_pad(waveforms, waveforms_lens)
     frames = sliding_window(waveforms)
     frames = normalize(frames)

@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 
 def create_waveforms():
