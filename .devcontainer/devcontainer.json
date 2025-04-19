@@ -11,9 +11,11 @@
 		"vscode": {
 			"extensions": [
 				"ms-toolsai.jupyter",
-				"charliermarsh.ruff"
+				"charliermarsh.ruff",
+				"tamasfe.even-better-toml",
+				"vincent-templier.vscode-netron"
 			]
 		}
 	},
-	"postCreateCommand": "pip3 install --user -e .[dev] --extra-index-url https://download.pytorch.org/whl/cpu"
+	"postCreateCommand": "pipx install pdm && pip install --no-cache-dir --user ipykernel ipywidgets"
 }

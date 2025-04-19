@@ -1,78 +1,109 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "onnx-asr"
-dynamic = ["version"]
-description = 'Automatic Speech Recognition in Python using ONNX models'
-readme = "README.md"
-requires-python = ">=3.8"
-license = "MIT"
-keywords = []
+version = "0.1.0"
+description = "Automatic Speech Recognition in Python using ONNX models"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
+keywords = ["asr", "speech recognition", "onnx"]
+dependencies = ["numpy"]
+requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "MIT" }
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
 ]
-dependencies = ["numpy>=1.25"]
 
 [project.urls]
 Documentation = "https://github.com/istupakov/onnx-asr#readme"
 Issues = "https://github.com/istupakov/onnx-asr/issues"
 Source = "https://github.com/istupakov/onnx-asr"
 
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
 [project.optional-dependencies]
-dev = [
-  "onnx",
-  "onnxscript",
-  "onnxruntime",
-  "torch",
-  "torchaudio",
-  "kaldi_native_fbank",
-  "nemo_toolkit[asr]",
-  "openai-whisper",
-  "pytest>=6.0",
+cpu = ["onnxruntime>=1.18.1"]
+gpu = ["onnxruntime-gpu>=1.18.1"]
+
+[dependency-groups]
+build = [
+    "onnx>=1.17.0",
+    "onnxscript>=0.2.4",
+    "torch>=2.6.0",
+    "torchaudio>=2.6.0",
+]
+asrs = [
+    "kaldi-native-fbank>=1.21.1",
+    "nemo-toolkit[asr]>=2.2.1",
+    "openai-whisper>=20240930",
+]
+test = [
+    "pytest>=8.3.5",
+    "onnxruntime>=1.21.1",
+    { include-group = "build" },
+    { include-group = "asrs" },
+]
+lint = ["ruff>=0.11.6"]
+
+[tool.pdm.scripts]
+build_preprocessors = { call = "preprocessors.build:build" }
+post_install = { composite = ["build_preprocessors"] }
+pre_build = { composite = ["pdm install --with build"] }
+
+[tool.pdm]
+distribution = true
+
+[[tool.pdm.source]]
+name = "torch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+include_packages = ["torch*"]
+
+[tool.ruff]
+line-length = 130
+indent-width = 4
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "D",    # pydocstyle
+    "E",    # pycodestyle
+    "F",    # Pyflakes
+    "G",    # flake8-logging-format
+    "I",    # isort
+    "ISC",  # flake8-implicit-str-concat
+    "LOG",  # flake8-logging
+    "N",    # pep8-naming
+    "NPY",  # modern numpy
+    "PERF", # Perflint
+    "PIE",  # flake8-pie
+    "PYI",  # flake8-pyi
+    "RUF",  # Ruff-specific rules
+    "SIM",  # flake8-simplify
+    "SLOT", # flake8-slot
+    "T10",  # flake8-debugger
+    "TID",  # Disallow relative imports
+    "TRY",  # flake8-try-except-raise
+    "UP",   # pyupgrade
+    "W",    # pycodestyle
+    "YTT",  # flake8-2020
 ]
 
-[tool.hatch.build.targets.sdist]
-exclude = ["*.json"]
-
-[tool.hatch.build]
-artifacts = ["*.onnx"]
-
-[tool.hatch.version]
-path = "src/onnx_asr/__about__.py"
-
-[tool.hatch.envs.types]
-extra-dependencies = ["mypy>=1.0.0"]
-
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/onnx_asr tests}"
-
-[tool.coverage.run]
-source_pkgs = ["onnx_asr", "tests"]
-branch = true
-parallel = true
-omit = ["src/onnx_asr/__about__.py"]
-
-[tool.coverage.paths]
-onnx_asr = ["src/onnx_asr", "*/onnx-asr/src/onnx_asr"]
-tests = ["tests", "*/onnx-asr/tests"]
-
-[tool.coverage.report]
-exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D103", "D104"]
+"preprocessors/*" = ["D100", "D103", "D104", "N802", "N806", "F821"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
-  "ignore::DeprecationWarning:onnxscript.*",
-  "ignore::DeprecationWarning:google.protobuf.*",
-  "ignore::FutureWarning:onnxscript.*",
+    "ignore::DeprecationWarning:onnxscript.*",
+    "ignore::DeprecationWarning:google.protobuf.*",
+    "ignore::FutureWarning:onnxscript.*",
 ]

@@ -173,5 +173,6 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# ONNX models
+# ML models
+models/
 *.onnx
