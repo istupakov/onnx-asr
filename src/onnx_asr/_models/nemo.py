@@ -12,8 +12,9 @@ class NemoConformer(Asr):
         super().__init__("nemo", model_parts["vocab"])
 
     @staticmethod
-    def _get_model_parts() -> dict[str, str]:
-        return {"vocab": "vocab.txt"}
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
+        assert version is None, "For now, only the default version is supported."
+        return {"vocab": "vocab*.txt"}
 
 
 class NemoConformerCtc(_CtcAsr, NemoConformer):
@@ -22,14 +23,20 @@ class NemoConformerCtc(_CtcAsr, NemoConformer):
         self._model = rt.InferenceSession(model_parts["model"])
 
     @staticmethod
-    def _get_model_parts() -> dict[str, str]:
-        return {"model": "{model_name}.onnx"} | NemoConformer._get_model_parts()
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
+        return {"model": "stt_*conformer*.onnx"} | NemoConformer._get_model_files(version)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         (log_probs,) = self._model.run(["logprobs"], {"audio_signal": features, "length": features_lens})
-        return log_probs, (features_lens - 1) // 8 + 1
+        conformer_lens = (features_lens - 1) // 4 + 1
+        fastconformer_lens = (features_lens - 1) // 8 + 1
+        assert log_probs.shape[1] == max(conformer_lens) or log_probs.shape[1] == max(fastconformer_lens)
+        if log_probs.shape[1] == max(conformer_lens):
+            return log_probs, conformer_lens
+        else:
+            return log_probs, fastconformer_lens
 
 
 class NemoConformerRnnt(_RnntAsr, NemoConformer):
@@ -43,11 +50,11 @@ class NemoConformerRnnt(_RnntAsr, NemoConformer):
         self._decoder_joint = rt.InferenceSession(model_parts["decoder_joint"])
 
     @staticmethod
-    def _get_model_parts() -> dict[str, str]:
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
         return {
-            "encoder": "encoder-{model_name}.onnx",
-            "decoder_joint": "decoder_joint-{model_name}.onnx",
-        } | NemoConformer._get_model_parts()
+            "encoder": "encoder-stt_*conformer*.onnx",
+            "decoder_joint": "decoder_joint-stt_*conformer*.onnx",
+        } | NemoConformer._get_model_files(version)
 
     @property
     def _max_tokens_per_step(self) -> int:

@@ -20,25 +20,22 @@ class Asr(ABC):
 
     def __init__(self, preprocessor_name: Preprocessor.PreprocessorNames, vocab_path: Path):  # noqa: D107
         self._preprocessor = Preprocessor(preprocessor_name)
-        self._vocab = dict(np.genfromtxt(vocab_path, dtype=None, delimiter=" ", usecols=[1, 0], encoding=None).tolist())
+        self._vocab = dict(np.genfromtxt(vocab_path, dtype=None, delimiter=" ", usecols=[1, 0], encoding=None).tolist())  # type: ignore
         self._blank_idx = next(key for (key, value) in self._vocab.items() if value == "<blk>")
 
     @staticmethod
     @abstractmethod
-    def _get_model_parts() -> dict[str, str]:
-        pass
+    def _get_model_files(version: str | None = None) -> dict[str, str]: ...
 
     @abstractmethod
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
-    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
-        pass
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]: ...
 
     @abstractmethod
     def _greedy_search(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
-    ) -> Iterator[list[int]]:
-        pass
+    ) -> Iterator[list[int]]: ...
 
     def _decode_tokens(self, tokens: list[int]) -> str:
         text = "".join([self._vocab[i] for i in tokens])
@@ -48,11 +45,11 @@ class Asr(ABC):
         for i in range(len(waveforms)):
             if isinstance(waveforms[i], str):
                 waveform, sample_rate = read_wav(waveforms[i])  # type: ignore
-                assert sample_rate == 16000, "Supported only 16 kHz sample rate"
-                assert waveform.shape[1] == 1, "Supported only mono audio"
+                assert sample_rate == 16000, "Supported only 16 kHz sample rate."
+                assert waveform.shape[1] == 1, "Supported only mono audio."
                 waveforms[i] = waveform[:, 0]
             else:
-                assert waveforms[i].ndim == 1, "waveform must be 1d numpy array"
+                assert waveforms[i].ndim == 1, "Waveform must be 1d numpy array."
 
         return waveforms  # type: ignore
 
@@ -68,7 +65,7 @@ class Asr(ABC):
         """Recognize speech (single or batch).
 
         Args:
-            waveform: Path to wav file (PCM_U8, PCM_16, PCM_24 and PCM_32 formats with 16 kHz sample rate are supported)
+            waveform: Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats with 16 kHz sample rate are supported)
                       or Numpy array with PCM waveform.
                       A list of file paths or numpy arrays for batch recognition are also supported.
 
@@ -85,8 +82,10 @@ class _CtcAsr(Asr):
     def _greedy_search(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
     ) -> Iterator[list[int]]:
-        for log_probs, len in zip(encoder_out, encoder_out_lens, strict=True):
-            tokens = log_probs[:len].argmax(axis=-1)
+        assert encoder_out.shape[-1] == len(self._vocab)
+
+        for log_probs, log_probs_len in zip(encoder_out, encoder_out_lens, strict=True):
+            tokens = log_probs[:log_probs_len].argmax(axis=-1)
             tokens = tokens[np.diff(tokens).nonzero()]
             tokens = tokens[tokens != self._blank_idx]
             yield tokens
@@ -94,31 +93,30 @@ class _CtcAsr(Asr):
 
 class _RnntAsr(Asr):
     @abstractmethod
-    def _create_state(self) -> Any:
-        pass
+    def _create_state(self) -> Any: ...
 
     @property
     @abstractmethod
-    def _max_tokens_per_step(self) -> int:
-        pass
+    def _max_tokens_per_step(self) -> int: ...
 
     @abstractmethod
     def _decode(
         self, prev_tokens: list[int], prev_state: Any, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], Any]:
-        pass
+    ) -> tuple[npt.NDArray[np.float32], Any]: ...
 
     def _greedy_search(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
     ) -> Iterator[list[int]]:
-        for encodings, len in zip(encoder_out, encoder_out_lens, strict=True):
+        for encodings, encodings_len in zip(encoder_out, encoder_out_lens, strict=True):
             prev_state = self._create_state()
             tokens = []
 
-            for t in range(len):
+            for t in range(encodings_len):
                 emitted_tokens = 0
                 while emitted_tokens < self._max_tokens_per_step:
                     probs, state = self._decode(tokens, prev_state, encodings[:, t])
+                    assert probs.shape[-1] == len(self._vocab)
+
                     token = probs.argmax()
 
                     if token != self._blank_idx:

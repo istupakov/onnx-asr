@@ -17,8 +17,17 @@ class KaldiTransducer(_RnntAsr):
         self._joiner = rt.InferenceSession(model_parts["joiner"])
 
     @staticmethod
-    def _get_model_parts() -> dict[str, str]:
-        return {"encoder": "encoder.onnx", "decoder": "decoder.onnx", "joiner": "joiner.onnx", "vocab": "tokens.txt"}
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
+        assert version in [None, "int8"], "Only default and int8 versions are supported."
+        if version == "int8":
+            return {
+                "encoder": "*/encoder.int8.onnx",
+                "decoder": "*/decoder.int8.onnx",
+                "joiner": "*/joiner.int8.onnx",
+                "vocab": "*/tokens.txt",
+            }
+        else:
+            return {"encoder": "*/encoder.onnx", "decoder": "*/decoder.onnx", "joiner": "*/joiner.onnx", "vocab": "*/tokens.txt"}
 
     @property
     def _max_tokens_per_step(self) -> int:

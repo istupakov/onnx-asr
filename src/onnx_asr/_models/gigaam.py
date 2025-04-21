@@ -12,8 +12,9 @@ class GigaamV2(Asr):
         super().__init__("gigaam", model_parts["vocab"])
 
     @staticmethod
-    def _get_model_parts() -> dict[str, str]:
-        return {"vocab": "vocab.txt"}
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
+        assert version is None, "For now, only the default version is supported."
+        return {"vocab": "v2_vocab.txt"}
 
 
 class GigaamV2Ctc(_CtcAsr, GigaamV2):
@@ -22,8 +23,8 @@ class GigaamV2Ctc(_CtcAsr, GigaamV2):
         self._model = rt.InferenceSession(model_parts["model"])
 
     @staticmethod
-    def _get_model_parts() -> dict[str, str]:
-        return {"model": "v2_ctc.onnx"} | GigaamV2._get_model_parts()
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
+        return {"model": "v2_ctc.onnx"} | GigaamV2._get_model_files(version)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
@@ -43,12 +44,12 @@ class GigaamV2Rnnt(_RnntAsr, GigaamV2):
         self._joiner = rt.InferenceSession(model_parts["joint"])
 
     @staticmethod
-    def _get_model_parts() -> dict[str, str]:
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
         return {
             "encoder": "v2_rnnt_encoder.onnx",
             "decoder": "v2_rnnt_decoder.onnx",
             "joint": "v2_rnnt_joint.onnx",
-        } | GigaamV2._get_model_parts()
+        } | GigaamV2._get_model_files(version)
 
     @property
     def _max_tokens_per_step(self) -> int:

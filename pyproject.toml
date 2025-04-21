@@ -31,6 +31,10 @@ build-backend = "pdm.backend"
 [project.optional-dependencies]
 cpu = ["onnxruntime>=1.18.1"]
 gpu = ["onnxruntime-gpu>=1.18.1"]
+hub = ["huggingface_hub"]
+
+[project.scripts]
+onnx-asr = "onnx_asr.cli:run"
 
 [dependency-groups]
 build = [
