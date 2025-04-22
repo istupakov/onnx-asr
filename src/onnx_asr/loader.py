@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal, get_args
 
-from ._models import GigaamV2Ctc, GigaamV2Rnnt, KaldiTransducer, NemoConformerCtc, NemoConformerRnnt
+from ._models import GigaamV2Ctc, GigaamV2Rnnt, KaldiTransducer, NemoConformerCtc, NemoConformerRnnt, Whisper
 from .asr import Asr
 
 ModelNames = Literal[
@@ -13,8 +13,9 @@ ModelNames = Literal[
     "nemo-fastconformer-ru-rnnt",
     "vosk-model-ru",
     "vosk-model-small-ru",
+    "whisper-base",
 ]
-ModelTypes = Literal["kaldi-rnnt", "nemo-conformer-ctc", "nemo-conformer-rnnt", "vosk"]
+ModelTypes = Literal["kaldi-rnnt", "nemo-conformer-ctc", "nemo-conformer-rnnt", "vosk", "whisper"]
 ModelVersions = Literal["int8"] | None
 
 
@@ -30,6 +31,8 @@ def _get_model_class(name: ModelNames | ModelTypes):
             return NemoConformerCtc
         case "nemo-conformer-rnnt" | "nemo-fastconformer-ru-rnnt":
             return NemoConformerRnnt
+        case "whisper" | "whisper-base":
+            return Whisper
 
 
 def _resolve_paths(path: str | Path, model_files: dict[str, str]):
@@ -54,6 +57,8 @@ def _download_model(model: ModelNames, files: list[str]) -> str:
             repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
         case "vosk-model-ru" | "vosk-model-small-ru":
             repo_id = "alphacep/" + model
+        case "whisper-base":
+            repo_id = "istupakov/whisper-base-onnx"
 
     return snapshot_download(repo_id, allow_patterns=files)
 

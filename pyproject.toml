@@ -1,6 +1,6 @@
 [project]
 name = "onnx-asr"
-version = "0.1.0"
+version = "0.2.0"
 description = "Automatic Speech Recognition in Python using ONNX models"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
 keywords = ["asr", "speech recognition", "onnx"]
@@ -56,13 +56,16 @@ test = [
 ]
 lint = ["ruff>=0.11.6"]
 
+[tool.pdm]
+distribution = true
+
+[tool.pdm.build]
+source-includes = ["preprocessors", "tests"]
+
 [tool.pdm.scripts]
 build_preprocessors = { call = "preprocessors.build:build" }
 post_install = { composite = ["build_preprocessors"] }
 pre_build = { composite = ["pdm install --with build"] }
-
-[tool.pdm]
-distribution = true
 
 [[tool.pdm.source]]
 name = "torch-cpu"

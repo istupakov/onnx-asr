@@ -4,10 +4,10 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import _RnntAsr
+from onnx_asr.asr import _AsrWithRnntDecoding
 
 
-class KaldiTransducer(_RnntAsr):
+class KaldiTransducer(_AsrWithRnntDecoding):
     CONTEXT_SIZE = 2
 
     def __init__(self, model_parts: dict[str, Path]):

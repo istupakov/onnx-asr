@@ -8,7 +8,7 @@ import onnxruntime as rt
 
 
 class Preprocessor:
-    PreprocessorNames = Literal["gigaam", "kaldi", "nemo"]
+    PreprocessorNames = Literal["gigaam", "kaldi", "nemo", "whisper80", "whisper128"]
 
     def __init__(self, name: PreprocessorNames):
         self._preprocessor = rt.InferenceSession(files(__package__).joinpath(Path(name).with_suffix(".onnx")))  # type: ignore

@@ -4,10 +4,10 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import Asr, _CtcAsr, _RnntAsr
+from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDecoding
 
 
-class NemoConformer(Asr):
+class NemoConformer(_AsrWithDecoding):
     def __init__(self, model_parts: dict[str, Path]):
         super().__init__("nemo", model_parts["vocab"])
 
@@ -17,7 +17,7 @@ class NemoConformer(Asr):
         return {"vocab": "vocab*.txt"}
 
 
-class NemoConformerCtc(_CtcAsr, NemoConformer):
+class NemoConformerCtc(_AsrWithCtcDecoding, NemoConformer):
     def __init__(self, model_parts: dict[str, Path]):
         super().__init__(model_parts)
         self._model = rt.InferenceSession(model_parts["model"])
@@ -39,7 +39,7 @@ class NemoConformerCtc(_CtcAsr, NemoConformer):
             return log_probs, fastconformer_lens
 
 
-class NemoConformerRnnt(_RnntAsr, NemoConformer):
+class NemoConformerRnnt(_AsrWithRnntDecoding, NemoConformer):
     PRED_HIDDEN = 640
     MAX_TOKENS_PER_STEP = 10
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]

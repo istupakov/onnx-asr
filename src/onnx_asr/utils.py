@@ -25,6 +25,22 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
         return buffer.reshape(f.getnframes(), f.getnchannels()).astype(np.float32) / max_value - zero_value, f.getframerate()
 
 
+def read_wav_files(waveforms: list[npt.NDArray[np.float32] | str]) -> list[npt.NDArray[np.float32]]:
+    """Convert list of waveform or filenames to list of waveforms."""
+    results = []
+    for i in range(len(waveforms)):
+        if isinstance(waveforms[i], str):
+            waveform, sample_rate = read_wav(waveforms[i])  # type: ignore
+            assert sample_rate == 16000, "Supported only 16 kHz sample rate."
+            assert waveform.shape[1] == 1, "Supported only mono audio."
+            results.append(waveform[:, 0])
+        else:
+            assert waveforms[i].ndim == 1, "Waveform must be 1d numpy array."  # type: ignore
+            results.append(waveforms[i])
+
+    return results
+
+
 def pad_list(arrays: list[npt.NDArray[np.float32]], axis: int = 0) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
     """Pad list of Numpy arrays to common length."""
     lens = np.array([array.shape[axis] for array in arrays])

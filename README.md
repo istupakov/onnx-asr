@@ -9,7 +9,7 @@ The simple speech recognition package with minimal dependencies:
 * Nvidia NeMo Conformer/FastConformer (with CTC and RNN-T decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
 * Sber GigaAM v2 (with CTC and RNN-T decoders)
-
+* OpenAI Whisper (*experimental*)
 
 ## Installation
 
@@ -50,6 +50,7 @@ print(model.recognize("test.wav"))
 * `nemo-fastconformer-ru-rnnt` for Nvidia FastConformer-Hybrid Large (ru) with RNN-T decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
 * `vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
+* `whisper-base` for OpenAI Whisper Base ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
 
 Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats with 16 kHz sample rate. For other formats, you either need to convert them first, or use a library that can read them into a numpy array. 
 
@@ -96,7 +97,7 @@ Supported model types:
 * `nemo-conformer-ctc` for NeMo Conformer with CTC decoder
 * `nemo-conformer-rnnt` for NeMo Conformer with RNN-T decoder
 * `kaldi-rnnt` or `vosk` for Kaldi Icefall Zipformer with stateless RNN-T decoder
-
+* `whisper` for Whisper (exported with [onnxruntime](#openai-whisper))
 
 ## Convert model to ONNX
 
@@ -152,4 +153,24 @@ model.to_onnx(dir_path=onnx_dir)
 with Path(onnx_dir, "v2_vocab.txt").open("wt") as f:
     for i, token in enumerate(["\u2581", *(chr(ord("а") + i) for i in range(32)), "<blk>"]):
         f.write(f"{token} {i}\n")
+```
+
+### OpenAI Whisper
+
+Export Whisper to ONNX with `onnxruntime` ([whisper.convert_to_onnx](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/python/tools/transformers/models/whisper/README.md)).
+
+Download model and export with Beam Search and Forced Decoder Input Ids:
+```shell
+python3 -m onnxruntime.transformers.models.whisper.convert_to_onnx -m openai/whisper-base --output whisper-onnx --use_external_data_format --use_forced_decoder_ids --optimize_onnx --precision fp32
+```
+
+Save tokenizer vocabulary
+```py
+from transformers import WhisperTokenizer
+
+tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-base")
+
+with open("whisper-onnx/vocab.txt", "w") as f:
+    for token, id in tokenizer.get_vocab().items():
+        f.write(f"{token} {id}\n")
 ```

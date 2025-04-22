@@ -4,10 +4,10 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import Asr, _CtcAsr, _RnntAsr
+from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDecoding
 
 
-class GigaamV2(Asr):
+class GigaamV2(_AsrWithDecoding):
     def __init__(self, model_parts: dict[str, Path]):
         super().__init__("gigaam", model_parts["vocab"])
 
@@ -17,7 +17,7 @@ class GigaamV2(Asr):
         return {"vocab": "v2_vocab.txt"}
 
 
-class GigaamV2Ctc(_CtcAsr, GigaamV2):
+class GigaamV2Ctc(_AsrWithCtcDecoding, GigaamV2):
     def __init__(self, model_parts: dict[str, Path]):
         super().__init__(model_parts)
         self._model = rt.InferenceSession(model_parts["model"])
@@ -33,7 +33,7 @@ class GigaamV2Ctc(_CtcAsr, GigaamV2):
         return log_probs, (features_lens - 1) // 4 + 1
 
 
-class GigaamV2Rnnt(_RnntAsr, GigaamV2):
+class GigaamV2Rnnt(_AsrWithRnntDecoding, GigaamV2):
     PRED_HIDDEN = 320
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
