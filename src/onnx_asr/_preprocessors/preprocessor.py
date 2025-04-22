@@ -10,8 +10,8 @@ import onnxruntime as rt
 class Preprocessor:
     PreprocessorNames = Literal["gigaam", "kaldi", "nemo", "whisper80", "whisper128"]
 
-    def __init__(self, name: PreprocessorNames):
-        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(Path(name).with_suffix(".onnx")))  # type: ignore
+    def __init__(self, name: PreprocessorNames, **kwargs):
+        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(Path(name).with_suffix(".onnx")), **kwargs)  # type: ignore
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]

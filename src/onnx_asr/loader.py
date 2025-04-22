@@ -1,7 +1,10 @@
 """Loader for ASR models."""
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
+
+import onnxruntime as rt
 
 from ._models import GigaamV2Ctc, GigaamV2Rnnt, KaldiTransducer, NemoConformerCtc, NemoConformerRnnt, Whisper
 from .asr import Asr
@@ -63,7 +66,12 @@ def _download_model(model: ModelNames, files: list[str]) -> str:
     return snapshot_download(repo_id, allow_patterns=files)
 
 
-def load_model(model: ModelNames | ModelTypes, path: str | Path | None = None, version: ModelVersions = None) -> Asr:
+def load_model(
+    model: ModelNames | ModelTypes,
+    path: str | Path | None = None,
+    version: ModelVersions = None,
+    providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
+) -> Asr:
     """Load ASR model.
 
     Args:
@@ -74,6 +82,7 @@ def load_model(model: ModelNames | ModelTypes, path: str | Path | None = None, v
                     Nvidia STT RU FastConformer Hybrid Large P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
         path: Path to directory with model files.
         version: Model version: None for the default version or int8 for the quantized version.
+        providers: Optional sequence of providers for onnxruntime.
 
     Returns:
         ASR model class.
@@ -81,8 +90,12 @@ def load_model(model: ModelNames | ModelTypes, path: str | Path | None = None, v
     """
     model_class = _get_model_class(model)
     files = model_class._get_model_files(version)
+
     if path is None:
         assert model in get_args(ModelNames), "If the path is not specified, you must specify a specific model name."
         path = _download_model(model, list(files.values()))  # type: ignore
 
-    return model_class(_resolve_paths(path, files))
+    if providers is None:
+        providers = rt.get_available_providers()
+
+    return model_class(_resolve_paths(path, files), providers=providers)

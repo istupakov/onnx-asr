@@ -46,8 +46,8 @@ class Asr(ABC):
 class _AsrWithDecoding(Asr):
     DECODE_SPACE_PATTERN = re.compile(r"\A\u2581|\u2581\B|(\u2581)\b")
 
-    def __init__(self, preprocessor_name: Preprocessor.PreprocessorNames, vocab_path: Path):
-        self._preprocessor = Preprocessor(preprocessor_name)
+    def __init__(self, preprocessor_name: Preprocessor.PreprocessorNames, vocab_path: Path, **kwargs):
+        self._preprocessor = Preprocessor(preprocessor_name, **kwargs)
         with Path(vocab_path).open("rt") as f:
             tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}
         self._vocab = {id: token for token, id in tokens.items()}

@@ -8,8 +8,8 @@ from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDeco
 
 
 class NemoConformer(_AsrWithDecoding):
-    def __init__(self, model_parts: dict[str, Path]):
-        super().__init__("nemo", model_parts["vocab"])
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__("nemo", model_parts["vocab"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
@@ -18,9 +18,9 @@ class NemoConformer(_AsrWithDecoding):
 
 
 class NemoConformerCtc(_AsrWithCtcDecoding, NemoConformer):
-    def __init__(self, model_parts: dict[str, Path]):
-        super().__init__(model_parts)
-        self._model = rt.InferenceSession(model_parts["model"])
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__(model_parts, **kwargs)
+        self._model = rt.InferenceSession(model_parts["model"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
@@ -44,10 +44,10 @@ class NemoConformerRnnt(_AsrWithRnntDecoding, NemoConformer):
     MAX_TOKENS_PER_STEP = 10
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, model_parts: dict[str, Path]):
-        super().__init__(model_parts)
-        self._encoder = rt.InferenceSession(model_parts["encoder"])
-        self._decoder_joint = rt.InferenceSession(model_parts["decoder_joint"])
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__(model_parts, **kwargs)
+        self._encoder = rt.InferenceSession(model_parts["encoder"], **kwargs)
+        self._decoder_joint = rt.InferenceSession(model_parts["decoder_joint"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:

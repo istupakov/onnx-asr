@@ -23,9 +23,11 @@ def bytes_to_unicode():
 
 
 class Whisper(Asr):
-    def __init__(self, model_parts: dict[str, Path]):
-        self._preprocessor = Preprocessor("whisper128") if "v3" in str(model_parts["model"]) else Preprocessor("whisper80")
-        self._model = rt.InferenceSession(model_parts["model"])
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        self._preprocessor = (
+            Preprocessor("whisper128", **kwargs) if "v3" in str(model_parts["model"]) else Preprocessor("whisper80", **kwargs)
+        )
+        self._model = rt.InferenceSession(model_parts["model"], **kwargs)
 
         with Path(model_parts["vocab"]).open("rt") as f:
             self._tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}

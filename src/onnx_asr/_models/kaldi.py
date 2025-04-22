@@ -10,11 +10,11 @@ from onnx_asr.asr import _AsrWithRnntDecoding
 class KaldiTransducer(_AsrWithRnntDecoding):
     CONTEXT_SIZE = 2
 
-    def __init__(self, model_parts: dict[str, Path]):
-        super().__init__("kaldi", model_parts["vocab"])
-        self._encoder = rt.InferenceSession(model_parts["encoder"])
-        self._decoder = rt.InferenceSession(model_parts["decoder"])
-        self._joiner = rt.InferenceSession(model_parts["joiner"])
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__("kaldi", model_parts["vocab"], **kwargs)
+        self._encoder = rt.InferenceSession(model_parts["encoder"], **kwargs)
+        self._decoder = rt.InferenceSession(model_parts["decoder"], **kwargs)
+        self._joiner = rt.InferenceSession(model_parts["joiner"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:

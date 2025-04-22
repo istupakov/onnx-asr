@@ -8,8 +8,8 @@ from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDeco
 
 
 class GigaamV2(_AsrWithDecoding):
-    def __init__(self, model_parts: dict[str, Path]):
-        super().__init__("gigaam", model_parts["vocab"])
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__("gigaam", model_parts["vocab"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
@@ -18,9 +18,9 @@ class GigaamV2(_AsrWithDecoding):
 
 
 class GigaamV2Ctc(_AsrWithCtcDecoding, GigaamV2):
-    def __init__(self, model_parts: dict[str, Path]):
-        super().__init__(model_parts)
-        self._model = rt.InferenceSession(model_parts["model"])
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__(model_parts, **kwargs)
+        self._model = rt.InferenceSession(model_parts["model"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
@@ -37,11 +37,11 @@ class GigaamV2Rnnt(_AsrWithRnntDecoding, GigaamV2):
     PRED_HIDDEN = 320
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, model_parts: dict[str, Path]):
-        super().__init__(model_parts)
-        self._encoder = rt.InferenceSession(model_parts["encoder"])
-        self._decoder = rt.InferenceSession(model_parts["decoder"])
-        self._joiner = rt.InferenceSession(model_parts["joint"])
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__(model_parts, **kwargs)
+        self._encoder = rt.InferenceSession(model_parts["encoder"], **kwargs)
+        self._decoder = rt.InferenceSession(model_parts["decoder"], **kwargs)
+        self._joiner = rt.InferenceSession(model_parts["joint"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
