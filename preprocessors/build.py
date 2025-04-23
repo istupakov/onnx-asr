@@ -6,9 +6,7 @@ import preprocessors
 
 
 def save_model(function: onnxscript.OnnxFunction, filename: Path):
-    model = function.to_model_proto()
-    model = onnxscript.optimizer.optimize(model)
-    model = onnxscript.ir.from_proto(model)
+    model = onnxscript.ir.from_proto(function.to_model_proto())
     model = onnxscript.optimizer.optimize(model)
 
     model.producer_name = "OnnxScript"

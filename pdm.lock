@@ -5,7 +5,7 @@
 groups = ["default", "asrs", "build", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:7fb6f7769b54806181c9e71802fdc0822cfdf70b91362c341ec3a0bf215c25c2"
+content_hash = "sha256:22c5894b7b752bf0bc27765735a57b2417b7be07db35180a2c56352b9d6aee12"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -2596,7 +2596,7 @@ files = [
 
 [[package]]
 name = "onnxscript"
-version = "0.2.4"
+version = "0.2.5"
 requires_python = ">=3.8"
 summary = "Naturally author ONNX functions and models using a subset of Python"
 groups = ["build", "test"]
@@ -2608,8 +2608,8 @@ dependencies = [
     "typing-extensions>=4.10",
 ]
 files = [
-    {file = "onnxscript-0.2.4-py3-none-any.whl", hash = "sha256:061ad4e0b058d4a9fa638736af6e2061b74b12ffd616fbc3d3a61feae10541cf"},
-    {file = "onnxscript-0.2.4.tar.gz", hash = "sha256:7051a90e0626d5a8da69ed6c88004388e2ef3ec4a083f139487428e6e85ee580"},
+    {file = "onnxscript-0.2.5-py3-none-any.whl", hash = "sha256:2d7f1fa7e8496339b87eeede15f37f0752fe97e80a6f033b9e07d36b3b554090"},
+    {file = "onnxscript-0.2.5.tar.gz", hash = "sha256:f44c727dfda04d42f39b7c0868b5825ee17c108cc164391d986e77fefa6724c5"},
 ]
 
 [[package]]

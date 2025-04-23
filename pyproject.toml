@@ -39,9 +39,9 @@ onnx-asr = "onnx_asr.cli:run"
 [dependency-groups]
 build = [
     "onnx>=1.17.0",
-    "onnxscript>=0.2.4",
-    "torch>=2.6.0",
-    "torchaudio>=2.6.0",
+    "onnxscript>=0.2.5",
+    "torch~=2.6.0",
+    "torchaudio~=2.6.0",
 ]
 asrs = [
     "kaldi-native-fbank>=1.21.1",
