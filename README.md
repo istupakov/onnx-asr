@@ -97,7 +97,8 @@ Supported model types:
 * `nemo-conformer-ctc` for NeMo Conformer with CTC decoder
 * `nemo-conformer-rnnt` for NeMo Conformer with RNN-T decoder
 * `kaldi-rnnt` or `vosk` for Kaldi Icefall Zipformer with stateless RNN-T decoder
-* `whisper` for Whisper (exported with [onnxruntime](#openai-whisper))
+* `whisper-ort` for Whisper (exported with [onnxruntime](#openai-whisper-with-onnxruntime-export))
+* `whisper-hf` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))
 
 ## Convert model to ONNX
 
@@ -155,22 +156,26 @@ with Path(onnx_dir, "v2_vocab.txt").open("wt") as f:
         f.write(f"{token} {i}\n")
 ```
 
-### OpenAI Whisper
+### OpenAI Whisper (with `onnxruntime` export)
 
-Export Whisper to ONNX with `onnxruntime` ([whisper.convert_to_onnx](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/python/tools/transformers/models/whisper/README.md)).
+Read onnxruntime [instruction](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/python/tools/transformers/models/whisper/README.md) for convert Whisper to ONNX.
 
-Download model and export with Beam Search and Forced Decoder Input Ids:
+Download model and export with *Beam Search* and *Forced Decoder Input Ids*:
 ```shell
 python3 -m onnxruntime.transformers.models.whisper.convert_to_onnx -m openai/whisper-base --output whisper-onnx --use_external_data_format --use_forced_decoder_ids --optimize_onnx --precision fp32
 ```
 
-Save tokenizer vocabulary
+Save preprocessor and tokenizer configs
 ```py
-from transformers import WhisperTokenizer
+from transformers import WhisperProcessor
 
-tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-base")
+processor = WhisperProcessor.from_pretrained("openai/whisper-base")
+processor.save_pretrained("whisper-onnx")
+```
 
-with open("whisper-onnx/vocab.txt", "w") as f:
-    for token, id in tokenizer.get_vocab().items():
-        f.write(f"{token} {id}\n")
+### OpenAI Whisper (with `optimum` export)
+
+Export model to ONNX with `optimum-cli`
+```shell
+optimum-cli export onnx --model openai/whisper-base ./whisper-onnx/
 ```

@@ -6,7 +6,15 @@ from typing import Any, Literal, get_args
 
 import onnxruntime as rt
 
-from ._models import GigaamV2Ctc, GigaamV2Rnnt, KaldiTransducer, NemoConformerCtc, NemoConformerRnnt, Whisper
+from ._models import (
+    GigaamV2Ctc,
+    GigaamV2Rnnt,
+    KaldiTransducer,
+    NemoConformerCtc,
+    NemoConformerRnnt,
+    WhisperHf,
+    WhisperOrt,
+)
 from .asr import Asr
 
 ModelNames = Literal[
@@ -16,9 +24,9 @@ ModelNames = Literal[
     "nemo-fastconformer-ru-rnnt",
     "vosk-model-ru",
     "vosk-model-small-ru",
-    "whisper-base",
+    "whisper-base-ort",
 ]
-ModelTypes = Literal["kaldi-rnnt", "nemo-conformer-ctc", "nemo-conformer-rnnt", "vosk", "whisper"]
+ModelTypes = Literal["kaldi-rnnt", "nemo-conformer-ctc", "nemo-conformer-rnnt", "vosk", "whisper-ort", "whisper-hf"]
 ModelVersions = Literal["int8"] | None
 
 
@@ -34,8 +42,10 @@ def _get_model_class(name: ModelNames | ModelTypes):
             return NemoConformerCtc
         case "nemo-conformer-rnnt" | "nemo-fastconformer-ru-rnnt":
             return NemoConformerRnnt
-        case "whisper" | "whisper-base":
-            return Whisper
+        case "whisper-ort" | "whisper-base-ort":
+            return WhisperOrt
+        case "whisper-hf":
+            return WhisperHf
 
 
 def _resolve_paths(path: str | Path, model_files: dict[str, str]):
@@ -60,9 +70,10 @@ def _download_model(model: ModelNames, files: list[str]) -> str:
             repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
         case "vosk-model-ru" | "vosk-model-small-ru":
             repo_id = "alphacep/" + model
-        case "whisper-base":
+        case "whisper-base-ort":
             repo_id = "istupakov/whisper-base-onnx"
 
+    files = [*files, *(str(path.with_suffix(".onnx.data")) for file in files if (path := Path(file)).suffix == ".onnx")]
     return snapshot_download(repo_id, allow_patterns=files)
 
 

@@ -1,3 +1,5 @@
+import json
+from abc import abstractmethod
 from pathlib import Path
 
 import numpy as np
@@ -24,74 +26,132 @@ def bytes_to_unicode():
 
 class Whisper(Asr):
     def __init__(self, model_parts: dict[str, Path], **kwargs):
-        self._preprocessor = (
-            Preprocessor("whisper128", **kwargs) if "v3" in str(model_parts["model"]) else Preprocessor("whisper80", **kwargs)
-        )
-        self._model = rt.InferenceSession(model_parts["model"], **kwargs)
+        with model_parts["preprocessor_config"].open() as f:
+            preprocessor_config = json.load(f)
+        assert preprocessor_config["feature_size"] in [80, 128], "feature_size not in [80, 128]"
 
-        with Path(model_parts["vocab"]).open("rt") as f:
-            self._tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}
-        self._vocab = {id: token for token, id in self._tokens.items()}
+        self._input_length = preprocessor_config["n_samples"]
+        self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", **kwargs)  # type: ignore
+
+        with model_parts["vocab"].open() as f:
+            tokens: dict[str, int] = json.load(f)
+
+        with model_parts["added_tokens"].open() as f:
+            self._added_tokens: dict[str, int] = json.load(f)
+
+        self._vocab = {id: token for token, id in tokens.items()}
+        self._bos_token_id = self._added_tokens["<|startoftranscript|>"]
+        self._eos_token_id = tokens["<|endoftext|>"]
         self._byte_decoder = {v: k for k, v in bytes_to_unicode().items()}
+        self._decoder_input = np.array(
+            [
+                [
+                    self._bos_token_id,
+                    self._eos_token_id,
+                    self._added_tokens["<|transcribe|>"],
+                    self._added_tokens["<|notimestamps|>"],
+                ]
+            ]
+        )
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
-        return {"vocab": "vocab.txt", "model": "whisper-*_beamsearch.onnx", "model-data": "whisper-*_beamsearch.onnx.data"}
+        return {
+            "preprocessor_config": "preprocessor_config.json",
+            "vocab": "vocab.json",
+            "added_tokens": "added_tokens.json",
+        }
 
     def _preprocess(self, waveforms: list[npt.NDArray[np.float32]]) -> npt.NDArray[np.float32]:
-        chunk_length = 30
-        input_length = chunk_length * 16_000
-
         def resize(waveform):
-            if waveform.size < input_length:
-                return np.pad(waveform, (0, input_length - waveform.size))
+            if waveform.size < self._input_length:
+                return np.pad(waveform, (0, self._input_length - waveform.size))
             else:
-                return waveform[:input_length]
+                return waveform[: self._input_length]
 
         input_features, _ = self._preprocessor(
-            np.stack([resize(waveform) for waveform in waveforms]), np.repeat(input_length, len(waveforms))
+            np.stack([resize(waveform) for waveform in waveforms]), np.repeat(self._input_length, len(waveforms))
         )
         return input_features
 
-    def _postprocess(self, sequence: npt.NDArray[np.int32]) -> str:
-        text = "".join(token for id in sequence if not (token := self._vocab[id]).startswith("<|"))
+    @abstractmethod
+    def _decoding(self, input_features: npt.NDArray, tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray: ...
+
+    def _decode_tokens(self, tokens: npt.NDArray) -> str:
+        text = "".join(token for id in tokens if id != self._eos_token_id and (token := self._vocab.get(id)))
         return bytearray([self._byte_decoder[c] for c in text]).decode("utf-8", errors="replace").removeprefix(" ")
 
-    def _process(
-        self,
-        input_features: npt.NDArray[np.float32],
-        decoder_input_ids: list[list[int]],
-        max_length=448,
-        min_length=0,
-        num_beams=1,
-        num_return_sequences=1,
-        length_penalty=1.0,
-        repetition_penalty=1.0,
-    ):
+    def _recognize_batch(self, waveforms: list[npt.NDArray[np.float32]], language: str | None = None) -> list[str]:
+        input_features = self._preprocess(waveforms)
+        input_tokens = np.repeat(self._decoder_input, len(waveforms), axis=0)
+
+        if language:
+            input_tokens[:, 1] = self._added_tokens[f"<|{language}|>"]
+        else:
+            input_tokens_detect_lang = np.repeat([[self._bos_token_id]], len(waveforms), axis=0)
+            input_tokens[:, 1] = self._decoding(input_features, input_tokens_detect_lang, 3)[:, 1]
+
+        return list(map(self._decode_tokens, self._decoding(input_features, input_tokens)))
+
+
+class WhisperOrt(Whisper):
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__(model_parts, **kwargs)
+        self._model = rt.InferenceSession(model_parts["model"], **kwargs)
+
+    @staticmethod
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
+        return {"model": "whisper-*_beamsearch.onnx"} | Whisper._get_model_files(version)
+
+    def _decoding(self, input_features: npt.NDArray, tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray:
         (sequences,) = self._model.run(
             ["sequences"],
             {
                 "input_features": input_features,
                 "max_length": [max_length],
-                "min_length": [min_length],
-                "num_beams": [num_beams],
-                "num_return_sequences": [num_return_sequences],
-                "length_penalty": [length_penalty],
-                "repetition_penalty": [repetition_penalty],
-                "decoder_input_ids": decoder_input_ids,
+                "min_length": [0],
+                "num_beams": [1],
+                "num_return_sequences": [1],
+                "length_penalty": [1.0],
+                "repetition_penalty": [1.0],
+                "decoder_input_ids": tokens.astype(np.int32),
             },
         )
-        return sequences
+        return sequences[:, 0, :]
 
-    def _detect_language(self, input_features: npt.NDArray[np.float32]) -> list[int]:
-        sequences = self._process(input_features, [[self._tokens["<|startoftranscript|>"]]] * len(input_features), max_length=3)
-        return sequences[:, 0, 1]
 
-    def _recognize_batch(self, waveforms: list[npt.NDArray[np.float32]], language: str | None = None) -> list[str]:
-        input_features = self._preprocess(waveforms)
-        languages = [self._tokens[f"<|{language}|>"]] * len(waveforms) if language else self._detect_language(input_features)
+class WhisperHf(Whisper):
+    def __init__(self, model_parts: dict[str, Path], **kwargs):
+        super().__init__(model_parts, **kwargs)
+        self._encoder = rt.InferenceSession(model_parts["encoder"], **kwargs)
+        self._decoder = rt.InferenceSession(model_parts["decoder"], **kwargs)
 
-        sequences = self._process(
-            input_features, [[self._tokens["<|startoftranscript|>"], lang, self._tokens["<|transcribe|>"]] for lang in languages]
+    @staticmethod
+    def _get_model_files(version: str | None = None) -> dict[str, str]:
+        return {
+            "encoder": "**/encoder_model.onnx",
+            "decoder": "**/decoder_model.onnx",
+        } | Whisper._get_model_files(version)
+
+    def _preprocess(self, waveforms: list[npt.NDArray[np.float32]]) -> npt.NDArray[np.float32]:
+        input_features = super()._preprocess(waveforms)
+        (last_hidden_state,) = self._encoder.run(
+            ["last_hidden_state"],
+            {"input_features": input_features},
         )
-        return [self._postprocess(sequence) for sequence in sequences[:, 0, :]]
+        return last_hidden_state
+
+    def _decode(self, tokens, encoder_out):
+        (logits,) = self._decoder.run(["logits"], {"input_ids": tokens, "encoder_hidden_states": encoder_out})
+        return logits
+
+    def _decoding(self, input_features: npt.NDArray, tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray:
+        for _ in range(tokens.shape[-1], max_length):
+            logits = self._decode(tokens, input_features)
+            next_tokens = logits[:, -1].argmax(axis=-1)
+            next_tokens[tokens[:, -1] == self._eos_token_id] = self._eos_token_id
+            tokens = np.hstack((tokens, next_tokens[:, None]))
+            if (tokens[:, -1] == self._eos_token_id).all():
+                break
+
+        return tokens
