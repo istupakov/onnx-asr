@@ -1,3 +1,5 @@
+"""GigaAM v2 model implementations."""
+
 from pathlib import Path
 
 import numpy as np
@@ -7,9 +9,9 @@ import onnxruntime as rt
 from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDecoding
 
 
-class GigaamV2(_AsrWithDecoding):
-    def __init__(self, model_parts: dict[str, Path], **kwargs):
-        super().__init__("gigaam", model_parts["vocab"], **kwargs)
+class _GigaamV2(_AsrWithDecoding):
+    def __init__(self, model_files: dict[str, Path], **kwargs):
+        super().__init__("gigaam", model_files["vocab"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
@@ -17,14 +19,23 @@ class GigaamV2(_AsrWithDecoding):
         return {"vocab": "v2_vocab.txt"}
 
 
-class GigaamV2Ctc(_AsrWithCtcDecoding, GigaamV2):
-    def __init__(self, model_parts: dict[str, Path], **kwargs):
-        super().__init__(model_parts, **kwargs)
-        self._model = rt.InferenceSession(model_parts["model"], **kwargs)
+class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
+    """GigaAM v2 CTC model implementation."""
+
+    def __init__(self, model_files: dict[str, Path], **kwargs):
+        """Create GigaAM v2 CTC model.
+
+        Args:
+            model_files: Dict with paths to model files.
+            kwargs: Additional parameters for onnxruntime.InferenceSession.
+
+        """
+        super().__init__(model_files, **kwargs)
+        self._model = rt.InferenceSession(model_files["model"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
-        return {"model": "v2_ctc.onnx"} | GigaamV2._get_model_files(version)
+        return {"model": "v2_ctc.onnx"} | _GigaamV2._get_model_files(version)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
@@ -33,15 +44,24 @@ class GigaamV2Ctc(_AsrWithCtcDecoding, GigaamV2):
         return log_probs, (features_lens - 1) // 4 + 1
 
 
-class GigaamV2Rnnt(_AsrWithRnntDecoding, GigaamV2):
+class GigaamV2Rnnt(_AsrWithRnntDecoding, _GigaamV2):
+    """GigaAM v2 RNN-T model implementation."""
+
     PRED_HIDDEN = 320
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, model_parts: dict[str, Path], **kwargs):
-        super().__init__(model_parts, **kwargs)
-        self._encoder = rt.InferenceSession(model_parts["encoder"], **kwargs)
-        self._decoder = rt.InferenceSession(model_parts["decoder"], **kwargs)
-        self._joiner = rt.InferenceSession(model_parts["joint"], **kwargs)
+    def __init__(self, model_files: dict[str, Path], **kwargs):
+        """Create GigaAM v2 RNN-T model.
+
+        Args:
+            model_files: Dict with paths to model files.
+            kwargs: Additional parameters for onnxruntime.InferenceSession.
+
+        """
+        super().__init__(model_files, **kwargs)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **kwargs)
+        self._decoder = rt.InferenceSession(model_files["decoder"], **kwargs)
+        self._joiner = rt.InferenceSession(model_files["joint"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
@@ -49,7 +69,7 @@ class GigaamV2Rnnt(_AsrWithRnntDecoding, GigaamV2):
             "encoder": "v2_rnnt_encoder.onnx",
             "decoder": "v2_rnnt_decoder.onnx",
             "joint": "v2_rnnt_joint.onnx",
-        } | GigaamV2._get_model_files(version)
+        } | _GigaamV2._get_model_files(version)
 
     @property
     def _max_tokens_per_step(self) -> int:

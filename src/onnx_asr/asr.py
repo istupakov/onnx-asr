@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from ._preprocessors import Preprocessor
+from .preprocessors import Preprocessor
 from .utils import pad_list, read_wav_files
 
 

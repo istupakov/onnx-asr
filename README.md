@@ -50,7 +50,7 @@ print(model.recognize("test.wav"))
 * `nemo-fastconformer-ru-rnnt` for Nvidia FastConformer-Hybrid Large (ru) with RNN-T decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
 * `vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
-* `whisper-base` for OpenAI Whisper Base ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
+* `whisper-base-ort` for OpenAI Whisper Base exported with onnxruntime ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
 
 Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats with 16 kHz sample rate. For other formats, you either need to convert them first, or use a library that can read them into a numpy array. 
 
@@ -175,7 +175,7 @@ processor.save_pretrained("whisper-onnx")
 
 ### OpenAI Whisper (with `optimum` export)
 
-Export model to ONNX with `optimum-cli`
+Export model to ONNX with Hugging Face `optimum-cli`
 ```shell
 optimum-cli export onnx --model openai/whisper-base ./whisper-onnx/
 ```

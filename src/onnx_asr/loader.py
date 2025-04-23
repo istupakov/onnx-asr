@@ -6,7 +6,8 @@ from typing import Any, Literal, get_args
 
 import onnxruntime as rt
 
-from ._models import (
+from .asr import Asr
+from .models import (
     GigaamV2Ctc,
     GigaamV2Rnnt,
     KaldiTransducer,
@@ -15,7 +16,6 @@ from ._models import (
     WhisperHf,
     WhisperOrt,
 )
-from .asr import Asr
 
 ModelNames = Literal[
     "gigaam-v2-ctc",
@@ -91,6 +91,8 @@ def load_model(
                     Kaldi Transducer (`kaldi-rnnt` | `vosk` | `vosk-model-ru` | `vosk-model-small-ru`)
                     Nvidia Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt`)
                     Nvidia STT RU FastConformer Hybrid Large P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
+                    Whisper exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
+                    Whisper exported with optimum (`whisper-hf`)
         path: Path to directory with model files.
         version: Model version: None for the default version or int8 for the quantized version.
         providers: Optional sequence of providers for onnxruntime.

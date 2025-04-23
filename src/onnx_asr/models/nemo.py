@@ -1,3 +1,5 @@
+"""NeMo model implementations."""
+
 from pathlib import Path
 
 import numpy as np
@@ -7,9 +9,9 @@ import onnxruntime as rt
 from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDecoding
 
 
-class NemoConformer(_AsrWithDecoding):
-    def __init__(self, model_parts: dict[str, Path], **kwargs):
-        super().__init__("nemo", model_parts["vocab"], **kwargs)
+class _NemoConformer(_AsrWithDecoding):
+    def __init__(self, model_files: dict[str, Path], **kwargs):
+        super().__init__("nemo", model_files["vocab"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
@@ -17,14 +19,23 @@ class NemoConformer(_AsrWithDecoding):
         return {"vocab": "vocab*.txt"}
 
 
-class NemoConformerCtc(_AsrWithCtcDecoding, NemoConformer):
-    def __init__(self, model_parts: dict[str, Path], **kwargs):
-        super().__init__(model_parts, **kwargs)
-        self._model = rt.InferenceSession(model_parts["model"], **kwargs)
+class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
+    """NeMo Conformer CTC model implementations."""
+
+    def __init__(self, model_files: dict[str, Path], **kwargs):
+        """Create NeMo Conformer CTC model.
+
+        Args:
+            model_files: Dict with paths to model files.
+            kwargs: Additional parameters for onnxruntime.InferenceSession.
+
+        """
+        super().__init__(model_files, **kwargs)
+        self._model = rt.InferenceSession(model_files["model"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
-        return {"model": "stt_*conformer*.onnx"} | NemoConformer._get_model_files(version)
+        return {"model": "stt_*conformer*.onnx"} | _NemoConformer._get_model_files(version)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
@@ -39,22 +50,31 @@ class NemoConformerCtc(_AsrWithCtcDecoding, NemoConformer):
             return log_probs, fastconformer_lens
 
 
-class NemoConformerRnnt(_AsrWithRnntDecoding, NemoConformer):
+class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
+    """NeMo Conformer RNN-T model implementations."""
+
     PRED_HIDDEN = 640
     MAX_TOKENS_PER_STEP = 10
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, model_parts: dict[str, Path], **kwargs):
-        super().__init__(model_parts, **kwargs)
-        self._encoder = rt.InferenceSession(model_parts["encoder"], **kwargs)
-        self._decoder_joint = rt.InferenceSession(model_parts["decoder_joint"], **kwargs)
+    def __init__(self, model_files: dict[str, Path], **kwargs):
+        """Create NeMo Conformer RNN-T model.
+
+        Args:
+            model_files: Dict with paths to model files.
+            kwargs: Additional parameters for onnxruntime.InferenceSession.
+
+        """
+        super().__init__(model_files, **kwargs)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **kwargs)
+        self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:
         return {
             "encoder": "encoder-stt_*conformer*.onnx",
             "decoder_joint": "decoder_joint-stt_*conformer*.onnx",
-        } | NemoConformer._get_model_files(version)
+        } | _NemoConformer._get_model_files(version)
 
     @property
     def _max_tokens_per_step(self) -> int:

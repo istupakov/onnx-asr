@@ -20,7 +20,7 @@ def save_model(function: onnxscript.OnnxFunction, filename: Path):
 
 
 def build():
-    preprocessors_dir = Path("src/onnx_asr/_preprocessors")
+    preprocessors_dir = Path("src/onnx_asr/preprocessors")
     save_model(preprocessors.KaldiPreprocessor, preprocessors_dir.joinpath("kaldi.onnx"))
     save_model(preprocessors.GigaamPreprocessor, preprocessors_dir.joinpath("gigaam.onnx"))
     save_model(preprocessors.NemoPreprocessor, preprocessors_dir.joinpath("nemo.onnx"))

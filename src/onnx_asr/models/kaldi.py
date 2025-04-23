@@ -1,3 +1,5 @@
+"""Kaldi model implementations."""
+
 from pathlib import Path
 
 import numpy as np
@@ -8,13 +10,22 @@ from onnx_asr.asr import _AsrWithRnntDecoding
 
 
 class KaldiTransducer(_AsrWithRnntDecoding):
+    """Kaldi Transducer model implementation."""
+
     CONTEXT_SIZE = 2
 
-    def __init__(self, model_parts: dict[str, Path], **kwargs):
-        super().__init__("kaldi", model_parts["vocab"], **kwargs)
-        self._encoder = rt.InferenceSession(model_parts["encoder"], **kwargs)
-        self._decoder = rt.InferenceSession(model_parts["decoder"], **kwargs)
-        self._joiner = rt.InferenceSession(model_parts["joiner"], **kwargs)
+    def __init__(self, model_files: dict[str, Path], **kwargs):
+        """Create Kaldi Transducer model.
+
+        Args:
+            model_files: Dict with paths to model files.
+            kwargs: Additional parameters for onnxruntime.InferenceSession.
+
+        """
+        super().__init__("kaldi", model_files["vocab"], **kwargs)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **kwargs)
+        self._decoder = rt.InferenceSession(model_files["decoder"], **kwargs)
+        self._joiner = rt.InferenceSession(model_files["joiner"], **kwargs)
 
     @staticmethod
     def _get_model_files(version: str | None = None) -> dict[str, str]:

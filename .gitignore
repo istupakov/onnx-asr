@@ -174,5 +174,5 @@ cython_debug/
 .pypirc
 
 # ML models
-models/
+/models/
 *.onnx

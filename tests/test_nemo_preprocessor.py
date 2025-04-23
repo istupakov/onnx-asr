@@ -4,7 +4,7 @@ import torch
 import torchaudio
 from nemo.collections.asr.modules import AudioToMelSpectrogramPreprocessor
 
-from onnx_asr._preprocessors import Preprocessor
+from onnx_asr.preprocessors import Preprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import nemo
 
