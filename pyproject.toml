@@ -1,6 +1,6 @@
 [project]
 name = "onnx-asr"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Automatic Speech Recognition in Python using ONNX models"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
 keywords = ["asr", "speech recognition", "onnx"]
@@ -58,6 +58,9 @@ lint = ["ruff>=0.11.6"]
 
 [tool.pdm]
 distribution = true
+
+[tool.pdm.version]
+source = "scm"
 
 [tool.pdm.build]
 source-includes = ["preprocessors", "tests"]

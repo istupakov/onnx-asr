@@ -1,15 +1,21 @@
 # Automatic Speech Recognition in Python using ONNX models
 
+[![CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
+[![PyPI - Version](https://img.shields.io/pypi/v/onnx-asr.svg)](https://pypi.org/project/onnx-asr)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/onnx-asr.svg)](https://pypi.org/project/onnx-asr)
+
 The simple speech recognition package with minimal dependencies:
 * NumPy ([numpy](https://numpy.org/))
 * ONNX Runtime ([onnxruntime](https://onnxruntime.ai/))
 * (*optional*)  Hugging Face Hub ([huggingface_hub](https://huggingface.co/))
 
+The package does not yet have built-in VAD support, so in order to recognize long audio files, they must first be split into parts.
+
 ## Supported models
 * Nvidia NeMo Conformer/FastConformer (with CTC and RNN-T decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
 * Sber GigaAM v2 (with CTC and RNN-T decoders)
-* OpenAI Whisper (*experimental*)
+* OpenAI Whisper (with simple decoding)
 
 ## Installation
 
@@ -19,15 +25,19 @@ The package can be installed from [PyPI](https://pypi.org/project/onnx-asr/):
 ```shell
 pip install onnx-asr[cpu,hub]
 ```
-2. With CPU `onnxruntime`
+2. With GPU `onnxruntime` and `huggingface_hub`
+```shell
+pip install onnx-asr[gpu,hub]
+```
+3. With CPU `onnxruntime`
 ```shell
 pip install onnx-asr[cpu]
 ```
-3. With GPU `onnxruntime`
+4. With GPU `onnxruntime`
 ```shell
 pip install onnx-asr[gpu]
 ```
-4. Without `onnxruntime` (if you already have some `onnxruntime` version installed)
+5. Without `onnxruntime` (if you already have some `onnxruntime` version installed)
 ```shell
 pip install onnx-asr
 ```
@@ -39,7 +49,7 @@ pip install onnx-asr
 Load ONNX model from Hugging Face and recognize wav file:
 ```py
 import onnx_asr
-model = onnx_asr.load_model("nemo-fastconformer-ru-ctc")
+model = onnx_asr.load_model("gigaam-v2-rnnt")
 print(model.recognize("test.wav"))
 ```
 
@@ -48,9 +58,10 @@ print(model.recognize("test.wav"))
 * `gigaam-v2-rnnt` for Sber GigaAM v2 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
 * `nemo-fastconformer-ru-ctc` for Nvidia FastConformer-Hybrid Large (ru) with CTC decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `nemo-fastconformer-ru-rnnt` for Nvidia FastConformer-Hybrid Large (ru) with RNN-T decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
-* `vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
-* `vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
-* `whisper-base-ort` for OpenAI Whisper Base exported with onnxruntime ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
+* `whisper-base` for OpenAI Whisper Base exported with onnxruntime ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
+* `alphacep/vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
+* `alphacep/vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
+* `onnx-community/whisper-tiny`, `onnx-community/whisper-base`, `onnx-community/whisper-small`, `onnx-community/whisper-large-v3-turbo`, etc. for OpenAI Whisper exported with Hugging Face optimum ([onnx-community](https://huggingface.co/onnx-community?search_models=whisper))
 
 Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats with 16 kHz sample rate. For other formats, you either need to convert them first, or use a library that can read them into a numpy array. 
 
@@ -59,7 +70,7 @@ Example with `soundfile`:
 import onnx_asr
 import soundfile as sf
 
-model = onnx_asr.load_model("gigaam-v2-ctc")
+model = onnx_asr.load_model("whisper-base")
 
 waveform, sample_rate = sf.read("test.wav", dtype="float32")
 model.recognize(waveform)
@@ -69,6 +80,13 @@ Batch processing is also supported:
 ```py
 import onnx_asr
 model = onnx_asr.load_model("nemo-fastconformer-ru-ctc")
+print(model.recognize(["test1.wav", "test2.wav", "test3.wav", "test4.wav"]))
+```
+
+Some models have a quantized versions:
+```py
+import onnx_asr
+model = onnx_asr.load_model("alphacep/vosk-model-ru", quantization="int8")
 print(model.recognize(["test1.wav", "test2.wav", "test3.wav", "test4.wav"]))
 ```
 
@@ -162,7 +180,7 @@ Read onnxruntime [instruction](https://github.com/microsoft/onnxruntime/blob/mai
 
 Download model and export with *Beam Search* and *Forced Decoder Input Ids*:
 ```shell
-python3 -m onnxruntime.transformers.models.whisper.convert_to_onnx -m openai/whisper-base --output whisper-onnx --use_external_data_format --use_forced_decoder_ids --optimize_onnx --precision fp32
+python3 -m onnxruntime.transformers.models.whisper.convert_to_onnx -m openai/whisper-base --output ./whisper-onnx --use_external_data_format --use_forced_decoder_ids --optimize_onnx --precision fp32
 ```
 
 Save preprocessor and tokenizer configs
@@ -177,5 +195,5 @@ processor.save_pretrained("whisper-onnx")
 
 Export model to ONNX with Hugging Face `optimum-cli`
 ```shell
-optimum-cli export onnx --model openai/whisper-base ./whisper-onnx/
+optimum-cli export onnx --model openai/whisper-base ./whisper-onnx
 ```
