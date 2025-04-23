@@ -22,13 +22,9 @@ def run():
         nargs="+",
     )
     parser.add_argument("-p", "--model_path", type=pathlib.Path, help="Path to directory with model files")
-    parser.add_argument(
-        "--model_version",
-        choices=[None, "int8"],
-        help="Model version",
-    )
+    parser.add_argument("-q", "--quantization", help="Model quantization ('int8' for example)")
     args = parser.parse_args()
 
-    model = load_model(args.model, args.model_path, args.model_version)
+    model = load_model(args.model, args.model_path, args.quantization)
     for text in model.recognize(args.filename):
         print(text)

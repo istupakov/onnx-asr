@@ -14,8 +14,7 @@ class _NemoConformer(_AsrWithDecoding):
         super().__init__("nemo", model_files["vocab"], **kwargs)
 
     @staticmethod
-    def _get_model_files(version: str | None = None) -> dict[str, str]:
-        assert version is None, "For now, only the default version is supported."
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         return {"vocab": "vocab*.txt"}
 
 
@@ -34,8 +33,9 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
         self._model = rt.InferenceSession(model_files["model"], **kwargs)
 
     @staticmethod
-    def _get_model_files(version: str | None = None) -> dict[str, str]:
-        return {"model": "stt_*conformer*.onnx"} | _NemoConformer._get_model_files(version)
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else "[!0-9]"
+        return {"model": f"stt_*conformer*{suffix}.onnx"} | _NemoConformer._get_model_files(quantization)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
@@ -70,11 +70,12 @@ class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
         self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **kwargs)
 
     @staticmethod
-    def _get_model_files(version: str | None = None) -> dict[str, str]:
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else "[!0-9]"
         return {
-            "encoder": "encoder-stt_*conformer*.onnx",
-            "decoder_joint": "decoder_joint-stt_*conformer*.onnx",
-        } | _NemoConformer._get_model_files(version)
+            "encoder": f"encoder-stt_*conformer*{suffix}.onnx",
+            "decoder_joint": f"decoder_joint-stt_*conformer*{suffix}.onnx",
+        } | _NemoConformer._get_model_files(quantization)
 
     @property
     def _max_tokens_per_step(self) -> int:

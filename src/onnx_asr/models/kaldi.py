@@ -28,17 +28,14 @@ class KaldiTransducer(_AsrWithRnntDecoding):
         self._joiner = rt.InferenceSession(model_files["joiner"], **kwargs)
 
     @staticmethod
-    def _get_model_files(version: str | None = None) -> dict[str, str]:
-        assert version in [None, "int8"], "Only default and int8 versions are supported."
-        if version == "int8":
-            return {
-                "encoder": "*/encoder.int8.onnx",
-                "decoder": "*/decoder.int8.onnx",
-                "joiner": "*/joiner.int8.onnx",
-                "vocab": "*/tokens.txt",
-            }
-        else:
-            return {"encoder": "*/encoder.onnx", "decoder": "*/decoder.onnx", "joiner": "*/joiner.onnx", "vocab": "*/tokens.txt"}
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else ""
+        return {
+            "encoder": f"*/encoder{suffix}.onnx",
+            "decoder": f"*/decoder{suffix}.onnx",
+            "joiner": f"*/joiner{suffix}.onnx",
+            "vocab": "*/tokens.txt",
+        }
 
     @property
     def _max_tokens_per_step(self) -> int:

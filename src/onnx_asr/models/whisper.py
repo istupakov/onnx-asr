@@ -57,7 +57,7 @@ class _Whisper(Asr):
         )
 
     @staticmethod
-    def _get_model_files(version: str | None = None) -> dict[str, str]:
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         return {
             "preprocessor_config": "preprocessor_config.json",
             "vocab": "vocab.json",
@@ -111,8 +111,9 @@ class WhisperOrt(_Whisper):
         self._model = rt.InferenceSession(model_files["model"], **kwargs)
 
     @staticmethod
-    def _get_model_files(version: str | None = None) -> dict[str, str]:
-        return {"model": "whisper-*_beamsearch.onnx"} | _Whisper._get_model_files(version)
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else ""
+        return {"model": f"whisper-*_beamsearch{suffix}.onnx"} | _Whisper._get_model_files(quantization)
 
     def _decoding(self, input_features: npt.NDArray, tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray:
         (sequences,) = self._model.run(
@@ -147,11 +148,12 @@ class WhisperHf(_Whisper):
         self._decoder = rt.InferenceSession(model_files["decoder"], **kwargs)
 
     @staticmethod
-    def _get_model_files(version: str | None = None) -> dict[str, str]:
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else ""
         return {
-            "encoder": "**/encoder_model.onnx",
-            "decoder": "**/decoder_model.onnx",
-        } | _Whisper._get_model_files(version)
+            "encoder": f"**/encoder_model{suffix}.onnx",
+            "decoder": f"**/decoder_model{suffix}.onnx",
+        } | _Whisper._get_model_files(suffix)
 
     def _preprocess(self, waveforms: list[npt.NDArray[np.float32]]) -> npt.NDArray[np.float32]:
         input_features = super()._preprocess(waveforms)

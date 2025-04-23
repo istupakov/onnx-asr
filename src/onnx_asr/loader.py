@@ -22,30 +22,43 @@ ModelNames = Literal[
     "gigaam-v2-rnnt",
     "nemo-fastconformer-ru-ctc",
     "nemo-fastconformer-ru-rnnt",
-    "vosk-model-ru",
-    "vosk-model-small-ru",
-    "whisper-base-ort",
+    "alphacep/vosk-model-ru",
+    "alphacep/vosk-model-small-ru",
+    "whisper-base",
 ]
-ModelTypes = Literal["kaldi-rnnt", "nemo-conformer-ctc", "nemo-conformer-rnnt", "vosk", "whisper-ort", "whisper-hf"]
+ModelTypes = Literal[
+    "gigaam-v2-ctc",
+    "gigaam-v2-rnnt",
+    "kaldi-rnnt",
+    "nemo-conformer-ctc",
+    "nemo-conformer-rnnt",
+    "vosk",
+    "whisper-ort",
+    "whisper-hf",
+]
 ModelVersions = Literal["int8"] | None
 
 
-def _get_model_class(name: ModelNames | ModelTypes):
-    match name:
-        case "gigaam-v2-ctc":
+def _get_model_class(model: str):
+    match model.split("/"):
+        case ("gigaam-v2-ctc",):
             return GigaamV2Ctc
-        case "gigaam-v2-rnnt":
+        case ("gigaam-v2-rnnt",):
             return GigaamV2Rnnt
-        case "kaldi-rnnt" | "vosk" | "vosk-model-ru" | "vosk-model-small-ru":
+        case ("kaldi-rnnt" | "vosk",) | ("alphacep", "vosk-model-ru" | "vosk-model-small-ru"):
             return KaldiTransducer
-        case "nemo-conformer-ctc" | "nemo-fastconformer-ru-ctc":
+        case ("nemo-conformer-ctc" | "nemo-fastconformer-ru-ctc",):
             return NemoConformerCtc
-        case "nemo-conformer-rnnt" | "nemo-fastconformer-ru-rnnt":
+        case ("nemo-conformer-rnnt" | "nemo-fastconformer-ru-rnnt",):
             return NemoConformerRnnt
-        case "whisper-ort" | "whisper-base-ort":
+        case ("whisper-ort" | "whisper-base",):
             return WhisperOrt
-        case "whisper-hf":
+        case ("whisper-hf",):
             return WhisperHf
+        case ("onnx-community", name) if "whisper" in name:
+            return WhisperHf
+        case _:
+            raise ValueError(f"Model '{model}' not supported!")  # noqa: TRY003
 
 
 def _resolve_paths(path: str | Path, model_files: dict[str, str]):
@@ -68,44 +81,47 @@ def _download_model(model: ModelNames, files: list[str]) -> str:
             repo_id = "istupakov/gigaam-v2-onnx"
         case "nemo-fastconformer-ru-ctc" | "nemo-fastconformer-ru-rnnt":
             repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
-        case "vosk-model-ru" | "vosk-model-small-ru":
-            repo_id = "alphacep/" + model
-        case "whisper-base-ort":
+        case "whisper-base":
             repo_id = "istupakov/whisper-base-onnx"
+        case _:
+            repo_id = model
 
     files = [*files, *(str(path.with_suffix(".onnx.data")) for file in files if (path := Path(file)).suffix == ".onnx")]
     return snapshot_download(repo_id, allow_patterns=files)
 
 
 def load_model(
-    model: ModelNames | ModelTypes,
+    model: str | ModelNames | ModelTypes,
     path: str | Path | None = None,
-    version: ModelVersions = None,
+    quantization: str | None = None,
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
 ) -> Asr:
     """Load ASR model.
 
     Args:
-        model: Model name or type:
-                    GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`),
-                    Kaldi Transducer (`kaldi-rnnt` | `vosk` | `vosk-model-ru` | `vosk-model-small-ru`)
-                    Nvidia Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt`)
-                    Nvidia STT RU FastConformer Hybrid Large P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
-                    Whisper exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
-                    Whisper exported with optimum (`whisper-hf`)
+        model: Model name or type (specific models support downloading from Hugging Face):
+                GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`),
+                Kaldi Transducer (`kaldi-rnnt`)
+                NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt`)
+                NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
+                Vosk (`vosk` | `alphacep/vosk-model-ru` | `alphacep/vosk-model-small-ru`)
+                Whisper Base exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
+                Whisper from onnx-community (`whisper-hf` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
         path: Path to directory with model files.
-        version: Model version: None for the default version or int8 for the quantized version.
-        providers: Optional sequence of providers for onnxruntime.
+        quantization: Model quantization (`None` | `int8` | ... ).
+        providers: Optional providers for onnxruntime.
 
     Returns:
         ASR model class.
 
     """
     model_class = _get_model_class(model)
-    files = model_class._get_model_files(version)
+    files = model_class._get_model_files(quantization)
 
     if path is None:
-        assert model in get_args(ModelNames), "If the path is not specified, you must specify a specific model name."
+        assert model in get_args(ModelNames) or model.startswith("onnx-community/"), (
+            "If the path is not specified, you must specify a specific model name."
+        )
         path = _download_model(model, list(files.values()))  # type: ignore
 
     if providers is None:
