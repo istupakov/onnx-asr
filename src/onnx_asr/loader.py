@@ -86,7 +86,7 @@ def _download_model(model: ModelNames, files: list[str]) -> str:
         case _:
             repo_id = model
 
-    files = [*files, *(str(path.with_suffix(".onnx.data")) for file in files if (path := Path(file)).suffix == ".onnx")]
+    files = [*files, *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx")]
     return snapshot_download(repo_id, allow_patterns=files)
 
 

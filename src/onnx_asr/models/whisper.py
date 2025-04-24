@@ -36,22 +36,22 @@ class _Whisper(Asr):
         self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", **kwargs)  # type: ignore
 
         with model_files["vocab"].open() as f:
-            tokens: dict[str, int] = json.load(f)
+            self._tokens: dict[str, int] = json.load(f)
 
         with model_files["added_tokens"].open() as f:
-            self._added_tokens: dict[str, int] = json.load(f)
+            self._tokens |= json.load(f)
 
-        self._vocab = {id: token for token, id in tokens.items()}
-        self._bos_token_id = self._added_tokens["<|startoftranscript|>"]
-        self._eos_token_id = tokens["<|endoftext|>"]
+        self._vocab = {id: token for token, id in self._tokens.items()}
+        self._bos_token_id = self._tokens["<|startoftranscript|>"]
+        self._eos_token_id = self._tokens["<|endoftext|>"]
         self._byte_decoder = {v: k for k, v in bytes_to_unicode().items()}
         self._decoder_input = np.array(
             [
                 [
                     self._bos_token_id,
                     self._eos_token_id,
-                    self._added_tokens["<|transcribe|>"],
-                    self._added_tokens["<|notimestamps|>"],
+                    self._tokens["<|transcribe|>"],
+                    self._tokens["<|notimestamps|>"],
                 ]
             ]
         )
@@ -80,7 +80,7 @@ class _Whisper(Asr):
     def _decoding(self, input_features: npt.NDArray, tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray: ...
 
     def _decode_tokens(self, tokens: npt.NDArray) -> str:
-        text = "".join(token for id in tokens if id != self._eos_token_id and (token := self._vocab.get(id)))
+        text = "".join(token for id in tokens if (token := self._vocab[id]) and not token.startswith("<|"))
         return bytearray([self._byte_decoder[c] for c in text]).decode("utf-8", errors="replace").removeprefix(" ")
 
     def _recognize_batch(self, waveforms: list[npt.NDArray[np.float32]], language: str | None = None) -> list[str]:
@@ -88,7 +88,7 @@ class _Whisper(Asr):
         input_tokens = np.repeat(self._decoder_input, len(waveforms), axis=0)
 
         if language:
-            input_tokens[:, 1] = self._added_tokens[f"<|{language}|>"]
+            input_tokens[:, 1] = self._tokens[f"<|{language}|>"]
         else:
             input_tokens_detect_lang = np.repeat([[self._bos_token_id]], len(waveforms), axis=0)
             input_tokens[:, 1] = self._decoding(input_features, input_tokens_detect_lang, 3)[:, 1]
