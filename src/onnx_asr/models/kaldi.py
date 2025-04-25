@@ -1,6 +1,7 @@
 """Kaldi model implementations."""
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -14,7 +15,7 @@ class KaldiTransducer(_AsrWithRnntDecoding):
 
     CONTEXT_SIZE = 2
 
-    def __init__(self, model_files: dict[str, Path], **kwargs):
+    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
         """Create Kaldi Transducer model.
 
         Args:
@@ -49,12 +50,12 @@ class KaldiTransducer(_AsrWithRnntDecoding):
         )
         return encoder_out.transpose(0, 2, 1), encoder_out_lens
 
-    def _create_state(self) -> None:
-        return None
+    def _create_state(self) -> tuple:
+        return ()
 
     def _decode(
-        self, prev_tokens: list[int], prev_state: None, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], None]:
+        self, prev_tokens: list[int], prev_state: tuple, encoder_out: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], tuple]:
         (decoder_out,) = self._decoder.run(["decoder_out"], {"y": [[-1, self._blank_idx, *prev_tokens][-self.CONTEXT_SIZE :]]})
         (logit,) = self._joiner.run(["logit"], {"encoder_out": encoder_out[None, :], "decoder_out": decoder_out})
-        return np.squeeze(logit), None
+        return np.squeeze(logit), prev_state

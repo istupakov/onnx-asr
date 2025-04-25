@@ -1,6 +1,7 @@
 """GigaAM v2 model implementations."""
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -10,7 +11,7 @@ from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDeco
 
 
 class _GigaamV2(_AsrWithDecoding):
-    def __init__(self, model_files: dict[str, Path], **kwargs):
+    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
         super().__init__("gigaam", model_files["vocab"], **kwargs)
 
     @staticmethod
@@ -21,7 +22,7 @@ class _GigaamV2(_AsrWithDecoding):
 class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
     """GigaAM v2 CTC model implementation."""
 
-    def __init__(self, model_files: dict[str, Path], **kwargs):
+    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
         """Create GigaAM v2 CTC model.
 
         Args:
@@ -50,7 +51,7 @@ class GigaamV2Rnnt(_AsrWithRnntDecoding, _GigaamV2):
     PRED_HIDDEN = 320
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, model_files: dict[str, Path], **kwargs):
+    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
         """Create GigaAM v2 RNN-T model.
 
         Args:

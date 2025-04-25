@@ -2,7 +2,7 @@
 
 from importlib.resources import files
 from pathlib import Path
-from typing import Literal
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -12,9 +12,7 @@ import onnxruntime as rt
 class Preprocessor:
     """ASR preprocessor implementation."""
 
-    PreprocessorNames = Literal["gigaam", "kaldi", "nemo", "whisper80", "whisper128"]
-
-    def __init__(self, name: PreprocessorNames, **kwargs):
+    def __init__(self, name: str, **kwargs: Any):
         """Create ASR preprocessor.
 
         Args:
@@ -22,10 +20,14 @@ class Preprocessor:
             kwargs: Additional parameters for onnxruntime.InferenceSession.
 
         """
-        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(Path(name).with_suffix(".onnx")), **kwargs)  # type: ignore
+        filename = str(Path(name).with_suffix(".onnx"))
+        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(filename).read_bytes(), **kwargs)
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         """Convert waveforms to model features."""
-        return self._preprocessor.run(["features", "features_lens"], {"waveforms": waveforms, "waveforms_lens": waveforms_lens})
+        features, features_lens = self._preprocessor.run(
+            ["features", "features_lens"], {"waveforms": waveforms, "waveforms_lens": waveforms_lens}
+        )
+        return features, features_lens

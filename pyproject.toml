@@ -48,8 +48,8 @@ onnx-asr = "onnx_asr.cli:run"
 build = [
     "onnx>=1.17.0",
     "onnxscript>=0.2.5",
-    "torch~=2.6.0",
-    "torchaudio~=2.6.0",
+    "torch>=2.6.0",
+    "torchaudio>=2.6.0",
 ]
 asrs = [
     "kaldi-native-fbank>=1.21.1",
@@ -62,7 +62,7 @@ test = [
     { include-group = "build" },
     { include-group = "asrs" },
 ]
-lint = ["ruff>=0.11.6"]
+lint = ["ruff>=0.11.6", "mypy>=1.15.0"]
 
 [tool.pdm]
 distribution = true
@@ -76,12 +76,25 @@ source-includes = ["preprocessors", "tests"]
 [tool.pdm.scripts]
 build_preprocessors = { call = "preprocessors.build:build" }
 post_install = { composite = ["build_preprocessors"] }
-pre_build = { composite = ["pdm install --with build"] }
+pre_build = { composite = ["pdm sync --group build"] }
+lint = { composite = ["ruff format --diff", "ruff check", "mypy ."] }
 
 [[tool.pdm.source]]
 name = "torch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 include_packages = ["torch*"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+pretty = true
+exclude = ['^preprocessors.', '^tests.']
+
+[[tool.mypy.overrides]]
+module = ["onnxruntime.*"]
+follow_untyped_imports = true
 
 [tool.ruff]
 line-length = 130
@@ -89,6 +102,7 @@ indent-width = 4
 target-version = "py310"
 
 [tool.ruff.lint]
+exclude = ["*.ipynb"]
 select = [
     "B",    # flake8-bugbear
     "C4",   # flake8-comprehensions
@@ -114,6 +128,7 @@ select = [
     "W",    # pycodestyle
     "YTT",  # flake8-2020
 ]
+ignore = ["D203", "D213"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D100", "D103", "D104"]
@@ -123,5 +138,6 @@ select = [
 filterwarnings = [
     "ignore::DeprecationWarning:onnxscript.*",
     "ignore::DeprecationWarning:google.protobuf.*",
+    "ignore::DeprecationWarning:torchmetrics.*",
     "ignore::FutureWarning:onnxscript.*",
 ]

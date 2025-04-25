@@ -1,6 +1,7 @@
 """NeMo model implementations."""
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -10,7 +11,7 @@ from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDeco
 
 
 class _NemoConformer(_AsrWithDecoding):
-    def __init__(self, model_files: dict[str, Path], **kwargs):
+    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
         super().__init__("nemo", model_files["vocab"], **kwargs)
 
     @staticmethod
@@ -21,7 +22,7 @@ class _NemoConformer(_AsrWithDecoding):
 class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
     """NeMo Conformer CTC model implementations."""
 
-    def __init__(self, model_files: dict[str, Path], **kwargs):
+    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
         """Create NeMo Conformer CTC model.
 
         Args:
@@ -57,7 +58,7 @@ class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
     MAX_TOKENS_PER_STEP = 10
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, model_files: dict[str, Path], **kwargs):
+    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
         """Create NeMo Conformer RNN-T model.
 
         Args:

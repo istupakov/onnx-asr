@@ -8,7 +8,7 @@ from onnx_asr import load_model
 from onnx_asr.loader import ModelNames, ModelTypes
 
 
-def run():
+def run() -> None:
     """Run CLI for ASR models."""
     parser = argparse.ArgumentParser(prog="onnx_asr", description="Automatic Speech Recognition in Python using ONNX models.")
     parser.add_argument(

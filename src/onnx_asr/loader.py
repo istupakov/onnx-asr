@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Literal, get_args
+from typing import Literal, get_args
 
 import onnxruntime as rt
 
@@ -39,7 +39,17 @@ ModelTypes = Literal[
 ModelVersions = Literal["int8"] | None
 
 
-def _get_model_class(model: str):
+def _get_model_class(
+    model: str,
+) -> (
+    type[GigaamV2Ctc]
+    | type[GigaamV2Rnnt]
+    | type[KaldiTransducer]
+    | type[NemoConformerCtc]
+    | type[NemoConformerRnnt]
+    | type[WhisperOrt]
+    | type[WhisperHf]
+):
     match model.split("/"):
         case ("gigaam-v2-ctc",):
             return GigaamV2Ctc
@@ -61,10 +71,10 @@ def _get_model_class(model: str):
             raise ValueError(f"Model '{model}' not supported!")  # noqa: TRY003
 
 
-def _resolve_paths(path: str | Path, model_files: dict[str, str]):
+def _resolve_paths(path: str | Path, model_files: dict[str, str]) -> dict[str, Path]:
     assert Path(path).is_dir(), f"The path '{path}' is not a directory."
 
-    def find(filename):
+    def find(filename: str) -> Path:
         files = list(Path(path).glob(filename))
         assert len(files) > 0, f"File '{filename}' not found in path '{path}'."
         assert len(files) == 1, f"Found more than 1 file '{filename}' found in path '{path}'."
@@ -73,7 +83,7 @@ def _resolve_paths(path: str | Path, model_files: dict[str, str]):
     return {key: find(filename) for key, filename in model_files.items()}
 
 
-def _download_model(model: ModelNames, files: list[str]) -> str:
+def _download_model(model: str, files: list[str]) -> str:
     from huggingface_hub import snapshot_download
 
     match model:
@@ -94,7 +104,7 @@ def load_model(
     model: str | ModelNames | ModelTypes,
     path: str | Path | None = None,
     quantization: str | None = None,
-    providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
+    providers: Sequence[str | tuple[str, dict]] | None = None,
 ) -> Asr:
     """Load ASR model.
 
@@ -122,7 +132,7 @@ def load_model(
         assert model in get_args(ModelNames) or model.startswith("onnx-community/"), (
             "If the path is not specified, you must specify a specific model name."
         )
-        path = _download_model(model, list(files.values()))  # type: ignore
+        path = _download_model(model, list(files.values()))
 
     if providers is None:
         providers = rt.get_available_providers()

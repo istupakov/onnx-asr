@@ -26,10 +26,12 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: pdm install
+      run: pdm sync
     - name: Lint code with Ruff
       run: pdm run ruff check --output-format=github
     - name: Check code formatting with Ruff
       run: pdm run ruff format --diff
+    - name: Check types with MyPy
+      run: pdm run mypy .
     - name: Test with pytest
       run: pdm run pytest

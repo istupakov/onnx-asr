@@ -28,15 +28,15 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
 def read_wav_files(waveforms: list[npt.NDArray[np.float32] | str]) -> list[npt.NDArray[np.float32]]:
     """Convert list of waveform or filenames to list of waveforms."""
     results = []
-    for i in range(len(waveforms)):
-        if isinstance(waveforms[i], str):
-            waveform, sample_rate = read_wav(waveforms[i])  # type: ignore
+    for x in waveforms:
+        if isinstance(x, str):
+            waveform, sample_rate = read_wav(x)
             assert sample_rate == 16000, "Supported only 16 kHz sample rate."
             assert waveform.shape[1] == 1, "Supported only mono audio."
             results.append(waveform[:, 0])
         else:
-            assert waveforms[i].ndim == 1, "Waveform must be 1d numpy array."  # type: ignore
-            results.append(waveforms[i])
+            assert x.ndim == 1, "Waveform must be 1d numpy array."
+            results.append(x)
 
     return results
 
@@ -46,7 +46,7 @@ def pad_list(arrays: list[npt.NDArray[np.float32]], axis: int = 0) -> tuple[npt.
     lens = np.array([array.shape[axis] for array in arrays])
     max_len = lens.max()
 
-    def pads(array):
+    def pads(array: npt.NDArray[np.float32]) -> list[tuple[int, int]]:
         return [(0, max_len - array.shape[axis]) if i == axis else (0, 0) for i in range(array.ndim)]
 
     return np.stack([np.pad(array, pads(array)) for array in arrays]), lens
