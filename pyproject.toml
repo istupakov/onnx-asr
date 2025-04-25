@@ -7,20 +7,28 @@ keywords = ["asr", "speech recognition", "onnx"]
 dependencies = ["numpy"]
 requires-python = ">=3.10"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
 
 [project.urls]
 Documentation = "https://github.com/istupakov/onnx-asr#readme"
+"Release notes" = "https://github.com/istupakov/onnx-asr/releases"
 Issues = "https://github.com/istupakov/onnx-asr/issues"
 Source = "https://github.com/istupakov/onnx-asr"
 
