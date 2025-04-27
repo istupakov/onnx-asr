@@ -59,3 +59,25 @@ class KaldiTransducer(_AsrWithRnntDecoding):
         (decoder_out,) = self._decoder.run(["decoder_out"], {"y": [[-1, self._blank_idx, *prev_tokens][-self.CONTEXT_SIZE :]]})
         (logit,) = self._joiner.run(["logit"], {"encoder_out": encoder_out[None, :], "decoder_out": decoder_out})
         return np.squeeze(logit), prev_state
+
+
+class KaldiTransducerWithCache(KaldiTransducer):
+    """Kaldi Transducer (with decoder cache) model implementation."""
+
+    STATE_TYPE = tuple[dict[tuple[int, ...], npt.NDArray[np.float32]]]
+
+    def _create_state(self) -> STATE_TYPE:
+        return ({},)
+
+    def _decode(
+        self, prev_tokens: list[int], prev_state: STATE_TYPE, encoder_out: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], STATE_TYPE]:
+        context = tuple([-1, self._blank_idx, *prev_tokens][-self.CONTEXT_SIZE :])
+
+        decoder_out = prev_state[0].get(context)
+        if decoder_out is None:
+            (decoder_out,) = self._decoder.run(["decoder_out"], {"y": [context]})
+            prev_state[0][context] = decoder_out
+
+        (logit,) = self._joiner.run(["logit"], {"encoder_out": encoder_out[None, :], "decoder_out": decoder_out})
+        return np.squeeze(logit), prev_state
