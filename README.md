@@ -1,8 +1,8 @@
 # Automatic Speech Recognition in Python using ONNX models
 
-[![CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
 [![PyPI - Version](https://img.shields.io/pypi/v/onnx-asr.svg)](https://pypi.org/project/onnx-asr)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/onnx-asr.svg)](https://pypi.org/project/onnx-asr)
+[![CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
 
 The simple speech recognition package with minimal dependencies:
 * NumPy ([numpy](https://numpy.org/))
@@ -11,11 +11,17 @@ The simple speech recognition package with minimal dependencies:
 
 The package does not yet have built-in VAD support, so in order to recognize long audio files, they must first be split into parts.
 
-## Supported models
+## Supported models architectures
+
+The package supports the following modern ASR model architectures ([comparison](#comparison-with-original-implementations) with original implementations):
 * Nvidia NeMo Conformer/FastConformer (with CTC and RNN-T decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
 * Sber GigaAM v2 (with CTC and RNN-T decoders)
-* OpenAI Whisper (with simple decoding)
+* OpenAI Whisper
+
+When saving these models in onnx format, usually only the encoder and decoder are saved. To run them, the corresponding preprocessor and decoding must be implemented. Therefore, the package contains these implementations for all supported models:
+* Log-mel spectrogram preprocessors
+* Greedy search decoding
 
 ## Installation
 
@@ -110,13 +116,52 @@ import onnx_asr
 model = onnx_asr.load_model("gigaam-v2-ctc", "models/gigaam-onnx")
 print(model.recognize("test.wav"))
 ```
-Supported model types:
+#### Supported model types:
 * All models from [supported model names](#supported-model-names)
 * `nemo-conformer-ctc` for NeMo Conformer with CTC decoder
 * `nemo-conformer-rnnt` for NeMo Conformer with RNN-T decoder
 * `kaldi-rnnt` or `vosk` for Kaldi Icefall Zipformer with stateless RNN-T decoder
 * `whisper-ort` for Whisper (exported with [onnxruntime](#openai-whisper-with-onnxruntime-export))
 * `whisper-hf` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))
+
+## Comparison with original implementations
+
+Packages with original implementations:
+* `gigaam` for GigaAM models ([github](https://github.com/salute-developers/GigaAM))
+* `nemo-toolkit` for NeMo models ([github](https://github.com/nvidia/nemo))
+* `openai-whisper` for Whisper models ([github](https://github.com/openai/whisper))
+* `sherpa-onnx` for Vosk models ([github](https://github.com/k2-fsa/sherpa-onnx), [docs](https://k2-fsa.github.io/sherpa/onnx/index.html))
+
+Tests were performed on a *test* subset of the [Russian LibriSpeech](https://openslr.org/96/) dataset.
+
+Hardware:
+1. CPU tests were run on a laptop with an Intel i7-7700HQ processor.
+2. GPU tests were run in Google Colab on Nvidia T4
+
+| Model                    | Package / decoding   | CER    | WER    | RTFx (CPU) | RTFx (GPU)   |
+|--------------------------|----------------------|--------|--------|------------|--------------|
+|       GigaAM v2 CTC      |        default       | 1.06%  | 5.23%  |        7.2 | 44.2         |
+|       GigaAM v2 CTC      |       onnx-asr       | 1.06%  | 5.23%  |       11.4 | 58.6         |
+|      GigaAM v2 RNN-T     |        default       | 1.10%  | 5.22%  |        5.5 | 23.3         |
+|      GigaAM v2 RNN-T     |       onnx-asr       | 1.10%  | 5.22%  |       10.4 | 26           |
+|  Nemo FastConformer CTC  |        default       | 3.11%  | 13.12% |       22.7 | 71.7         |
+|  Nemo FastConformer CTC  |       onnx-asr       | 3.11%  | 13.12% |       43.1 | 88.8         |
+| Nemo FastConformer RNN-T |        default       | 2.63%  | 11.62% |       15.9 | 13.9         |
+| Nemo FastConformer RNN-T |       onnx-asr       | 2.63%  | 11.62% |       26.0 | 49           |
+|      Vosk 0.52 small     |     greedy_search    | 3.64%  | 14.53% |       48.2 | 71.4         |
+|      Vosk 0.52 small     | modified_beam_search | 3.50%  | 14.25% |       29.0 | 24.7         |
+|      Vosk 0.52 small     |       onnx-asr       | 3.64%  | 14.53% |       42.5 | 60.2         |
+|         Vosk 0.54        |     greedy_search    | 2.21%  | 9.89%  |       34.8 | 64.2         |
+|         Vosk 0.54        | modified_beam_search | 2.21%  | 9.85%  |       23.9 | 24           |
+|         Vosk 0.54        |       onnx-asr       | 2.21%  | 9.89%  |       32.2 | 55.9         |
+|       Whisper base       |        default       | 10.53% | 38.82% |        5.4 | 13.6         |
+|       Whisper base       |       onnx-asr       | 10.64% | 38.33% |      6.3** | 16.1*/19.4** |
+|  Whisper large-v3-turbo  |        default       | 2.96%  | 10.27% |        N/A | 11           |
+|  Whisper large-v3-turbo  |       onnx-asr       | 2.63%  | 10.08% |        N/A | 9.8*         |
+
+1. \* `whisper-hf` model ([model types](#supported-model-types)) with `fp16` quantization.
+2. ** `whisper-ort` model ([model types](#supported-model-types)).
+3. All other models were run with the default precision - `fp32` on CPU and `fp32` or `fp16` (some of the original models) on GPU.
 
 ## Convert model to ONNX
 
