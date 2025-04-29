@@ -44,11 +44,12 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
         (log_probs,) = self._model.run(["logprobs"], {"audio_signal": features, "length": features_lens})
         conformer_lens = (features_lens - 1) // 4 + 1
         fastconformer_lens = (features_lens - 1) // 8 + 1
-        assert log_probs.shape[1] == max(conformer_lens) or log_probs.shape[1] == max(fastconformer_lens)
         if log_probs.shape[1] == max(conformer_lens):
             return log_probs, conformer_lens
-        else:
+        elif log_probs.shape[1] == max(fastconformer_lens):
             return log_probs, fastconformer_lens
+        else:
+            return log_probs, np.full_like(features_lens, log_probs.shape[1])
 
 
 class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):

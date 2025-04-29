@@ -6,6 +6,22 @@ import numpy as np
 import numpy.typing as npt
 
 
+class SupportedOnlyMonoAudioError(ValueError):
+    """Supported only mono audio error."""
+
+    def __init__(self) -> None:
+        """Create error."""
+        super().__init__("Supported only mono audio.")
+
+
+class WrongSampleRateError(ValueError):
+    """Wrong sample rate error."""
+
+    def __init__(self) -> None:
+        """Create error."""
+        super().__init__("Supported only 16 kHz sample rate.")
+
+
 def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
     """Read PCM wav file to Numpy array."""
     with wave.open(filename, mode="rb") as f:
@@ -31,11 +47,14 @@ def read_wav_files(waveforms: list[npt.NDArray[np.float32] | str]) -> list[npt.N
     for x in waveforms:
         if isinstance(x, str):
             waveform, sample_rate = read_wav(x)
-            assert sample_rate == 16000, "Supported only 16 kHz sample rate."
-            assert waveform.shape[1] == 1, "Supported only mono audio."
+            if sample_rate != 16_000:
+                raise WrongSampleRateError()
+            if waveform.shape[1] != 1:
+                raise SupportedOnlyMonoAudioError()
             results.append(waveform[:, 0])
         else:
-            assert x.ndim == 1, "Waveform must be 1d numpy array."
+            if x.ndim != 1:
+                raise SupportedOnlyMonoAudioError()
             results.append(x)
 
     return results

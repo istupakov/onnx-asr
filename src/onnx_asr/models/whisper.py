@@ -33,7 +33,6 @@ class _Whisper(Asr):
     def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
         with model_files["preprocessor_config"].open() as f:
             preprocessor_config = json.load(f)
-        assert preprocessor_config["feature_size"] in [80, 128], "feature_size not in [80, 128]"
 
         self._input_length = preprocessor_config["n_samples"]
         self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", **kwargs)

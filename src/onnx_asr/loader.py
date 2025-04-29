@@ -39,6 +39,46 @@ ModelTypes = Literal[
 ModelVersions = Literal["int8"] | None
 
 
+class ModelNotSupportedError(ValueError):
+    """Model not supported error."""
+
+    def __init__(self, model: str):
+        """Create error."""
+        super().__init__(f"Model '{model}' not supported!")
+
+
+class ModelPathNotFoundError(NotADirectoryError):
+    """Model path not found error."""
+
+    def __init__(self, path: str | Path):
+        """Create error."""
+        super().__init__(f"The path '{path}' is not a directory.")
+
+
+class ModelFileNotFoundError(FileNotFoundError):
+    """Model file not found error."""
+
+    def __init__(self, filename: str | Path, path: str | Path):
+        """Create error."""
+        super().__init__(f"File '{filename}' not found in path '{path}'.")
+
+
+class MoreThanOneModelFileFoundError(Exception):
+    """More than one model file found error."""
+
+    def __init__(self, filename: str | Path, path: str | Path):
+        """Create error."""
+        super().__init__(f"Found more than 1 file '{filename}' found in path '{path}'.")
+
+
+class NoModelNameOrPathSpecifiedError(Exception):
+    """No model name or path specified error."""
+
+    def __init__(self) -> None:
+        """Create error."""
+        super().__init__("If the path is not specified, you must specify a specific model name.")
+
+
 def _get_model_class(
     model: str,
 ) -> (
@@ -68,16 +108,19 @@ def _get_model_class(
         case ("onnx-community", name) if "whisper" in name:
             return WhisperHf
         case _:
-            raise ValueError(f"Model '{model}' not supported!")  # noqa: TRY003
+            raise ModelNotSupportedError(model)
 
 
 def _resolve_paths(path: str | Path, model_files: dict[str, str]) -> dict[str, Path]:
-    assert Path(path).is_dir(), f"The path '{path}' is not a directory."
+    if not Path(path).is_dir():
+        raise ModelPathNotFoundError(path)
 
     def find(filename: str) -> Path:
         files = list(Path(path).glob(filename))
-        assert len(files) > 0, f"File '{filename}' not found in path '{path}'."
-        assert len(files) == 1, f"Found more than 1 file '{filename}' found in path '{path}'."
+        if len(files) == 0:
+            raise ModelFileNotFoundError(filename, path)
+        if len(files) > 1:
+            raise MoreThanOneModelFileFoundError(filename, path)
         return files[0]
 
     return {key: find(filename) for key, filename in model_files.items()}
@@ -129,9 +172,8 @@ def load_model(
     files = model_class._get_model_files(quantization)
 
     if path is None:
-        assert model in get_args(ModelNames) or model.startswith("onnx-community/"), (
-            "If the path is not specified, you must specify a specific model name."
-        )
+        if not (model in get_args(ModelNames) or model.startswith("onnx-community/")):
+            raise NoModelNameOrPathSpecifiedError()
         path = _download_model(model, list(files.values()))
 
     if providers is None:

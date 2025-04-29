@@ -25,6 +25,6 @@ def run() -> None:
     parser.add_argument("-q", "--quantization", help="Model quantization ('int8' for example)")
     args = parser.parse_args()
 
-    model = load_model(args.model, args.model_path, args.quantization)
+    model = load_model(args.model, args.model_path, quantization=args.quantization)
     for text in model.recognize(args.filename):
         print(text)
