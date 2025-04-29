@@ -1,8 +1,7 @@
 import numpy as np
 import torch
 import torchaudio
-from onnx import TensorProto
-from onnx.helper import make_tensor
+from onnx import numpy_helper
 from onnxscript import FLOAT, INT64, graph, script
 from onnxscript import opset17 as op
 
@@ -48,7 +47,7 @@ def sliding_window(waveform):
     X0 = waveform[:, : win_length - hop_length]
     X = op.Reshape(
         waveform[:, win_length - hop_length :],
-        shape=op.Constant(value=make_tensor("sliding_shape", TensorProto.INT64, (3,), [0, -1, hop_length])),
+        shape=op.Constant(value_ints=(0, -1, hop_length)),
     )
 
     @graph()
@@ -58,7 +57,7 @@ def sliding_window(waveform):
         next = frame[:, hop_len:]
         return next, frame
 
-    _, frames = op.Scan(X0, X, body=sliding_buffer, num_scan_inputs=1, scan_input_axes=[1], scan_output_axes=[1])
+    _, frames = op.Scan(X0, X, body=sliding_buffer, num_scan_inputs=1, scan_input_axes=(1,), scan_output_axes=(1,))
     return frames
 
 
@@ -68,7 +67,7 @@ def normalize(frames):
         frames = frames + op.RandomNormalLike(frames, scale=dither)
 
     if remove_dc_offset:
-        mean = op.ReduceMean(frames, axes=[-1])
+        mean = op.ReduceMean(frames, axes=(-1,))
         frames = frames - mean
 
     if preemphasis_coefficient != 0.0:
@@ -91,9 +90,9 @@ def KaldiPreprocessor(
     frames = povey_window * frames
 
     image = op.DFT(op.Unsqueeze(frames, axes=-1), n_fft, axis=-2, onesided=1)
-    spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
+    spectrogram = op.ReduceSumSquare(image, axes=(-1,), keepdims=0)
 
-    mel_banks_tensor = op.Constant(value=make_tensor("mel_banks", TensorProto.FLOAT, mel_banks.shape, mel_banks.numpy()))
+    mel_banks_tensor = op.Constant(value=numpy_helper.from_array(mel_banks.numpy(), "mel_banks"))
     mel_spectrogram = op.MatMul(spectrogram, mel_banks_tensor)
     log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, min=float_eps))
 

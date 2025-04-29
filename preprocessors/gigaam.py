@@ -1,6 +1,5 @@
 import torchaudio
-from onnx import TensorProto
-from onnx.helper import make_tensor
+from onnx import TensorProto, numpy_helper
 from onnxscript import FLOAT, INT64, script
 from onnxscript import opset17 as op
 
@@ -26,20 +25,18 @@ def GigaamPreprocessor(
 ) -> tuple[FLOAT["batch_size", n_mels, "T"], INT64["batch_size"]]:
     waveforms = op.Pad(
         waveforms,
-        pads=op.Constant(value=make_tensor("pads", TensorProto.INT64, (4,), [0, n_fft // 2, 0, n_fft // 2])),
+        pads=op.Constant(value_ints=(0, n_fft // 2, 0, n_fft // 2)),
         mode="reflect",
     )
 
     hann_window = op.HannWindow(win_length, output_datatype=TensorProto.DOUBLE)
     image = op.STFT(op.CastLike(waveforms, hann_window), hop_length, hann_window)
-    spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
+    spectrogram = op.ReduceSumSquare(image, axes=(-1,), keepdims=0)
 
-    melscale_fbanks_tensor = op.Constant(
-        value=make_tensor("melscale_fbanks", TensorProto.FLOAT, melscale_fbanks.shape, melscale_fbanks.numpy())
-    )
+    melscale_fbanks_tensor = op.Constant(value=numpy_helper.from_array(melscale_fbanks.numpy(), "melscale_fbanks"))
     mel_spectrogram = op.MatMul(op.CastLike(spectrogram, melscale_fbanks_tensor), melscale_fbanks_tensor)
     log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, clamp_min, clamp_max))
 
     features_lens = waveforms_lens / hop_length + 1
-    features = op.Transpose(log_mel_spectrogram, perm=[0, 2, 1])
+    features = op.Transpose(log_mel_spectrogram, perm=(0, 2, 1))
     return features, features_lens

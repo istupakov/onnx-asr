@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 import torchaudio
-from whisper.audio import log_mel_spectrogram, mel_filters
+from whisper.audio import N_FRAMES, N_SAMPLES, log_mel_spectrogram, mel_filters, pad_or_trim
 
 from onnx_asr.preprocessors import Preprocessor
 from onnx_asr.utils import pad_list
@@ -10,11 +10,14 @@ from preprocessors import whisper
 
 
 def preprocessor_origin(waveforms, lens, n_mels):
-    return log_mel_spectrogram(waveforms, n_mels).numpy(), lens // whisper.hop_length
+    waveforms = pad_or_trim(waveforms, N_SAMPLES)
+    return log_mel_spectrogram(waveforms, n_mels).numpy(), np.full_like(lens, N_FRAMES)
 
 
 def preprocessor_torch(waveforms, lens, n_mels):
     waveforms = torch.from_numpy(waveforms)
+    waveforms = waveforms[:, : whisper.chunk_length * whisper.sample_rate]
+    waveforms = torch.nn.functional.pad(waveforms, (0, whisper.chunk_length * whisper.sample_rate - waveforms.shape[-1]))
     spectrogram = torchaudio.functional.spectrogram(
         waveforms,
         pad=0,
@@ -30,7 +33,7 @@ def preprocessor_torch(waveforms, lens, n_mels):
     ).transpose(-1, -2)
     log_mel_spectrogram = torch.clamp(mel_spectrogram, min=whisper.clamp_min).log10()
     features = (torch.maximum(log_mel_spectrogram, log_mel_spectrogram.max() - 8.0) + 4.0) / 4.0
-    return features, lens // whisper.hop_length
+    return features, np.full_like(lens, whisper.chunk_length * whisper.sample_rate // whisper.hop_length)
 
 
 def preprocessor_torch80(waveforms, lens):

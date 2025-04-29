@@ -1,6 +1,5 @@
 import torchaudio
-from onnx import TensorProto
-from onnx.helper import make_tensor
+from onnx import TensorProto, numpy_helper
 from onnxscript import FLOAT, INT64, script
 from onnxscript import opset17 as op
 
@@ -24,7 +23,7 @@ def normalize(x, lens):
     mask = op.Range(0, op.Shape(x)[-1], 1) < lens_3d
     lens_3d = op.CastLike(lens_3d, x)
     mean = op.ReduceSum(op.Where(mask, x, 0), axes=[-1], keepdims=1) / lens_3d
-    var = op.ReduceSumSquare(op.Where(mask, x - mean, 0), axes=[-1], keepdims=1) / (lens_3d - 1)
+    var = op.ReduceSumSquare(op.Where(mask, x - mean, 0), axes=(-1,), keepdims=1) / (lens_3d - 1)
     return op.Where(mask, (x - mean) / (op.Sqrt(var) + 1e-5), 0)
 
 
@@ -35,25 +34,21 @@ def nemo_preprocessor(waveforms, waveforms_lens, melscale_fbanks):
 
     waveforms = op.Pad(
         waveforms,
-        pads=op.Constant(value=make_tensor("waveform_pads", TensorProto.INT64, (4,), [0, n_fft // 2, 0, n_fft // 2])),
+        pads=op.Constant(value_ints=(0, n_fft // 2, 0, n_fft // 2)),
         mode="reflect",
     )
     hann_window = op.Pad(
         op.HannWindow(win_length, periodic=0, output_datatype=TensorProto.DOUBLE),
-        pads=op.Constant(
-            value=make_tensor(
-                "window_pads", TensorProto.INT64, (2,), [n_fft // 2 - win_length // 2, n_fft // 2 - win_length // 2]
-            )
-        ),
+        pads=op.Constant(value_ints=(n_fft // 2 - win_length // 2, n_fft // 2 - win_length // 2)),
     )
     image = op.STFT(op.CastLike(waveforms, hann_window), hop_length, hann_window)
-    spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
+    spectrogram = op.ReduceSumSquare(image, axes=(-1,), keepdims=0)
 
     mel_spectrogram = op.MatMul(op.CastLike(spectrogram, melscale_fbanks), melscale_fbanks)
     log_mel_spectrogram = op.Log(mel_spectrogram + log_zero_guard_value)
 
     features_lens = waveforms_lens / hop_length + 1
-    return normalize(op.Transpose(log_mel_spectrogram, perm=[0, 2, 1]), features_lens), features_lens
+    return normalize(op.Transpose(log_mel_spectrogram, perm=(0, 2, 1)), features_lens), features_lens
 
 
 @script(doc_string="LogMelSpectrogram feature extractor for Nemo models")
@@ -64,6 +59,6 @@ def NemoPreprocessor(
     features, features_lens = nemo_preprocessor(
         waveforms,
         waveforms_lens,
-        op.Constant(value=make_tensor("melscale_fbanks", TensorProto.FLOAT, melscale_fbanks.shape, melscale_fbanks.numpy())),
+        op.Constant(value=numpy_helper.from_array(melscale_fbanks.numpy(), "melscale_fbanks")),
     )
     return features, features_lens

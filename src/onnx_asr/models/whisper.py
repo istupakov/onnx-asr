@@ -11,6 +11,7 @@ import onnxruntime as rt
 
 from onnx_asr.asr import Asr
 from onnx_asr.preprocessors.preprocessor import Preprocessor
+from onnx_asr.utils import pad_list
 
 
 @typing.no_type_check
@@ -67,15 +68,7 @@ class _Whisper(Asr):
         }
 
     def _preprocess(self, waveforms: list[npt.NDArray[np.float32]]) -> npt.NDArray[np.float32]:
-        def resize(waveform: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
-            if waveform.size < self._input_length:
-                return np.pad(waveform, (0, self._input_length - waveform.size))
-            else:
-                return waveform[: self._input_length]
-
-        input_features, _ = self._preprocessor(
-            np.stack([resize(waveform) for waveform in waveforms]), np.repeat(self._input_length, len(waveforms))
-        )
+        input_features, _ = self._preprocessor(*pad_list(waveforms))
         return input_features
 
     @abstractmethod

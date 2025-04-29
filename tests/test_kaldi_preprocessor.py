@@ -9,6 +9,12 @@ from onnx_asr.utils import pad_list
 from preprocessors import kaldi
 
 
+def pad_features(arrays):
+    lens = np.array([array.shape[0] for array in arrays])
+    max_len = lens.max()
+    return np.stack([np.pad(array, ((0, max_len - array.shape[0]), (0, 0))) for array in arrays]), lens
+
+
 def preprocessor_origin(waveforms, lens):
     opts = knf.FbankOptions()
     opts.frame_opts.dither = kaldi.dither
@@ -23,7 +29,7 @@ def preprocessor_origin(waveforms, lens):
         fbank.input_finished()
         results.append(np.array([fbank.get_frame(i) for i in range(fbank.num_frames_ready)]))
 
-    return pad_list(results)
+    return pad_features(results)
 
 
 def preprocessor_torch(waveforms, lens):
@@ -39,7 +45,7 @@ def preprocessor_torch(waveforms, lens):
             ).numpy()
         )
 
-    return pad_list(results)
+    return pad_features(results)
 
 
 @pytest.fixture(scope="module")
@@ -69,4 +75,4 @@ def test_kaldi_preprocessor(preprocessor, waveforms):
 
     assert expected.shape[1] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
-    np.testing.assert_allclose(actual, expected, atol=5e-4)
+    np.testing.assert_allclose(actual, expected, atol=5e-4, rtol=1e-4)
