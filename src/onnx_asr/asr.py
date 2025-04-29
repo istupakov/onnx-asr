@@ -48,7 +48,7 @@ class _AsrWithDecoding(Asr):
 
     def __init__(self, preprocessor_name: str, vocab_path: Path, **kwargs: Any):
         self._preprocessor = Preprocessor(preprocessor_name, **kwargs)
-        with Path(vocab_path).open("rt") as f:
+        with Path(vocab_path).open("rt", encoding="utf-8") as f:
             tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}
         self._vocab = {id: token for token, id in tokens.items()}
         self._blank_idx = tokens["<blk>"]

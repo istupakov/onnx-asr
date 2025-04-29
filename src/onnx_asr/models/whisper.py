@@ -31,16 +31,16 @@ def bytes_to_unicode() -> dict[int, str]:
 
 class _Whisper(Asr):
     def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
-        with model_files["preprocessor_config"].open() as f:
+        with model_files["preprocessor_config"].open("rt", encoding="utf-8") as f:
             preprocessor_config = json.load(f)
 
         self._input_length = preprocessor_config["n_samples"]
         self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", **kwargs)
 
-        with model_files["vocab"].open() as f:
+        with model_files["vocab"].open("rt", encoding="utf-8") as f:
             self._tokens: dict[str, int] = json.load(f)
 
-        with model_files["added_tokens"].open() as f:
+        with model_files["added_tokens"].open("rt", encoding="utf-8") as f:
             self._tokens |= json.load(f)
 
         self._vocab = {id: token for token, id in self._tokens.items()}

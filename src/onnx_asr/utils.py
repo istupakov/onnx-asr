@@ -62,7 +62,7 @@ def read_wav_files(waveforms: list[npt.NDArray[np.float32] | str]) -> list[npt.N
 
 def pad_list(arrays: list[npt.NDArray[np.float32]], axis: int = 0) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
     """Pad list of Numpy arrays to common length."""
-    lens = np.array([array.shape[axis] for array in arrays])
+    lens = np.array([array.shape[axis] for array in arrays], dtype=np.int64)
     max_len = lens.max()
 
     def pads(array: npt.NDArray[np.float32]) -> list[tuple[int, int]]:
