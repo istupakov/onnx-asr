@@ -26,5 +26,5 @@ def run() -> None:
     args = parser.parse_args()
 
     model = load_model(args.model, args.model_path, quantization=args.quantization)
-    for text in model.recognize(args.filename):
+    for text in model.recognize(args.filename):  # type: ignore
         print(text)

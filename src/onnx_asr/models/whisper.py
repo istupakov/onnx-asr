@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import Asr
+from onnx_asr.asr import Asr, Result
 from onnx_asr.preprocessors import Preprocessor
 
 
@@ -72,13 +72,13 @@ class _Whisper(Asr):
     @abstractmethod
     def _decoding(self, input_features: npt.NDArray, tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray: ...
 
-    def _decode_tokens(self, tokens: npt.NDArray) -> str:
+    def _decode_tokens(self, tokens: npt.NDArray) -> Result:
         text = "".join(token for id in tokens if (token := self._vocab[id]) and not token.startswith("<|"))
-        return bytearray([self._byte_decoder[c] for c in text]).decode("utf-8", errors="replace").removeprefix(" ")
+        return Result(bytearray([self._byte_decoder[c] for c in text]).decode("utf-8", errors="replace").removeprefix(" "))
 
     def _recognize_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
-    ) -> list[str]:
+    ) -> list[Result]:
         input_encoding = self._encode(waveforms, waveforms_len)
         input_tokens = np.repeat(self._decoder_input, len(waveforms), axis=0)
 
