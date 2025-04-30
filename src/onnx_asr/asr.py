@@ -9,29 +9,46 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from .preprocessors import Preprocessor
-from .utils import pad_list, read_wav_files
+from .preprocessors import Preprocessor, Resampler
+from .utils import SampleRates, pad_list, read_wav_files
 
 
 class Asr(ABC):
     """Abstract ASR class with common interface and methods."""
+
+    def __init__(self, **kwargs: Any):
+        """Create ASR."""
+        self._resampler = Resampler(**kwargs)
 
     @staticmethod
     @abstractmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]: ...
 
     @abstractmethod
-    def _recognize_batch(self, waveforms: list[npt.NDArray[np.float32]], language: str | None = None) -> list[str]: ...
+    def _recognize_batch(
+        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
+    ) -> list[str]: ...
+
+    def _recognize(
+        self, waveforms: list[str | npt.NDArray[np.float32]], sample_rate: SampleRates, language: str | None
+    ) -> list[str]:
+        waveform_arrays, sample_rate = read_wav_files(waveforms, sample_rate)
+        return self._recognize_batch(*self._resampler(*pad_list(waveform_arrays), sample_rate), language)
 
     def recognize(
-        self, waveform: str | npt.NDArray[np.float32] | list[str | npt.NDArray[np.float32]], language: str | None = None
+        self,
+        waveform: str | npt.NDArray[np.float32] | list[str | npt.NDArray[np.float32]],
+        *,
+        sample_rate: SampleRates = 16_000,
+        language: str | None = None,
     ) -> str | list[str]:
         """Recognize speech (single or batch).
 
         Args:
-            waveform: Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats with 16 kHz sample rate are supported)
+            waveform: Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats are supported)
                       or Numpy array with PCM waveform.
                       A list of file paths or numpy arrays for batch recognition are also supported.
+            sample_rate: Sample rate for Numpy arrays in waveform.
             language: Speech language (only for Whisper models).
 
         Returns:
@@ -39,14 +56,17 @@ class Asr(ABC):
 
         """
         if isinstance(waveform, list):
-            return self._recognize_batch(read_wav_files(waveform), language)
-        return self._recognize_batch(read_wav_files([waveform]), language)[0]
+            if not waveform:
+                return []
+            return self._recognize(waveform, sample_rate, language)
+        return self._recognize([waveform], sample_rate, language)[0]
 
 
 class _AsrWithDecoding(Asr):
     DECODE_SPACE_PATTERN = re.compile(r"\A\u2581|\u2581\B|(\u2581)\b")
 
     def __init__(self, preprocessor_name: str, vocab_path: Path, **kwargs: Any):
+        super().__init__(**kwargs)
         self._preprocessor = Preprocessor(preprocessor_name, **kwargs)
         with Path(vocab_path).open("rt", encoding="utf-8") as f:
             tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}
@@ -65,8 +85,10 @@ class _AsrWithDecoding(Asr):
         text = "".join([self._vocab[i] for i in tokens])
         return re.sub(self.DECODE_SPACE_PATTERN, lambda x: " " if x.group(1) else "", text)
 
-    def _recognize_batch(self, waveforms: list[npt.NDArray[np.float32]], language: str | None = None) -> list[str]:
-        return list(map(self._decode_tokens, self._decoding(*self._encode(*self._preprocessor(*pad_list(waveforms))))))
+    def _recognize_batch(
+        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
+    ) -> list[str]:
+        return list(map(self._decode_tokens, self._decoding(*self._encode(*self._preprocessor(waveforms, waveforms_len)))))
 
 
 class _AsrWithCtcDecoding(_AsrWithDecoding):

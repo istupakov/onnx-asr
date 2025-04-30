@@ -69,7 +69,7 @@ print(model.recognize("test.wav"))
 * `alphacep/vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
 * `onnx-community/whisper-tiny`, `onnx-community/whisper-base`, `onnx-community/whisper-small`, `onnx-community/whisper-large-v3-turbo`, etc. for OpenAI Whisper exported with Hugging Face optimum ([onnx-community](https://huggingface.co/onnx-community?search_models=whisper))
 
-Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats with 16 kHz sample rate. For other formats, you either need to convert them first, or use a library that can read them into a numpy array. 
+Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a numpy array.
 
 Example with `soundfile`:
 ```py

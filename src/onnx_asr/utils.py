@@ -1,9 +1,17 @@
 """Utils for ASR."""
 
 import wave
+from typing import Literal, TypeGuard, get_args
 
 import numpy as np
 import numpy.typing as npt
+
+SampleRates = Literal[8_000, 16_000, 22_050, 44_100, 48_000]
+
+
+def is_supported_sample_rate(sample_rate: int) -> TypeGuard[SampleRates]:
+    """Sample rate is supported."""
+    return sample_rate in get_args(SampleRates)
 
 
 class SupportedOnlyMonoAudioError(ValueError):
@@ -19,7 +27,15 @@ class WrongSampleRateError(ValueError):
 
     def __init__(self) -> None:
         """Create error."""
-        super().__init__("Supported only 16 kHz sample rate.")
+        super().__init__("Supported only 8, 16, 22.05, 44.1 and 48 kHz sample rate.")
+
+
+class DifferentSampleRatesError(ValueError):
+    """Different sample rates error."""
+
+    def __init__(self) -> None:
+        """Create error."""
+        super().__init__("All sample rates in a batch must be the same.")
 
 
 def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
@@ -41,23 +57,31 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
         return buffer.reshape(f.getnframes(), f.getnchannels()).astype(np.float32) / max_value - zero_value, f.getframerate()
 
 
-def read_wav_files(waveforms: list[npt.NDArray[np.float32] | str]) -> list[npt.NDArray[np.float32]]:
+def read_wav_files(
+    waveforms: list[npt.NDArray[np.float32] | str], numpy_sample_rate: SampleRates
+) -> tuple[list[npt.NDArray[np.float32]], SampleRates]:
     """Convert list of waveform or filenames to list of waveforms."""
     results = []
+    sample_rates = []
     for x in waveforms:
         if isinstance(x, str):
             waveform, sample_rate = read_wav(x)
-            if sample_rate != 16_000:
-                raise WrongSampleRateError()
             if waveform.shape[1] != 1:
                 raise SupportedOnlyMonoAudioError()
             results.append(waveform[:, 0])
+            sample_rates.append(sample_rate)
         else:
             if x.ndim != 1:
                 raise SupportedOnlyMonoAudioError()
             results.append(x)
+            sample_rates.append(numpy_sample_rate)
 
-    return results
+    if len(set(sample_rates)) > 1:
+        raise DifferentSampleRatesError()
+
+    if is_supported_sample_rate(sample_rates[0]):
+        return results, sample_rates[0]
+    raise WrongSampleRateError()
 
 
 def pad_list(arrays: list[npt.NDArray[np.float32]], axis: int = 0) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:

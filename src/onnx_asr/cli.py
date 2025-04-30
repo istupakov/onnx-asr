@@ -18,7 +18,7 @@ def run() -> None:
     )
     parser.add_argument(
         "filename",
-        help="Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats with 16 kHz sample rate are supported).",
+        help="Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats are supported).",
         nargs="+",
     )
     parser.add_argument("-p", "--model_path", type=pathlib.Path, help="Path to directory with model files")

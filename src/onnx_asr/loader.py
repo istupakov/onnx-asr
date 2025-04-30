@@ -146,6 +146,7 @@ def _download_model(model: str, files: list[str]) -> str:
 def load_model(
     model: str | ModelNames | ModelTypes,
     path: str | Path | None = None,
+    *,
     quantization: str | None = None,
     providers: Sequence[str | tuple[str, dict]] | None = None,
 ) -> Asr:

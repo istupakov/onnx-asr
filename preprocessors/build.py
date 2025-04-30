@@ -24,3 +24,4 @@ def build():
     save_model(preprocessors.NemoPreprocessor, preprocessors_dir.joinpath("nemo.onnx"))
     save_model(preprocessors.WhisperPreprocessor80, preprocessors_dir.joinpath("whisper80.onnx"))
     save_model(preprocessors.WhisperPreprocessor128, preprocessors_dir.joinpath("whisper128.onnx"))
+    save_model(preprocessors.ResamplePreprocessor, preprocessors_dir.joinpath("resample.onnx"))

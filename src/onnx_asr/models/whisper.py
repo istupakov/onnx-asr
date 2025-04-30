@@ -10,8 +10,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import Asr
-from onnx_asr.preprocessors.preprocessor import Preprocessor
-from onnx_asr.utils import pad_list
+from onnx_asr.preprocessors import Preprocessor
 
 
 @typing.no_type_check
@@ -31,10 +30,10 @@ def bytes_to_unicode() -> dict[int, str]:
 
 class _Whisper(Asr):
     def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
+        super().__init__(**kwargs)
+
         with model_files["preprocessor_config"].open("rt", encoding="utf-8") as f:
             preprocessor_config = json.load(f)
-
-        self._input_length = preprocessor_config["n_samples"]
         self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", **kwargs)
 
         with model_files["vocab"].open("rt", encoding="utf-8") as f:
@@ -66,8 +65,8 @@ class _Whisper(Asr):
             "added_tokens": "added_tokens.json",
         }
 
-    def _preprocess(self, waveforms: list[npt.NDArray[np.float32]]) -> npt.NDArray[np.float32]:
-        input_features, _ = self._preprocessor(*pad_list(waveforms))
+    def _encode(self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64]) -> npt.NDArray[np.float32]:
+        input_features, _ = self._preprocessor(waveforms, waveforms_len)
         return input_features
 
     @abstractmethod
@@ -77,17 +76,19 @@ class _Whisper(Asr):
         text = "".join(token for id in tokens if (token := self._vocab[id]) and not token.startswith("<|"))
         return bytearray([self._byte_decoder[c] for c in text]).decode("utf-8", errors="replace").removeprefix(" ")
 
-    def _recognize_batch(self, waveforms: list[npt.NDArray[np.float32]], language: str | None = None) -> list[str]:
-        input_features = self._preprocess(waveforms)
+    def _recognize_batch(
+        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
+    ) -> list[str]:
+        input_encoding = self._encode(waveforms, waveforms_len)
         input_tokens = np.repeat(self._decoder_input, len(waveforms), axis=0)
 
         if language:
             input_tokens[:, 1] = self._tokens[f"<|{language}|>"]
         else:
             input_tokens_detect_lang = np.repeat([[self._bos_token_id]], len(waveforms), axis=0)
-            input_tokens[:, 1] = self._decoding(input_features, input_tokens_detect_lang, 3)[:, 1]
+            input_tokens[:, 1] = self._decoding(input_encoding, input_tokens_detect_lang, 3)[:, 1]
 
-        return list(map(self._decode_tokens, self._decoding(input_features, input_tokens)))
+        return list(map(self._decode_tokens, self._decoding(input_encoding, input_tokens)))
 
 
 class WhisperOrt(_Whisper):
@@ -149,12 +150,9 @@ class WhisperHf(_Whisper):
             "decoder": f"**/decoder_model{suffix}.onnx",
         } | _Whisper._get_model_files(suffix)
 
-    def _preprocess(self, waveforms: list[npt.NDArray[np.float32]]) -> npt.NDArray[np.float32]:
-        input_features = super()._preprocess(waveforms)
-        (last_hidden_state,) = self._encoder.run(
-            ["last_hidden_state"],
-            {"input_features": input_features},
-        )
+    def _encode(self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64]) -> npt.NDArray[np.float32]:
+        input_features = super()._encode(waveforms, waveforms_len)
+        (last_hidden_state,) = self._encoder.run(["last_hidden_state"], {"input_features": input_features})
         return typing.cast(npt.NDArray[np.float32], last_hidden_state)
 
     def _decode(self, tokens: npt.NDArray, encoder_out: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
