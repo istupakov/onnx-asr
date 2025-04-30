@@ -9,7 +9,15 @@ The simple speech recognition package with minimal dependencies:
 * ONNX Runtime ([onnxruntime](https://onnxruntime.ai/))
 * (*optional*)  Hugging Face Hub ([huggingface_hub](https://huggingface.co/))
 
-The package does not yet have built-in VAD support, so in order to recognize long audio files, they must first be split into parts.
+The **onnx-asr** package supports most modern ASR [models](#supported-models-architectures) and the following features:
+ * Loading models from hugging face or local folders (including quantized versions)
+ * Accepts wav files or NumPy arrays (built-in support for file reading and resampling)
+ * Batch processing
+ * Return token timestamps (experimental)
+ * Simple CLI
+ * Online demo in [HF Space](https://istupakov-onnx-asr.hf.space/)
+
+*The package does not yet have built-in VAD support, so in order to recognize long audio files, they must first be split into parts.*
 
 ## Supported models architectures
 
