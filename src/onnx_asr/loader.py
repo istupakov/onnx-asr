@@ -36,7 +36,6 @@ ModelTypes = Literal[
     "whisper-ort",
     "whisper-hf",
 ]
-ModelVersions = Literal["int8"] | None
 
 
 class ModelNotSupportedError(ValueError):
@@ -79,53 +78,6 @@ class NoModelNameOrPathSpecifiedError(Exception):
         super().__init__("If the path is not specified, you must specify a specific model name.")
 
 
-def _get_model_class(
-    model: str,
-) -> (
-    type[GigaamV2Ctc]
-    | type[GigaamV2Rnnt]
-    | type[KaldiTransducer]
-    | type[NemoConformerCtc]
-    | type[NemoConformerRnnt]
-    | type[WhisperOrt]
-    | type[WhisperHf]
-):
-    match model.split("/"):
-        case ("gigaam-v2-ctc",):
-            return GigaamV2Ctc
-        case ("gigaam-v2-rnnt",):
-            return GigaamV2Rnnt
-        case ("kaldi-rnnt" | "vosk",) | ("alphacep", "vosk-model-ru" | "vosk-model-small-ru"):
-            return KaldiTransducer
-        case ("nemo-conformer-ctc" | "nemo-fastconformer-ru-ctc",):
-            return NemoConformerCtc
-        case ("nemo-conformer-rnnt" | "nemo-fastconformer-ru-rnnt",):
-            return NemoConformerRnnt
-        case ("whisper-ort" | "whisper-base",):
-            return WhisperOrt
-        case ("whisper-hf",):
-            return WhisperHf
-        case ("onnx-community", name) if "whisper" in name:
-            return WhisperHf
-        case _:
-            raise ModelNotSupportedError(model)
-
-
-def _resolve_paths(path: str | Path, model_files: dict[str, str]) -> dict[str, Path]:
-    if not Path(path).is_dir():
-        raise ModelPathNotFoundError(path)
-
-    def find(filename: str) -> Path:
-        files = list(Path(path).glob(filename))
-        if len(files) == 0:
-            raise ModelFileNotFoundError(filename, path)
-        if len(files) > 1:
-            raise MoreThanOneModelFileFoundError(filename, path)
-        return files[0]
-
-    return {key: find(filename) for key, filename in model_files.items()}
-
-
 def _download_model(model: str, files: list[str]) -> str:
     from huggingface_hub import snapshot_download
 
@@ -141,6 +93,26 @@ def _download_model(model: str, files: list[str]) -> str:
 
     files = [*files, *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx")]
     return snapshot_download(repo_id, allow_patterns=files)
+
+
+def _find_files(model: str, path: str | Path | None, files: dict[str, str]) -> dict[str, Path]:
+    if path is None:
+        if not (model in get_args(ModelNames) or model.startswith("onnx-community/")):
+            raise NoModelNameOrPathSpecifiedError()
+        path = _download_model(model, list(files.values()))
+
+    if not Path(path).is_dir():
+        raise ModelPathNotFoundError(path)
+
+    def find(filename: str) -> Path:
+        files = list(Path(path).glob(filename))
+        if len(files) == 0:
+            raise ModelFileNotFoundError(filename, path)
+        if len(files) > 1:
+            raise MoreThanOneModelFileFoundError(filename, path)
+        return files[0]
+
+    return {key: find(filename) for key, filename in files.items()}
 
 
 def load_model(
@@ -169,15 +141,28 @@ def load_model(
         ASR model class.
 
     """
-    model_class = _get_model_class(model)
-    files = model_class._get_model_files(quantization)
-
-    if path is None:
-        if not (model in get_args(ModelNames) or model.startswith("onnx-community/")):
-            raise NoModelNameOrPathSpecifiedError()
-        path = _download_model(model, list(files.values()))
+    model_type: type[GigaamV2Ctc | GigaamV2Rnnt | KaldiTransducer | NemoConformerCtc | NemoConformerRnnt | WhisperOrt | WhisperHf]
+    match model.split("/"):
+        case ("gigaam-v2-ctc",):
+            model_type = GigaamV2Ctc
+        case ("gigaam-v2-rnnt",):
+            model_type = GigaamV2Rnnt
+        case ("kaldi-rnnt" | "vosk",) | ("alphacep", "vosk-model-ru" | "vosk-model-small-ru"):
+            model_type = KaldiTransducer
+        case ("nemo-conformer-ctc" | "nemo-fastconformer-ru-ctc",):
+            model_type = NemoConformerCtc
+        case ("nemo-conformer-rnnt" | "nemo-fastconformer-ru-rnnt",):
+            model_type = NemoConformerRnnt
+        case ("whisper-ort" | "whisper-base",):
+            model_type = WhisperOrt
+        case ("whisper-hf",):
+            model_type = WhisperHf
+        case ("onnx-community", name) if "whisper" in name:
+            model_type = WhisperHf
+        case _:
+            raise ModelNotSupportedError(model)
 
     if providers is None:
         providers = rt.get_available_providers()
 
-    return model_class(_resolve_paths(path, files), providers=providers)
+    return model_type(_find_files(model, path, model_type._get_model_files(quantization)), providers=providers)

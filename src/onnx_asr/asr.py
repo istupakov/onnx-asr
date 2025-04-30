@@ -20,10 +20,6 @@ class Asr(ABC):
         """Create ASR."""
         self._resampler = Resampler(**kwargs)
 
-    @staticmethod
-    @abstractmethod
-    def _get_model_files(quantization: str | None = None) -> dict[str, str]: ...
-
     @abstractmethod
     def _recognize_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
