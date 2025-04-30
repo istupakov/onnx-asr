@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -43,6 +43,46 @@ class Asr(ABC):
         if only_text:
             return [res.text for res in results]
         return results
+
+    @overload
+    def recognize(
+        self,
+        waveform: str | npt.NDArray[np.float32],
+        *,
+        sample_rate: SampleRates = 16_000,
+        language: str | None = None,
+        only_text: Literal[True] = True,
+    ) -> str: ...
+
+    @overload
+    def recognize(
+        self,
+        waveform: str | npt.NDArray[np.float32],
+        *,
+        sample_rate: SampleRates = 16_000,
+        language: str | None = None,
+        only_text: Literal[False] = False,
+    ) -> Result: ...
+
+    @overload
+    def recognize(
+        self,
+        waveform: list[str | npt.NDArray[np.float32]],
+        *,
+        sample_rate: SampleRates = 16_000,
+        language: str | None = None,
+        only_text: Literal[True] = True,
+    ) -> list[str]: ...
+
+    @overload
+    def recognize(
+        self,
+        waveform: list[str | npt.NDArray[np.float32]],
+        *,
+        sample_rate: SampleRates = 16_000,
+        language: str | None = None,
+        only_text: Literal[False] = False,
+    ) -> list[Result]: ...
 
     def recognize(
         self,
