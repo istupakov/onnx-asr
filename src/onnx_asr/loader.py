@@ -120,7 +120,9 @@ def load_model(
     path: str | Path | None = None,
     *,
     quantization: str | None = None,
+    sess_options: rt.SessionOptions | None = None,
     providers: Sequence[str | tuple[str, dict]] | None = None,
+    provider_options: Sequence[dict] | None = None,
 ) -> Asr:
     """Load ASR model.
 
@@ -135,7 +137,9 @@ def load_model(
                 Whisper from onnx-community (`whisper-hf` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
         path: Path to directory with model files.
         quantization: Model quantization (`None` | `int8` | ... ).
+        sess_options: Optional SessionOptions for onnxruntime.
         providers: Optional providers for onnxruntime.
+        provider_options: Optional provider_options for onnxruntime.
 
     Returns:
         ASR model class.
@@ -165,4 +169,9 @@ def load_model(
     if providers is None:
         providers = rt.get_available_providers()
 
-    return model_type(_find_files(model, path, model_type._get_model_files(quantization)), providers=providers)
+    return model_type(
+        _find_files(model, path, model_type._get_model_files(quantization)),
+        sess_options=sess_options,
+        providers=providers,
+        provider_options=provider_options,
+    )
