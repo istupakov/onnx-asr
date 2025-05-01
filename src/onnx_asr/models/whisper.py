@@ -156,7 +156,7 @@ class WhisperHf(_Whisper):
         return typing.cast(npt.NDArray[np.float32], last_hidden_state)
 
     def _decode(self, tokens: npt.NDArray, encoder_out: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
-        (logits,) = self._decoder.run(["logits"], {"input_ids": tokens, "encoder_hidden_states": encoder_out})
+        (logits,) = self._decoder.run(["logits"], {"input_ids": tokens.astype(np.int64), "encoder_hidden_states": encoder_out})
         return typing.cast(npt.NDArray[np.float32], logits)
 
     def _decoding(self, input_features: npt.NDArray[np.float32], tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray:
