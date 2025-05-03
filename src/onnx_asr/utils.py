@@ -59,8 +59,8 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
 
 def read_wav_files(
     waveforms: list[npt.NDArray[np.float32] | str], numpy_sample_rate: SampleRates
-) -> tuple[list[npt.NDArray[np.float32]], SampleRates]:
-    """Convert list of waveform or filenames to list of waveforms."""
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64], SampleRates]:
+    """Convert list of waveform or filenames to Numpy array with common length."""
     results = []
     sample_rates = []
     for x in waveforms:
@@ -80,16 +80,16 @@ def read_wav_files(
         raise DifferentSampleRatesError()
 
     if is_supported_sample_rate(sample_rates[0]):
-        return results, sample_rates[0]
+        return *pad_list(results), sample_rates[0]
     raise WrongSampleRateError()
 
 
-def pad_list(arrays: list[npt.NDArray[np.float32]], axis: int = 0) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
+def pad_list(arrays: list[npt.NDArray[np.float32]]) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
     """Pad list of Numpy arrays to common length."""
-    lens = np.array([array.shape[axis] for array in arrays], dtype=np.int64)
-    max_len = lens.max()
+    lens = np.array([array.shape[0] for array in arrays], dtype=np.int64)
 
-    def pads(array: npt.NDArray[np.float32]) -> list[tuple[int, int]]:
-        return [(0, max_len - array.shape[axis]) if i == axis else (0, 0) for i in range(array.ndim)]
+    result = np.zeros((len(arrays), lens.max()), dtype=np.float32)
+    for i, x in enumerate(arrays):
+        result[i, : x.shape[0]] = x[: min(x.shape[0], result.shape[1])]
 
-    return np.stack([np.pad(array, pads(array)) for array in arrays]), lens
+    return result, lens

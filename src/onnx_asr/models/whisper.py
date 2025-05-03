@@ -3,6 +3,7 @@
 import json
 import typing
 from abc import abstractmethod
+from collections.abc import Iterable
 from pathlib import Path
 
 import numpy as np
@@ -30,8 +31,6 @@ def bytes_to_unicode() -> dict[int, str]:
 
 class _Whisper(Asr):
     def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
-        super().__init__(**kwargs)
-
         with model_files["preprocessor_config"].open("rt", encoding="utf-8") as f:
             preprocessor_config = json.load(f)
         self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", **kwargs)
@@ -74,11 +73,13 @@ class _Whisper(Asr):
 
     def _decode_tokens(self, tokens: npt.NDArray) -> Result:
         text = "".join(token for id in tokens if (token := self._vocab[id]) and not token.startswith("<|"))
-        return Result(bytearray([self._byte_decoder[c] for c in text]).decode("utf-8", errors="replace").removeprefix(" "))
+        return Result(
+            bytearray([self._byte_decoder[c] for c in text]).decode("utf-8", errors="replace").removeprefix(" "), None, None
+        )
 
-    def _recognize_batch(
+    def recognize_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
-    ) -> list[Result]:
+    ) -> Iterable[Result]:
         input_encoding = self._encode(waveforms, waveforms_len)
         input_tokens = np.repeat(self._decoder_input, len(waveforms), axis=0)
 
@@ -88,7 +89,7 @@ class _Whisper(Asr):
             input_tokens_detect_lang = np.repeat([[self._bos_token_id]], len(waveforms), axis=0)
             input_tokens[:, 1] = self._decoding(input_encoding, input_tokens_detect_lang, 3)[:, 1]
 
-        return list(map(self._decode_tokens, self._decoding(input_encoding, input_tokens)))
+        return map(self._decode_tokens, self._decoding(input_encoding, input_tokens))
 
 
 class WhisperOrt(_Whisper):
