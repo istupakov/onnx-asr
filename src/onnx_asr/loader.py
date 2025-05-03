@@ -2,11 +2,11 @@
 
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal, get_args
+from typing import Literal
 
 import onnxruntime as rt
 
-from .asr import Asr
+from .adapters import AsrWithoutTimestamps
 from .models import (
     GigaamV2Ctc,
     GigaamV2Rnnt,
@@ -16,6 +16,7 @@ from .models import (
     WhisperHf,
     WhisperOrt,
 )
+from .preprocessors import Resampler
 
 ModelNames = Literal[
     "gigaam-v2-ctc",
@@ -78,28 +79,18 @@ class NoModelNameOrPathSpecifiedError(Exception):
         super().__init__("If the path is not specified, you must specify a specific model name.")
 
 
-def _download_model(model: str, files: list[str]) -> str:
+def _download_model(repo_id: str, files: list[str]) -> str:
     from huggingface_hub import snapshot_download
-
-    match model:
-        case "gigaam-v2-ctc" | "gigaam-v2-rnnt":
-            repo_id = "istupakov/gigaam-v2-onnx"
-        case "nemo-fastconformer-ru-ctc" | "nemo-fastconformer-ru-rnnt":
-            repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
-        case "whisper-base":
-            repo_id = "istupakov/whisper-base-onnx"
-        case _:
-            repo_id = model
 
     files = [*files, *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx")]
     return snapshot_download(repo_id, allow_patterns=files)
 
 
-def _find_files(model: str, path: str | Path | None, files: dict[str, str]) -> dict[str, Path]:
+def _find_files(path: str | Path | None, repo_id: str | None, files: dict[str, str]) -> dict[str, Path]:
     if path is None:
-        if not (model in get_args(ModelNames) or model.startswith("onnx-community/")):
+        if repo_id is None:
             raise NoModelNameOrPathSpecifiedError()
-        path = _download_model(model, list(files.values()))
+        path = _download_model(repo_id, list(files.values()))
 
     if not Path(path).is_dir():
         raise ModelPathNotFoundError(path)
@@ -123,11 +114,11 @@ def load_model(
     sess_options: rt.SessionOptions | None = None,
     providers: Sequence[str | tuple[str, dict]] | None = None,
     provider_options: Sequence[dict] | None = None,
-) -> Asr:
+) -> AsrWithoutTimestamps:
     """Load ASR model.
 
     Args:
-        model: Model name or type (specific models support downloading from Hugging Face):
+        model: Model name or type (download from Hugging Face supported if full model name is provided):
                 GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`),
                 Kaldi Transducer (`kaldi-rnnt`)
                 NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt`)
@@ -146,32 +137,51 @@ def load_model(
 
     """
     model_type: type[GigaamV2Ctc | GigaamV2Rnnt | KaldiTransducer | NemoConformerCtc | NemoConformerRnnt | WhisperOrt | WhisperHf]
-    match model.split("/"):
-        case ("gigaam-v2-ctc",):
+    repo_id: str | None = None
+    match model:
+        case "gigaam-v2-ctc":
             model_type = GigaamV2Ctc
-        case ("gigaam-v2-rnnt",):
+            repo_id = "istupakov/gigaam-v2-onnx"
+        case "gigaam-v2-rnnt":
             model_type = GigaamV2Rnnt
-        case ("kaldi-rnnt" | "vosk",) | ("alphacep", "vosk-model-ru" | "vosk-model-small-ru"):
+            repo_id = "istupakov/gigaam-v2-onnx"
+        case "kaldi-rnnt" | "vosk":
             model_type = KaldiTransducer
-        case ("nemo-conformer-ctc" | "nemo-fastconformer-ru-ctc",):
+        case "alphacep/vosk-model-ru" | "alphacep/vosk-model-small-ru":
+            model_type = KaldiTransducer
+            repo_id = model
+        case "nemo-conformer-ctc":
             model_type = NemoConformerCtc
-        case ("nemo-conformer-rnnt" | "nemo-fastconformer-ru-rnnt",):
+        case "nemo-fastconformer-ru-ctc":
+            model_type = NemoConformerCtc
+            repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
+        case "nemo-conformer-rnnt":
             model_type = NemoConformerRnnt
-        case ("whisper-ort" | "whisper-base",):
+        case "nemo-fastconformer-ru-rnnt":
+            model_type = NemoConformerRnnt
+            repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
+        case "whisper-ort":
             model_type = WhisperOrt
-        case ("whisper-hf",):
+        case "whisper-base":
+            model_type = WhisperOrt
+            repo_id = "istupakov/whisper-base-onnx"
+        case "whisper-hf":
             model_type = WhisperHf
-        case ("onnx-community", name) if "whisper" in name:
+        case model if model.startswith("onnx-community/") and "whisper" in model:
             model_type = WhisperHf
+            repo_id = model
         case _:
             raise ModelNotSupportedError(model)
 
     if providers is None:
         providers = rt.get_available_providers()
 
-    return model_type(
-        _find_files(model, path, model_type._get_model_files(quantization)),
-        sess_options=sess_options,
-        providers=providers,
-        provider_options=provider_options,
+    return AsrWithoutTimestamps(
+        model_type(
+            _find_files(path, repo_id, model_type._get_model_files(quantization)),
+            sess_options=sess_options,
+            providers=providers,
+            provider_options=provider_options,
+        ),
+        Resampler(sess_options=sess_options, providers=providers, provider_options=provider_options),
     )
