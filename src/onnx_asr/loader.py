@@ -13,10 +13,13 @@ from .models import (
     KaldiTransducer,
     NemoConformerCtc,
     NemoConformerRnnt,
+    PyAnnoteVad,
+    SileroVad,
     WhisperHf,
     WhisperOrt,
 )
 from .preprocessors import Resampler
+from .vad import Vad
 
 ModelNames = Literal[
     "gigaam-v2-ctc",
@@ -184,4 +187,49 @@ def load_model(
             provider_options=provider_options,
         ),
         Resampler(sess_options=sess_options, providers=providers, provider_options=provider_options),
+    )
+
+
+def load_vad(
+    model: Literal["silero"] = "silero",
+    path: str | Path | None = None,
+    *,
+    quantization: str | None = None,
+    sess_options: rt.SessionOptions | None = None,
+    providers: Sequence[str | tuple[str, dict]] | None = None,
+    provider_options: Sequence[dict] | None = None,
+) -> Vad:
+    """Load VAD model.
+
+    Args:
+        model: VAD model name (supports download from Hugging Face).
+        path: Path to directory with model files.
+        quantization: Model quantization (`None` | `int8` | ... ).
+        sess_options: Optional SessionOptions for onnxruntime.
+        providers: Optional providers for onnxruntime.
+        provider_options: Optional provider_options for onnxruntime.
+
+    Returns:
+        VAD model class.
+
+    """
+    model_type: type[SileroVad | PyAnnoteVad]
+    match model:
+        case "silero":
+            model_type = SileroVad
+            repo_id = "onnx-community/silero-vad"
+        case "pyannote":
+            model_type = PyAnnoteVad
+            repo_id = "onnx-community/pyannote-segmentation-3.0"
+        case _:
+            raise ModelNotSupportedError(model)
+
+    if providers is None:
+        providers = rt.get_available_providers()
+
+    return model_type(
+        _find_files(path, repo_id, model_type._get_model_files(quantization)),
+        sess_options=sess_options,
+        providers=providers,
+        provider_options=provider_options,
     )
