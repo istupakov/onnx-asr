@@ -3,6 +3,8 @@
 from .gigaam import GigaamV2Ctc, GigaamV2Rnnt
 from .kaldi import KaldiTransducerWithCache as KaldiTransducer
 from .nemo import NemoConformerCtc, NemoConformerRnnt
+from .pyannote import PyAnnoteVad
+from .silero import SileroVad
 from .whisper import WhisperHf, WhisperOrt
 
 __all__ = [
@@ -11,6 +13,8 @@ __all__ = [
     "KaldiTransducer",
     "NemoConformerCtc",
     "NemoConformerRnnt",
+    "PyAnnoteVad",
+    "SileroVad",
     "WhisperHf",
     "WhisperOrt",
 ]

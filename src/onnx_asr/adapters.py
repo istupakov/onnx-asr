@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import Generic, TypeVar, overload
 
 import numpy as np
@@ -11,9 +12,18 @@ import numpy.typing as npt
 
 from .asr import Asr, Result
 from .preprocessors import Resampler
-from .utils import SampleRates, read_wav_files
+from .utils import SampleRates, pad_list, read_wav_files
+from .vad import Vad
 
 R = TypeVar("R")
+
+
+@dataclass
+class SegmentResult(Result):
+    """Segment recognition result."""
+
+    start: float
+    end: float
 
 
 class AsrAdapter(ABC, Generic[R]):
@@ -26,6 +36,10 @@ class AsrAdapter(ABC, Generic[R]):
         """Create ASR adapter."""
         self.asr = asr
         self.resampler = resampler
+
+    def with_vad(self, vad: Vad, **kwargs: float) -> AsrWithVad:
+        """ASR with VAD adapter."""
+        return AsrWithVad(self.asr, vad, self.resampler, **kwargs)
 
     @abstractmethod
     def _recognize_batch(
@@ -109,3 +123,34 @@ class AsrWithoutTimestamps(AsrAdapter[str]):
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
     ) -> Iterable[str]:
         return (res.text for res in self.asr.recognize_batch(waveforms, waveforms_len, language))
+
+
+class AsrWithVad(AsrAdapter[list[SegmentResult]]):
+    """ASR with VAD adapter."""
+
+    vad: Vad
+
+    def __init__(self, asr: Asr, vad: Vad, resampler: Resampler, **kwargs: float):
+        """Create ASR with VAD adapter."""
+        super().__init__(asr, resampler)
+        self.vad = vad
+        self._vadargs = kwargs
+
+    def _recognize_segment(
+        self, waveform: npt.NDArray[np.float32], segment: list[tuple[int, int]], language: str | None
+    ) -> list[SegmentResult]:
+        chunks = [waveform[start:end] for start, end in segment]
+        return [
+            SegmentResult(result.text, result.timestamps, result.tokens, start / self.vad.SAMPLE_RATE, end / self.vad.SAMPLE_RATE)
+            for result, (start, end) in zip(self.asr.recognize_batch(*pad_list(chunks), language), segment, strict=True)
+        ]
+
+    def _recognize_batch(
+        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
+    ) -> Iterable[list[SegmentResult]]:
+        return (
+            self._recognize_segment(waveform, list(segment), language)
+            for waveform, segment in zip(
+                waveforms, self.vad.segment_batch(waveforms, waveforms_len, **self._vadargs), strict=True
+            )
+        )
