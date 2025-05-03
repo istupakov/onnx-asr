@@ -1,4 +1,4 @@
-# Automatic Speech Recognition in Python using ONNX models
+# ONNX ASR
 
 [![PyPI - Version](https://img.shields.io/pypi/v/onnx-asr.svg)](https://pypi.org/project/onnx-asr)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/onnx-asr)](https://pypi.org/project/onnx-asr)
@@ -7,20 +7,22 @@
 [![GitHub License](https://img.shields.io/github/license/istupakov/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)
 [![CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
 
-The simple speech recognition package with minimal dependencies:
-* NumPy ([numpy](https://numpy.org/))
-* ONNX Runtime ([onnxruntime](https://onnxruntime.ai/))
-* (*optional*)  Hugging Face Hub ([huggingface_hub](https://huggingface.co/))
+[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
 
-The **onnx-asr** package supports most modern ASR [models](#supported-models-architectures) and the following features:
+**onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. The package is written in pure Python with minimal dependencies (no `pytorch` or `transformers`):
+
+[![numpy](https://img.shields.io/badge/numpy-required-blue?logo=numpy)](https://pypi.org/project/numpy/)
+[![onnxruntime](https://img.shields.io/badge/onnxruntime-required-blue?logo=onnx)](https://pypi.org/project/onnxruntime/)
+[![huggingface-hub](https://img.shields.io/badge/huggingface--hub-optional-blue?logo=huggingface)](https://pypi.org/project/huggingface-hub/)
+
+The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
  * Loading models from hugging face or local folders (including quantized versions)
  * Accepts wav files or NumPy arrays (built-in support for file reading and resampling)
  * Batch processing
- * Return token timestamps (experimental)
+ * (experimental) Longform recognition with VAD (Voice Activity Detection)
+ * (experimental) Returns token timestamps
  * Simple CLI
- * Online demo in [HF Space](https://istupakov-onnx-asr.hf.space/)
-
-*The package does not yet have built-in VAD support, so in order to recognize long audio files, they must first be split into parts.*
+ * Online demo in [HF Spaces](https://istupakov-onnx-asr.hf.space/)
 
 ## Supported models architectures
 
@@ -38,11 +40,11 @@ When saving these models in onnx format, usually only the encoder and decoder ar
 
 The package can be installed from [PyPI](https://pypi.org/project/onnx-asr/):
 
-1. With CPU `onnxruntime` and `huggingface_hub`
+1. With CPU `onnxruntime` and `huggingface-hub`
 ```shell
 pip install onnx-asr[cpu,hub]
 ```
-2. With GPU `onnxruntime` and `huggingface_hub`
+2. With GPU `onnxruntime` and `huggingface-hub`
 ```shell
 pip install onnx-asr[gpu,hub]
 ```
@@ -104,8 +106,28 @@ Some models have a quantized versions:
 ```py
 import onnx_asr
 model = onnx_asr.load_model("alphacep/vosk-model-ru", quantization="int8")
-print(model.recognize(["test1.wav", "test2.wav", "test3.wav", "test4.wav"]))
+print(model.recognize("test.wav"))
 ```
+
+Return tokens and timestamps:
+```py
+import onnx_asr
+model = onnx_asr.load_model("alphacep/vosk-model-ru").with_timestamps()
+print(model.recognize("test1.wav"))
+```
+
+### VAD
+
+Load VAD ONNX model from Hugging Face and recognize wav file:
+```py
+import onnx_asr
+vad = onnx_asr.load_vad("silero")
+model = onnx_asr.load_model("gigaam-v2-rnnt").with_vad(vad)
+print(model.recognize("test.wav"))
+```
+
+#### Supported VAD names:
+* `silero` for Silero VAD ([origin](https://github.com/snakers4/silero-vad), [onnx](https://huggingface.co/onnx-community/silero-vad))
 
 ### CLI
 
@@ -117,6 +139,27 @@ onnx-asr nemo-fastconformer-ru-ctc test.wav
 For full usage parameters, see help:
 ```shell
 onnx-asr -h
+```
+
+### Gradio
+
+Create simple web interface with Gradio:
+```py
+import onnx_asr
+import gradio as gr
+
+model = onnx_asr.load_model("gigaam-v2-rnnt")
+
+def recognize(audio):
+    if audio:
+        sample_rate, waveform = audio
+        waveform = waveform / 2**15
+        if waveform.ndim == 2:
+            waveform = waveform.mean(axis=1)
+        return model.recognize(waveform, sample_rate=sample_rate)
+
+demo = gr.Interface(fn=recognize, inputs=gr.Audio(min_length=1, max_length=30), outputs="text")
+demo.launch()
 ```
 
 ### Load ONNX model from local directory

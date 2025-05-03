@@ -3,7 +3,7 @@ name = "onnx-asr"
 dynamic = ["version"]
 description = "Automatic Speech Recognition in Python using ONNX models"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
-keywords = ["asr", "speech recognition", "onnx"]
+keywords = ["asr", "speech recognition", "onnx", "stt"]
 dependencies = ["numpy"]
 requires-python = ">=3.10"
 readme = "README.md"
@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Typing :: Typed",
@@ -39,7 +40,7 @@ build-backend = "pdm.backend"
 [project.optional-dependencies]
 cpu = ["onnxruntime>=1.18.1"]
 gpu = ["onnxruntime-gpu>=1.18.1"]
-hub = ["huggingface_hub"]
+hub = ["huggingface-hub"]
 
 [project.scripts]
 onnx-asr = "onnx_asr.cli:run"
