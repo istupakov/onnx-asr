@@ -2,6 +2,7 @@
 
 import typing
 from collections.abc import Iterable, Iterator
+from itertools import chain
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +17,7 @@ class SileroVad(Vad):
 
     CONTEXT_SIZE = 64
     HOP_SIZE = 512
+    INF = 10**15
 
     def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
         """Create Silero VAD.
@@ -42,67 +44,71 @@ class SileroVad(Vad):
         def process(frame: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
             nonlocal state
             output, state = self._model.run(["output", "stateN"], {"input": frame, "state": state, "sr": [self.SAMPLE_RATE]})
-            return typing.cast(npt.NDArray[np.float32], output)
+            return typing.cast(npt.NDArray[np.float32], output[:, 0])
 
         yield process(np.pad(waveforms[:, : self.HOP_SIZE], ((0, 0), (self.CONTEXT_SIZE, 0))))
+
         for i in range(frames.shape[1]):
             yield process(frames[:, i])
 
         if last_frame := waveforms.shape[1] % self.HOP_SIZE:
             yield process(np.pad(waveforms[:, -last_frame - self.CONTEXT_SIZE :], ((0, 0), (0, self.HOP_SIZE - last_frame))))
 
-    def _find_segments(self, waveforms: npt.NDArray[np.float32], **kwargs: float) -> Iterator[Iterator[tuple[int, int]]]:
-        def segment(
-            probs: Iterable[np.float32], pos_threshold: float = 0.5, neg_threshold: float = 0.35, **kwargs: float
-        ) -> Iterator[tuple[int, int]]:
-            state = 0
-            start = 0
-            for i, p in enumerate(probs):
-                if state == 0 and p >= pos_threshold:
-                    state = 1
-                    start = i * self.HOP_SIZE
-                elif state == 1 and p < neg_threshold:
-                    state = 0
-                    yield start, i * self.HOP_SIZE
+    def _find_segments(
+        self, probs: Iterable[np.float32], threshold: float = 0.5, neg_threshold: float | None = None, **kwargs: float
+    ) -> Iterator[tuple[int, int]]:
+        if neg_threshold is None:
+            neg_threshold = threshold - 0.15
 
-            if state == 1:
-                yield start, waveforms.shape[1]
+        state = 0
+        start = 0
+        for i, p in enumerate(chain(probs, (np.float32(0),))):
+            if state == 0 and p >= threshold:
+                state = 1
+                start = i * self.HOP_SIZE
+            elif state == 1 and p < neg_threshold:
+                state = 0
+                yield start, i * self.HOP_SIZE
 
-        if len(waveforms) == 1:
-            yield segment((probs[0] for probs in self._encode(waveforms)), **kwargs)
-        else:
-            yield from (segment(probs, **kwargs) for probs in zip(*self._encode(waveforms), strict=True))
-
-    def _process_segments(
+    def _merge_segments(
         self,
         segments: Iterator[tuple[int, int]],
-        max_end: int,
-        min_speech_duration: float = 250,
-        min_silence_duration: float = 100,
-        speech_pad: float = 30,
+        waveform_len: int,
+        min_speech_duration_ms: float = 250,
+        max_speech_duration_s: float = 20,
+        min_silence_duration_ms: float = 100,
+        speech_pad_ms: float = 30,
         **kwargs: float,
     ) -> Iterator[tuple[int, int]]:
-        min_speech_duration *= self.SAMPLE_RATE // 1000
-        min_silence_duration *= self.SAMPLE_RATE // 1000
-        speech_pad = int(self.SAMPLE_RATE * speech_pad // 1000)
+        speech_pad = int(speech_pad_ms * self.SAMPLE_RATE // 1000)
+        min_speech_duration = int(min_speech_duration_ms * self.SAMPLE_RATE // 1000) - 2 * speech_pad
+        max_speech_duration = int(max_speech_duration_s * self.SAMPLE_RATE) - 2 * speech_pad
+        min_silence_duration = int(min_silence_duration_ms * self.SAMPLE_RATE // 1000) + 2 * speech_pad
 
-        cur_start, cur_end = -self.SAMPLE_RATE, -self.SAMPLE_RATE
-        for start, end in segments:
-            if start - cur_end < min_silence_duration + 2 * speech_pad:
+        cur_start, cur_end = -self.INF, -self.INF
+        for start, end in chain(segments, ((waveform_len, waveform_len), (self.INF, self.INF))):
+            if start - cur_end < min_silence_duration and end - cur_start < max_speech_duration:
                 cur_end = end
             else:
-                if cur_end - cur_start > min_speech_duration - 2 * speech_pad:
-                    yield max(cur_start - speech_pad, 0), min(cur_end + speech_pad, max_end)
+                if cur_end - cur_start > min_speech_duration:
+                    yield max(cur_start - speech_pad, 0), min(cur_end + speech_pad, waveform_len)
+                while end - start > max_speech_duration:
+                    yield max(start - speech_pad, 0), start + max_speech_duration - speech_pad
+                    start += max_speech_duration
                 cur_start, cur_end = start, end
 
-        if cur_end - cur_start > min_speech_duration:
-            yield max(cur_start - speech_pad, 0), min(cur_end + speech_pad, max_end)
+    def _segment(self, probs: Iterable[np.float32], waveform_len: np.int64, **kwargs: float) -> Iterator[tuple[int, int]]:
+        return self._merge_segments(self._find_segments(probs, **kwargs), int(waveform_len), **kwargs)
 
     def segment_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], **kwargs: float
     ) -> Iterator[Iterator[tuple[int, int]]]:
         """Segment waveforms batch."""
-        return (
-            self._process_segments(segments, max_end, **kwargs)
-            for segments, max_end in zip(self._find_segments(waveforms, **kwargs), waveforms_len, strict=True)
-        )
+        encoding = self._encode(waveforms)
+        if len(waveforms) == 1:
+            yield self._segment((probs[0] for probs in encoding), waveforms_len[0], **kwargs)
+        else:
+            yield from (
+                self._segment(probs, waveform_len, **kwargs)
+                for probs, waveform_len in zip(zip(*encoding, strict=True), waveforms_len, strict=True)
+            )
