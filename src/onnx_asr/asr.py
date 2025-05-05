@@ -2,7 +2,7 @@
 
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -14,21 +14,21 @@ from .preprocessors import Preprocessor
 
 
 @dataclass
-class Result:
-    """Recognition result."""
+class TimestampedResult:
+    """Timestamped recognition result."""
 
     text: str
-    timestamps: list[float] | None
-    tokens: list[str] | None
+    timestamps: list[float] | None = None
+    tokens: list[str] | None = None
 
 
 class Asr(ABC):
-    """Abstract ASR class with common interface and methods."""
+    """Base ASR class."""
 
     @abstractmethod
     def recognize_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
-    ) -> Iterable[Result]:
+    ) -> Iterator[TimestampedResult]:
         """Recognize waveforms batch."""
         ...
 
@@ -51,16 +51,16 @@ class _AsrWithDecoding(Asr):
     @abstractmethod
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
-    ) -> Iterable[tuple[list[int], list[int]]]: ...
+    ) -> Iterator[tuple[list[int], list[int]]]: ...
 
-    def _decode_tokens(self, ids: list[int], timestamps: list[float]) -> Result:
+    def _decode_tokens(self, ids: list[int], timestamps: list[float]) -> TimestampedResult:
         tokens = [self._vocab[i] for i in ids]
         text = re.sub(self.DECODE_SPACE_PATTERN, lambda x: " " if x.group(1) else "", "".join(tokens))
-        return Result(text, timestamps, tokens)
+        return TimestampedResult(text, timestamps, tokens)
 
     def recognize_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
-    ) -> Iterable[Result]:
+    ) -> Iterator[TimestampedResult]:
         encoder_out, encoder_out_lens = self._encode(*self._preprocessor(waveforms, waveforms_len))
         subsampling = np.round((waveforms_len / encoder_out_lens / 160).mean())
         return (
@@ -72,7 +72,7 @@ class _AsrWithDecoding(Asr):
 class _AsrWithCtcDecoding(_AsrWithDecoding):
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
-    ) -> Iterable[tuple[list[int], list[int]]]:
+    ) -> Iterator[tuple[list[int], list[int]]]:
         assert encoder_out.shape[-1] <= len(self._vocab)
 
         for log_probs, log_probs_len in zip(encoder_out, encoder_out_lens, strict=True):
@@ -98,7 +98,7 @@ class _AsrWithRnntDecoding(_AsrWithDecoding):
 
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
-    ) -> Iterable[tuple[list[int], list[int]]]:
+    ) -> Iterator[tuple[list[int], list[int]]]:
         for encodings, encodings_len in zip(encoder_out, encoder_out_lens, strict=True):
             prev_state = self._create_state()
             tokens: list[int] = []

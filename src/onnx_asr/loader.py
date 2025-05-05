@@ -6,7 +6,7 @@ from typing import Literal
 
 import onnxruntime as rt
 
-from .adapters import AsrWithoutTimestamps
+from .adapters import TextResultsAsrAdapter
 from .models import (
     GigaamV2Ctc,
     GigaamV2Rnnt,
@@ -117,7 +117,7 @@ def load_model(
     sess_options: rt.SessionOptions | None = None,
     providers: Sequence[str | tuple[str, dict]] | None = None,
     provider_options: Sequence[dict] | None = None,
-) -> AsrWithoutTimestamps:
+) -> TextResultsAsrAdapter:
     """Load ASR model.
 
     Args:
@@ -179,7 +179,7 @@ def load_model(
     if providers is None:
         providers = rt.get_available_providers()
 
-    return AsrWithoutTimestamps(
+    return TextResultsAsrAdapter(
         model_type(
             _find_files(path, repo_id, model_type._get_model_files(quantization)),
             sess_options=sess_options,

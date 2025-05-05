@@ -123,7 +123,8 @@ Load VAD ONNX model from Hugging Face and recognize wav file:
 import onnx_asr
 vad = onnx_asr.load_vad("silero")
 model = onnx_asr.load_model("gigaam-v2-rnnt").with_vad(vad)
-print(model.recognize("test.wav"))
+for res in model.recognize("test.wav"):
+    print(res)
 ```
 
 #### Supported VAD names:
