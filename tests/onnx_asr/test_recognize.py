@@ -2,8 +2,6 @@ import numpy as np
 import pytest
 
 import onnx_asr
-import onnx_asr.adapters
-import onnx_asr.asr
 import onnx_asr.utils
 
 
@@ -13,7 +11,7 @@ def model(request):
 
 
 @pytest.mark.parametrize("model", ["alphacep/vosk-model-small-ru", "onnx-community/whisper-tiny", "whisper-base"], indirect=True)
-def test_supported_only_mono_audio_error(model: onnx_asr.adapters.AsrWithoutTimestamps):
+def test_supported_only_mono_audio_error(model):
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000, 2), dtype=np.float32)
 
@@ -22,7 +20,7 @@ def test_supported_only_mono_audio_error(model: onnx_asr.adapters.AsrWithoutTime
 
 
 @pytest.mark.parametrize("model", ["alphacep/vosk-model-small-ru", "onnx-community/whisper-tiny", "whisper-base"], indirect=True)
-def test_wrong_sample_rate_error(model: onnx_asr.adapters.AsrWithoutTimestamps):
+def test_wrong_sample_rate_error(model):
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 
@@ -31,7 +29,7 @@ def test_wrong_sample_rate_error(model: onnx_asr.adapters.AsrWithoutTimestamps):
 
 
 @pytest.mark.parametrize("model", ["alphacep/vosk-model-small-ru", "onnx-community/whisper-tiny", "whisper-base"], indirect=True)
-def test_recognize(model: onnx_asr.adapters.AsrWithoutTimestamps):
+def test_recognize(model):
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 
