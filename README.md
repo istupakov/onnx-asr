@@ -27,7 +27,7 @@ The **onnx-asr** package supports many modern ASR [models](#supported-models-arc
 ## Supported models architectures
 
 The package supports the following modern ASR model architectures ([comparison](#comparison-with-original-implementations) with original implementations):
-* Nvidia NeMo Conformer/FastConformer (with CTC and RNN-T decoders)
+* Nvidia NeMo Conformer/FastConformer/Parakeet (with CTC and RNN-T decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
 * Sber GigaAM v2 (with CTC and RNN-T decoders)
 * OpenAI Whisper
@@ -77,6 +77,8 @@ print(model.recognize("test.wav"))
 * `gigaam-v2-rnnt` for Sber GigaAM v2 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
 * `nemo-fastconformer-ru-ctc` for Nvidia FastConformer-Hybrid Large (ru) with CTC decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `nemo-fastconformer-ru-rnnt` for Nvidia FastConformer-Hybrid Large (ru) with RNN-T decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
+* `nemo-parakeet-ctc-0.6b` for Nvidia Parakeet CTC 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-ctc-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-ctc-0.6b-onnx))
+* `nemo-parakeet-rnnt-0.6b` for Nvidia Parakeet RNNT 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-rnnt-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-rnnt-0.6b-onnx))
 * `whisper-base` for OpenAI Whisper Base exported with onnxruntime ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
 * `alphacep/vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
 * `alphacep/vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
@@ -173,8 +175,8 @@ print(model.recognize("test.wav"))
 ```
 #### Supported model types:
 * All models from [supported model names](#supported-model-names)
-* `nemo-conformer-ctc` for NeMo Conformer with CTC decoder
-* `nemo-conformer-rnnt` for NeMo Conformer with RNN-T decoder
+* `nemo-conformer-ctc` for NeMo Conformer/FastConformer/Parakeet with CTC decoder
+* `nemo-conformer-rnnt` for NeMo Conformer/FastConformer/Parakeet with RNN-T decoder
 * `kaldi-rnnt` or `vosk` for Kaldi Icefall Zipformer with stateless RNN-T decoder
 * `whisper-ort` for Whisper (exported with [onnxruntime](#openai-whisper-with-onnxruntime-export))
 * `whisper-hf` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))
@@ -220,7 +222,7 @@ Hardware:
 
 ## Convert model to ONNX
 
-### Nvidia NeMo Conformer/FastConformer
+### Nvidia NeMo Conformer/FastConformer/Parakeet
 Install **NeMo Toolkit**
 ```shell
 pip install nemo_toolkit['asr']
@@ -231,18 +233,16 @@ Download model and export to ONNX format
 import nemo.collections.asr as nemo_asr
 from pathlib import Path
 
-model_name = "stt_ru_fastconformer_hybrid_large_pc"
-onnx_dir = Path("nemo-onnx")
-onnx_dir.mkdir(exist_ok=True)
-
-model = nemo_asr.models.ASRModel.from_pretrained("nvidia/" + model_name)
+model = nemo_asr.models.ASRModel.from_pretrained("nvidia/stt_ru_fastconformer_hybrid_large_pc")
 
 # For export Hybrid models with CTC decoder
 # model.set_export_config({"decoder_type": "ctc"})
 
-model.export(Path(onnx_dir, model_name).with_suffix(".onnx"))
+onnx_dir = Path("nemo-onnx")
+onnx_dir.mkdir(exist_ok=True)
+model.export(str(Path(onnx_dir, "model.onnx")))
 
-with Path(onnx_dir, f"vocab-{model_name}.txt").open("wt") as f:
+with Path(onnx_dir, "vocab.txt").open("wt") as f:
     for i, token in enumerate([*model.tokenizer.vocab, "<blk>"]):
         f.write(f"{token} {i}\n")
 ```

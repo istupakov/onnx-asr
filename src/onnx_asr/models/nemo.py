@@ -10,13 +10,21 @@ import onnxruntime as rt
 from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDecoding
 
 
+class WrongOutputShapeError(Exception):
+    """Wrong output shape error."""
+
+    def __init__(self) -> None:
+        """Create error."""
+        super().__init__("Wrong output shape error.")
+
+
 class _NemoConformer(_AsrWithDecoding):
     def __init__(self, model_files: dict[str, Path], **kwargs: Any):
         super().__init__("nemo", model_files["vocab"], **kwargs)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
-        return {"vocab": "vocab*.txt"}
+        return {"vocab": "vocab.txt"}
 
 
 class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
@@ -35,27 +43,26 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
-        suffix = "?" + quantization if quantization else "[!0-9]"
-        return {"model": f"stt_*conformer*{suffix}.onnx"} | _NemoConformer._get_model_files(quantization)
+        suffix = "?" + quantization if quantization else ""
+        return {"model": f"model{suffix}.onnx"} | _NemoConformer._get_model_files(quantization)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
-        (log_probs,) = self._model.run(["logprobs"], {"audio_signal": features, "length": features_lens})
+        (logprobs,) = self._model.run(["logprobs"], {"audio_signal": features, "length": features_lens})
         conformer_lens = (features_lens - 1) // 4 + 1
         fastconformer_lens = (features_lens - 1) // 8 + 1
-        if log_probs.shape[1] == max(conformer_lens):
-            return log_probs, conformer_lens
-        elif log_probs.shape[1] == max(fastconformer_lens):
-            return log_probs, fastconformer_lens
+        if logprobs.shape[1] == max(conformer_lens):
+            return logprobs, conformer_lens
+        elif logprobs.shape[1] == max(fastconformer_lens):
+            return logprobs, fastconformer_lens
         else:
-            return log_probs, np.full_like(features_lens, log_probs.shape[1])
+            raise WrongOutputShapeError()
 
 
 class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
     """NeMo Conformer RNN-T model implementations."""
 
-    PRED_HIDDEN = 640
     MAX_TOKENS_PER_STEP = 10
     STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
@@ -73,10 +80,10 @@ class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
-        suffix = "?" + quantization if quantization else "[!0-9]"
+        suffix = "?" + quantization if quantization else ""
         return {
-            "encoder": f"encoder-stt_*conformer*{suffix}.onnx",
-            "decoder_joint": f"decoder_joint-stt_*conformer*{suffix}.onnx",
+            "encoder": f"encoder-model{suffix}.onnx",
+            "decoder_joint": f"decoder_joint-model{suffix}.onnx",
         } | _NemoConformer._get_model_files(quantization)
 
     @property
@@ -92,9 +99,10 @@ class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
         return encoder_out, encoder_out_lens
 
     def _create_state(self) -> STATE_TYPE:
+        shapes = {x.name: x.shape for x in self._decoder_joint.get_inputs()}
         return (
-            np.zeros(shape=(1, 1, self.PRED_HIDDEN), dtype=np.float32),
-            np.zeros(shape=(1, 1, self.PRED_HIDDEN), dtype=np.float32),
+            np.zeros(shape=(shapes["input_states_1"][0], 1, shapes["input_states_1"][2]), dtype=np.float32),
+            np.zeros(shape=(shapes["input_states_2"][0], 1, shapes["input_states_2"][2]), dtype=np.float32),
         )
 
     def _decode(
