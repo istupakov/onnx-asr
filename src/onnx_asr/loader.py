@@ -26,6 +26,8 @@ ModelNames = Literal[
     "gigaam-v2-rnnt",
     "nemo-fastconformer-ru-ctc",
     "nemo-fastconformer-ru-rnnt",
+    "nemo-parakeet-ctc-0.6b",
+    "nemo-parakeet-rnnt-0.6b",
     "alphacep/vosk-model-ru",
     "alphacep/vosk-model-small-ru",
     "whisper-base",
@@ -126,6 +128,7 @@ def load_model(
                 Kaldi Transducer (`kaldi-rnnt`)
                 NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt`)
                 NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
+                NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b`)
                 Vosk (`vosk` | `alphacep/vosk-model-ru` | `alphacep/vosk-model-small-ru`)
                 Whisper Base exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
                 Whisper from onnx-community (`whisper-hf` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
@@ -158,11 +161,17 @@ def load_model(
         case "nemo-fastconformer-ru-ctc":
             model_type = NemoConformerCtc
             repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
+        case "nemo-parakeet-ctc-0.6b":
+            model_type = NemoConformerCtc
+            repo_id = "istupakov/parakeet-ctc-0.6b-onnx"
         case "nemo-conformer-rnnt":
             model_type = NemoConformerRnnt
         case "nemo-fastconformer-ru-rnnt":
             model_type = NemoConformerRnnt
             repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
+        case "nemo-parakeet-rnnt-0.6b":
+            model_type = NemoConformerRnnt
+            repo_id = "istupakov/parakeet-rnnt-0.6b-onnx"
         case "whisper-ort":
             model_type = WhisperOrt
         case "whisper-base":
