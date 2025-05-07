@@ -1,26 +1,25 @@
 """Waveform resampler implementations."""
 
 from importlib.resources import files
-from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.utils import SampleRates
+from onnx_asr.utils import OnnxSessionOptions, SampleRates
 
 
 class Resampler:
     """Waveform resampler to 16 kHz implementation."""
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, onnx_options: OnnxSessionOptions):
         """Create waveform resampler.
 
         Args:
-            kwargs: Additional parameters for onnxruntime.InferenceSession.
+            onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        self._preprocessor = rt.InferenceSession(files(__package__).joinpath("resample.onnx").read_bytes(), **kwargs)
+        self._preprocessor = rt.InferenceSession(files(__package__).joinpath("resample.onnx").read_bytes(), **onnx_options)
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64], sample_rate: SampleRates

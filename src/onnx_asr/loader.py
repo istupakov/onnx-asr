@@ -2,9 +2,11 @@
 
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import onnxruntime as rt
+
+from onnx_asr.utils import OnnxSessionOptions
 
 from .adapters import TextResultsAsrAdapter
 from .models import (
@@ -42,6 +44,7 @@ ModelTypes = Literal[
     "whisper-ort",
     "whisper-hf",
 ]
+VadNames = Literal["silero"]
 
 
 class ModelNotSupportedError(ValueError):
@@ -117,8 +120,8 @@ def load_model(
     *,
     quantization: str | None = None,
     sess_options: rt.SessionOptions | None = None,
-    providers: Sequence[str | tuple[str, dict]] | None = None,
-    provider_options: Sequence[dict] | None = None,
+    providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
+    provider_options: Sequence[dict[Any, Any]] | None = None,
 ) -> TextResultsAsrAdapter:
     """Load ASR model.
 
@@ -185,28 +188,26 @@ def load_model(
         case _:
             raise ModelNotSupportedError(model)
 
-    if providers is None:
-        providers = rt.get_available_providers()
+    onnx_options: OnnxSessionOptions = {
+        "sess_options": sess_options,
+        "providers": providers or rt.get_available_providers(),
+        "provider_options": provider_options,
+    }
 
     return TextResultsAsrAdapter(
-        model_type(
-            _find_files(path, repo_id, model_type._get_model_files(quantization)),
-            sess_options=sess_options,
-            providers=providers,
-            provider_options=provider_options,
-        ),
-        Resampler(sess_options=sess_options, providers=providers, provider_options=provider_options),
+        model_type(_find_files(path, repo_id, model_type._get_model_files(quantization)), onnx_options),
+        Resampler(onnx_options),
     )
 
 
 def load_vad(
-    model: Literal["silero"] = "silero",
+    model: VadNames = "silero",
     path: str | Path | None = None,
     *,
     quantization: str | None = None,
     sess_options: rt.SessionOptions | None = None,
-    providers: Sequence[str | tuple[str, dict]] | None = None,
-    provider_options: Sequence[dict] | None = None,
+    providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
+    provider_options: Sequence[dict[Any, Any]] | None = None,
 ) -> Vad:
     """Load VAD model.
 
@@ -233,12 +234,10 @@ def load_vad(
         case _:
             raise ModelNotSupportedError(model)
 
-    if providers is None:
-        providers = rt.get_available_providers()
+    onnx_options: OnnxSessionOptions = {
+        "sess_options": sess_options,
+        "providers": providers or rt.get_available_providers(),
+        "provider_options": provider_options,
+    }
 
-    return model_type(
-        _find_files(path, repo_id, model_type._get_model_files(quantization)),
-        sess_options=sess_options,
-        providers=providers,
-        provider_options=provider_options,
-    )
+    return model_type(_find_files(path, repo_id, model_type._get_model_files(quantization)), onnx_options)

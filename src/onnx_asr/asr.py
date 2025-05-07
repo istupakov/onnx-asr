@@ -5,12 +5,15 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Generic, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
 from .preprocessors import Preprocessor
+from .utils import OnnxSessionOptions
+
+S = TypeVar("S")
 
 
 @dataclass
@@ -36,8 +39,8 @@ class Asr(ABC):
 class _AsrWithDecoding(Asr):
     DECODE_SPACE_PATTERN = re.compile(r"\A\s|\s\B|(\s)\b")
 
-    def __init__(self, preprocessor_name: str, vocab_path: Path, **kwargs: Any):
-        self._preprocessor = Preprocessor(preprocessor_name, **kwargs)
+    def __init__(self, preprocessor_name: str, vocab_path: Path, onnx_options: OnnxSessionOptions):
+        self._preprocessor = Preprocessor(preprocessor_name, onnx_options)
         with Path(vocab_path).open("rt", encoding="utf-8") as f:
             tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}
         self._vocab = {id: token.replace("\u2581", " ") for token, id in tokens.items()}
@@ -83,9 +86,9 @@ class _AsrWithCtcDecoding(_AsrWithDecoding):
             yield tokens[mask].tolist(), indices[mask].tolist()
 
 
-class _AsrWithRnntDecoding(_AsrWithDecoding):
+class _AsrWithRnntDecoding(_AsrWithDecoding, Generic[S]):
     @abstractmethod
-    def _create_state(self) -> tuple: ...
+    def _create_state(self) -> S: ...
 
     @property
     @abstractmethod
@@ -93,8 +96,8 @@ class _AsrWithRnntDecoding(_AsrWithDecoding):
 
     @abstractmethod
     def _decode(
-        self, prev_tokens: list[int], prev_state: tuple, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], tuple]: ...
+        self, prev_tokens: list[int], prev_state: S, encoder_out: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], S]: ...
 
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]

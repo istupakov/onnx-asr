@@ -56,7 +56,7 @@ def preprocessor(request):
         case "onnx_func":
             return kaldi.KaldiPreprocessor
         case "onnx_model":
-            return Preprocessor("kaldi")
+            return Preprocessor("kaldi", {})
 
 
 @pytest.mark.parametrize(

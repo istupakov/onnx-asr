@@ -56,9 +56,9 @@ def preprocessor(request):
         case "onnx_func 128":
             return whisper.WhisperPreprocessor128
         case "onnx_model 80":
-            return Preprocessor("whisper80")
+            return Preprocessor("whisper80", {})
         case "onnx_model 128":
-            return Preprocessor("whisper128")
+            return Preprocessor("whisper128", {})
 
 
 @pytest.mark.parametrize(

@@ -56,7 +56,7 @@ def preprocessor(request):
         case "onnx_func":
             return nemo.NemoPreprocessor
         case "onnx_model":
-            return Preprocessor("nemo")
+            return Preprocessor("nemo", {})
 
 
 @pytest.mark.parametrize(

@@ -7,21 +7,22 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
+from onnx_asr.utils import OnnxSessionOptions
 from onnx_asr.vad import Vad
 
 
 class PyAnnoteVad(Vad):
     """PyAnnote VAD implementation."""
 
-    def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
         """Create PyAnnote VAD.
 
         Args:
             model_files: Dict with paths to model files.
-            kwargs: Additional parameters for onnxruntime.InferenceSession.
+            onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        self._model = rt.InferenceSession(model_files["model"], **kwargs)
+        self._model = rt.InferenceSession(model_files["model"], **onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
