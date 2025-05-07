@@ -3,15 +3,16 @@ import pytest
 
 import onnx_asr
 import onnx_asr.utils
+from onnx_asr.adapters import TextResultsAsrAdapter
 
 
 @pytest.fixture(scope="module")
-def model(request):
+def model(request: pytest.FixtureRequest) -> TextResultsAsrAdapter:
     return onnx_asr.load_model(request.param)
 
 
 @pytest.mark.parametrize("model", ["alphacep/vosk-model-small-ru", "onnx-community/whisper-tiny", "whisper-base"], indirect=True)
-def test_supported_only_mono_audio_error(model):
+def test_supported_only_mono_audio_error(model: TextResultsAsrAdapter) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000, 2), dtype=np.float32)
 
@@ -20,7 +21,7 @@ def test_supported_only_mono_audio_error(model):
 
 
 @pytest.mark.parametrize("model", ["alphacep/vosk-model-small-ru", "onnx-community/whisper-tiny", "whisper-base"], indirect=True)
-def test_wrong_sample_rate_error(model):
+def test_wrong_sample_rate_error(model: TextResultsAsrAdapter) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 
@@ -29,7 +30,7 @@ def test_wrong_sample_rate_error(model):
 
 
 @pytest.mark.parametrize("model", ["alphacep/vosk-model-small-ru", "onnx-community/whisper-tiny", "whisper-base"], indirect=True)
-def test_recognize(model):
+def test_recognize(model: TextResultsAsrAdapter) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 

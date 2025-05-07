@@ -12,6 +12,7 @@ import onnxruntime as rt
 
 from onnx_asr.asr import Asr, TimestampedResult
 from onnx_asr.preprocessors import Preprocessor
+from onnx_asr.utils import OnnxSessionOptions
 
 
 @typing.no_type_check
@@ -30,10 +31,10 @@ def bytes_to_unicode() -> dict[int, str]:
 
 
 class _Whisper(Asr):
-    def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
         with model_files["preprocessor_config"].open("rt", encoding="utf-8") as f:
             preprocessor_config = json.load(f)
-        self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", **kwargs)
+        self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", onnx_options)
 
         with model_files["vocab"].open("rt", encoding="utf-8") as f:
             self._tokens: dict[str, int] = json.load(f)
@@ -45,7 +46,7 @@ class _Whisper(Asr):
         self._bos_token_id = self._tokens["<|startoftranscript|>"]
         self._eos_token_id = self._tokens["<|endoftext|>"]
         self._byte_decoder = {v: k for k, v in bytes_to_unicode().items()}
-        self._decoder_input = np.array(
+        self._transcribe_input = np.array(
             [
                 [
                     self._bos_token_id,
@@ -53,8 +54,10 @@ class _Whisper(Asr):
                     self._tokens["<|transcribe|>"],
                     self._tokens["<|notimestamps|>"],
                 ]
-            ]
+            ],
+            dtype=np.int64,
         )
+        self._detect_lang_input = np.array([[self._bos_token_id]], dtype=np.int64)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -69,9 +72,11 @@ class _Whisper(Asr):
         return input_features
 
     @abstractmethod
-    def _decoding(self, input_features: npt.NDArray, tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray: ...
+    def _decoding(
+        self, input_features: npt.NDArray[np.float32], tokens: npt.NDArray[np.int64], max_length: int = 448
+    ) -> npt.NDArray[np.int64]: ...
 
-    def _decode_tokens(self, tokens: npt.NDArray) -> TimestampedResult:
+    def _decode_tokens(self, tokens: npt.NDArray[np.int64]) -> TimestampedResult:
         text = "".join(token for id in tokens if (token := self._vocab[id]) and not token.startswith("<|"))
         return TimestampedResult(
             bytearray([self._byte_decoder[c] for c in text]).decode("utf-8", errors="replace").removeprefix(" ")
@@ -81,12 +86,12 @@ class _Whisper(Asr):
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
     ) -> Iterator[TimestampedResult]:
         input_encoding = self._encode(waveforms, waveforms_len)
-        input_tokens = np.repeat(self._decoder_input, len(waveforms), axis=0)
+        input_tokens = np.repeat(self._transcribe_input, len(waveforms), axis=0)
 
         if language:
             input_tokens[:, 1] = self._tokens[f"<|{language}|>"]
         else:
-            input_tokens_detect_lang = np.repeat([[self._bos_token_id]], len(waveforms), axis=0)
+            input_tokens_detect_lang = np.repeat(self._detect_lang_input, len(waveforms), axis=0)
             input_tokens[:, 1] = self._decoding(input_encoding, input_tokens_detect_lang, 3)[:, 1]
 
         return map(self._decode_tokens, self._decoding(input_encoding, input_tokens))
@@ -95,23 +100,25 @@ class _Whisper(Asr):
 class WhisperOrt(_Whisper):
     """Whisper (exported with onnxruntime) model implementation."""
 
-    def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
         """Create Whisper model.
 
         Args:
             model_files: Dict with paths to model files.
-            kwargs: Additional parameters for onnxruntime.InferenceSession.
+            onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        super().__init__(model_files, **kwargs)
-        self._model = rt.InferenceSession(model_files["model"], **kwargs)
+        super().__init__(model_files, onnx_options)
+        self._model = rt.InferenceSession(model_files["model"], **onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         suffix = "?" + quantization if quantization else ""
         return {"model": f"whisper-*_beamsearch{suffix}.onnx"} | _Whisper._get_model_files(quantization)
 
-    def _decoding(self, input_features: npt.NDArray, tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray:
+    def _decoding(
+        self, input_features: npt.NDArray[np.float32], tokens: npt.NDArray[np.int64], max_length: int = 448
+    ) -> npt.NDArray[np.int64]:
         (sequences,) = self._model.run(
             ["sequences"],
             {
@@ -125,23 +132,23 @@ class WhisperOrt(_Whisper):
                 "decoder_input_ids": tokens.astype(np.int32),
             },
         )
-        return typing.cast(npt.NDArray, sequences[:, 0, :])
+        return typing.cast(npt.NDArray[np.int32], sequences)[:, 0, :].astype(np.int64)
 
 
 class WhisperHf(_Whisper):
     """Whisper (exported with optimum) model implementation."""
 
-    def __init__(self, model_files: dict[str, Path], **kwargs: typing.Any):
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
         """Create Whisper model.
 
         Args:
             model_files: Dict with paths to model files.
-            kwargs: Additional parameters for onnxruntime.InferenceSession.
+            onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        super().__init__(model_files, **kwargs)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **kwargs)
-        self._decoder = rt.InferenceSession(model_files["decoder"], **kwargs)
+        super().__init__(model_files, onnx_options)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
+        self._decoder = rt.InferenceSession(model_files["decoder"], **onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -156,11 +163,13 @@ class WhisperHf(_Whisper):
         (last_hidden_state,) = self._encoder.run(["last_hidden_state"], {"input_features": input_features})
         return typing.cast(npt.NDArray[np.float32], last_hidden_state)
 
-    def _decode(self, tokens: npt.NDArray, encoder_out: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
-        (logits,) = self._decoder.run(["logits"], {"input_ids": tokens.astype(np.int64), "encoder_hidden_states": encoder_out})
+    def _decode(self, tokens: npt.NDArray[np.int64], encoder_out: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+        (logits,) = self._decoder.run(["logits"], {"input_ids": tokens, "encoder_hidden_states": encoder_out})
         return typing.cast(npt.NDArray[np.float32], logits)
 
-    def _decoding(self, input_features: npt.NDArray[np.float32], tokens: npt.NDArray, max_length: int = 448) -> npt.NDArray:
+    def _decoding(
+        self, input_features: npt.NDArray[np.float32], tokens: npt.NDArray[np.int64], max_length: int = 448
+    ) -> npt.NDArray[np.int64]:
         for _ in range(tokens.shape[-1], max_length):
             logits = self._decode(tokens, input_features)
             next_tokens = logits[:, -1].argmax(axis=-1)

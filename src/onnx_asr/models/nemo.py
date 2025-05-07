@@ -1,13 +1,13 @@
 """NeMo model implementations."""
 
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDecoding
+from onnx_asr.utils import OnnxSessionOptions
 
 
 class WrongOutputShapeError(Exception):
@@ -19,8 +19,8 @@ class WrongOutputShapeError(Exception):
 
 
 class _NemoConformer(_AsrWithDecoding):
-    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
-        super().__init__("nemo", model_files["vocab"], **kwargs)
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+        super().__init__("nemo", model_files["vocab"], onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -30,16 +30,16 @@ class _NemoConformer(_AsrWithDecoding):
 class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
     """NeMo Conformer CTC model implementations."""
 
-    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
         """Create NeMo Conformer CTC model.
 
         Args:
             model_files: Dict with paths to model files.
-            kwargs: Additional parameters for onnxruntime.InferenceSession.
+            onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        super().__init__(model_files, **kwargs)
-        self._model = rt.InferenceSession(model_files["model"], **kwargs)
+        super().__init__(model_files, onnx_options)
+        self._model = rt.InferenceSession(model_files["model"], **onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -60,23 +60,25 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
             raise WrongOutputShapeError()
 
 
-class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
+_STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
+
+
+class NemoConformerRnnt(_AsrWithRnntDecoding[_STATE_TYPE], _NemoConformer):
     """NeMo Conformer RNN-T model implementations."""
 
     MAX_TOKENS_PER_STEP = 10
-    STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
-    def __init__(self, model_files: dict[str, Path], **kwargs: Any):
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
         """Create NeMo Conformer RNN-T model.
 
         Args:
             model_files: Dict with paths to model files.
-            kwargs: Additional parameters for onnxruntime.InferenceSession.
+            onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        super().__init__(model_files, **kwargs)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **kwargs)
-        self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **kwargs)
+        super().__init__(model_files, onnx_options)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
+        self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -98,7 +100,7 @@ class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
         )
         return encoder_out, encoder_out_lens
 
-    def _create_state(self) -> STATE_TYPE:
+    def _create_state(self) -> _STATE_TYPE:
         shapes = {x.name: x.shape for x in self._decoder_joint.get_inputs()}
         return (
             np.zeros(shape=(shapes["input_states_1"][0], 1, shapes["input_states_1"][2]), dtype=np.float32),
@@ -106,8 +108,8 @@ class NemoConformerRnnt(_AsrWithRnntDecoding, _NemoConformer):
         )
 
     def _decode(
-        self, prev_tokens: list[int], prev_state: STATE_TYPE, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], STATE_TYPE]:
+        self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], _STATE_TYPE]:
         outputs, *state = self._decoder_joint.run(
             ["outputs", "output_states_1", "output_states_2"],
             {

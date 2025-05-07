@@ -44,7 +44,7 @@ def preprocessor(request):
         case "onnx_func":
             return gigaam.GigaamPreprocessor
         case "onnx_model":
-            return Preprocessor("gigaam")
+            return Preprocessor("gigaam", {})
 
 
 @pytest.mark.parametrize(

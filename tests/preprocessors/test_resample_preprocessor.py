@@ -14,7 +14,7 @@ def preprocessor(request):
         case "onnx_func":
             return lambda x, x_len, sr: resample.ResamplePreprocessor(x, x_len, [sr])
         case "onnx_model":
-            return Resampler()
+            return Resampler({})
 
 
 @pytest.mark.parametrize(
