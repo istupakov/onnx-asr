@@ -6,13 +6,13 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import _AsrWithRnntDecoding
+from onnx_asr.asr import _AsrWithTransducerDecoding
 from onnx_asr.utils import OnnxSessionOptions
 
 _STATE_TYPE = dict[tuple[int, ...], npt.NDArray[np.float32]]
 
 
-class KaldiTransducer(_AsrWithRnntDecoding[_STATE_TYPE]):
+class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
     """Kaldi Transducer model implementation."""
 
     CONTEXT_SIZE = 2
@@ -57,10 +57,10 @@ class KaldiTransducer(_AsrWithRnntDecoding[_STATE_TYPE]):
 
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], _STATE_TYPE]:
+    ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
         (decoder_out,) = self._decoder.run(["decoder_out"], {"y": [[-1, self._blank_idx, *prev_tokens][-self.CONTEXT_SIZE :]]})
         (logit,) = self._joiner.run(["logit"], {"encoder_out": encoder_out[None, :], "decoder_out": decoder_out})
-        return np.squeeze(logit), prev_state
+        return np.squeeze(logit), -1, prev_state
 
 
 class KaldiTransducerWithCache(KaldiTransducer):
@@ -68,7 +68,7 @@ class KaldiTransducerWithCache(KaldiTransducer):
 
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], _STATE_TYPE]:
+    ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
         context = tuple([-1, self._blank_idx, *prev_tokens][-self.CONTEXT_SIZE :])
 
         decoder_out = prev_state.get(context)
@@ -77,4 +77,4 @@ class KaldiTransducerWithCache(KaldiTransducer):
             prev_state[context] = decoder_out
 
         (logit,) = self._joiner.run(["logit"], {"encoder_out": encoder_out[None, :], "decoder_out": decoder_out})
-        return np.squeeze(logit), prev_state
+        return np.squeeze(logit), -1, prev_state

@@ -44,6 +44,7 @@ class _AsrWithDecoding(Asr):
         with Path(vocab_path).open("rt", encoding="utf-8") as f:
             tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}
         self._vocab = {id: token.replace("\u2581", " ") for token, id in tokens.items()}
+        self._vocab_size = len(self._vocab)
         self._blank_idx = tokens["<blk>"]
 
     @abstractmethod
@@ -76,7 +77,7 @@ class _AsrWithCtcDecoding(_AsrWithDecoding):
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
     ) -> Iterator[tuple[list[int], list[int]]]:
-        assert encoder_out.shape[-1] <= len(self._vocab)
+        assert encoder_out.shape[-1] <= self._vocab_size
 
         for log_probs, log_probs_len in zip(encoder_out, encoder_out_lens, strict=True):
             tokens = log_probs[:log_probs_len].argmax(axis=-1)
@@ -86,7 +87,7 @@ class _AsrWithCtcDecoding(_AsrWithDecoding):
             yield tokens[mask].tolist(), indices[mask].tolist()
 
 
-class _AsrWithRnntDecoding(_AsrWithDecoding, Generic[S]):
+class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
     @abstractmethod
     def _create_state(self) -> S: ...
 
@@ -97,7 +98,7 @@ class _AsrWithRnntDecoding(_AsrWithDecoding, Generic[S]):
     @abstractmethod
     def _decode(
         self, prev_tokens: list[int], prev_state: S, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], S]: ...
+    ) -> tuple[npt.NDArray[np.float32], int, S]: ...
 
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
@@ -107,20 +108,25 @@ class _AsrWithRnntDecoding(_AsrWithDecoding, Generic[S]):
             tokens: list[int] = []
             timestamps: list[int] = []
 
-            for t in range(encodings_len):
-                emitted_tokens = 0
-                while emitted_tokens < self._max_tokens_per_step:
-                    probs, state = self._decode(tokens, prev_state, encodings[:, t])
-                    assert probs.shape[-1] <= len(self._vocab)
+            t = 0
+            emitted_tokens = 0
+            while t < encodings_len:
+                probs, step, state = self._decode(tokens, prev_state, encodings[:, t])
+                assert probs.shape[-1] <= self._vocab_size
 
-                    token = probs.argmax()
+                token = probs.argmax()
 
-                    if token != self._blank_idx:
-                        prev_state = state
-                        tokens.append(int(token))
-                        timestamps.append(t)
-                        emitted_tokens += 1
-                    else:
-                        break
+                if token != self._blank_idx:
+                    prev_state = state
+                    tokens.append(int(token))
+                    timestamps.append(t)
+                    emitted_tokens += 1
+
+                if step >= 0:
+                    t += step
+                    emitted_tokens = 0
+                elif token == self._blank_idx or emitted_tokens == self._max_tokens_per_step:
+                    t += 1
+                    emitted_tokens = 0
 
             yield tokens, timestamps

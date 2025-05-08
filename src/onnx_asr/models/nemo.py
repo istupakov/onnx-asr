@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDecoding
+from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
 from onnx_asr.utils import OnnxSessionOptions
 
 
@@ -19,8 +19,8 @@ class WrongOutputShapeError(Exception):
 
 
 class _NemoConformer(_AsrWithDecoding):
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        super().__init__("nemo80", model_files["vocab"], onnx_options)
+    def __init__(self, features: int, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+        super().__init__(f"nemo{features}", model_files["vocab"], onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -38,8 +38,9 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
             onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        super().__init__(model_files, onnx_options)
         self._model = rt.InferenceSession(model_files["model"], **onnx_options)
+        shapes = {x.name: x.shape for x in self._model.get_inputs()}
+        super().__init__(shapes["audio_signal"][1], model_files, onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -63,10 +64,8 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
 _STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
 
-class NemoConformerRnnt(_AsrWithRnntDecoding[_STATE_TYPE], _NemoConformer):
+class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer):
     """NeMo Conformer RNN-T model implementations."""
-
-    MAX_TOKENS_PER_STEP = 10
 
     def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
         """Create NeMo Conformer RNN-T model.
@@ -76,9 +75,10 @@ class NemoConformerRnnt(_AsrWithRnntDecoding[_STATE_TYPE], _NemoConformer):
             onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        super().__init__(model_files, onnx_options)
         self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
         self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **onnx_options)
+        shapes = {x.name: x.shape for x in self._encoder.get_inputs()}
+        super().__init__(shapes["audio_signal"][1], model_files, onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -90,7 +90,7 @@ class NemoConformerRnnt(_AsrWithRnntDecoding[_STATE_TYPE], _NemoConformer):
 
     @property
     def _max_tokens_per_step(self) -> int:
-        return self.MAX_TOKENS_PER_STEP
+        return 10
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
@@ -109,7 +109,7 @@ class NemoConformerRnnt(_AsrWithRnntDecoding[_STATE_TYPE], _NemoConformer):
 
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], _STATE_TYPE]:
+    ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
         outputs, *state = self._decoder_joint.run(
             ["outputs", "output_states_1", "output_states_2"],
             {
@@ -120,4 +120,14 @@ class NemoConformerRnnt(_AsrWithRnntDecoding[_STATE_TYPE], _NemoConformer):
                 "input_states_2": prev_state[1],
             },
         )
-        return np.squeeze(outputs), tuple(state)
+        return np.squeeze(outputs), -1, tuple(state)
+
+
+class NemoConformerTdt(NemoConformerRnnt):
+    """NeMo Conformer TDT model implementations."""
+
+    def _decode(
+        self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
+        output, _, state = super()._decode(prev_tokens, prev_state, encoder_out)
+        return output[: self._vocab_size], int(output[self._vocab_size :].argmax()), state

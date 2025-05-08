@@ -15,6 +15,7 @@ from .models import (
     KaldiTransducer,
     NemoConformerCtc,
     NemoConformerRnnt,
+    NemoConformerTdt,
     PyAnnoteVad,
     SileroVad,
     WhisperHf,
@@ -30,6 +31,7 @@ ModelNames = Literal[
     "nemo-fastconformer-ru-rnnt",
     "nemo-parakeet-ctc-0.6b",
     "nemo-parakeet-rnnt-0.6b",
+    "nemo-parakeet-tdt-0.6b-v2",
     "alphacep/vosk-model-ru",
     "alphacep/vosk-model-small-ru",
     "whisper-base",
@@ -40,6 +42,7 @@ ModelTypes = Literal[
     "kaldi-rnnt",
     "nemo-conformer-ctc",
     "nemo-conformer-rnnt",
+    "nemo-conformer-tdt",
     "vosk",
     "whisper-ort",
     "whisper-hf",
@@ -130,9 +133,9 @@ def load_model(
         model: Model name or type (download from Hugging Face supported if full model name is provided):
                 GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`),
                 Kaldi Transducer (`kaldi-rnnt`)
-                NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt`)
+                NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt`)
                 NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
-                NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b`)
+                NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b` | `nemo-parakeet-tdt-0.6b-v2`)
                 Vosk (`vosk` | `alphacep/vosk-model-ru` | `alphacep/vosk-model-small-ru`)
                 Whisper Base exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
                 Whisper from onnx-community (`whisper-hf` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
@@ -177,6 +180,11 @@ def load_model(
         case "nemo-parakeet-rnnt-0.6b":
             model_type = NemoConformerRnnt
             repo_id = "istupakov/parakeet-rnnt-0.6b-onnx"
+        case "nemo-conformer-tdt":
+            model_type = NemoConformerTdt
+        case "nemo-parakeet-tdt-0.6b-v2":
+            model_type = NemoConformerTdt
+            repo_id = "istupakov/parakeet-tdt-0.6b-v2-onnx"
         case "whisper-ort":
             model_type = WhisperOrt
         case "whisper-base":
