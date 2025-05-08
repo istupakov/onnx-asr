@@ -122,6 +122,7 @@ def load_model(
     sess_options: rt.SessionOptions | None = None,
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
+    cpu_preprocessing: bool = False,
 ) -> TextResultsAsrAdapter:
     """Load ASR model.
 
@@ -140,6 +141,7 @@ def load_model(
         sess_options: Optional SessionOptions for onnxruntime.
         providers: Optional providers for onnxruntime.
         provider_options: Optional provider_options for onnxruntime.
+        cpu_preprocessing: Run preprocessors in CPU.
 
     Returns:
         ASR model class.
@@ -192,6 +194,7 @@ def load_model(
         "sess_options": sess_options,
         "providers": providers or rt.get_available_providers(),
         "provider_options": provider_options,
+        "cpu_preprocessing": cpu_preprocessing,
     }
 
     return TextResultsAsrAdapter(
