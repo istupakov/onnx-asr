@@ -20,7 +20,7 @@ class WrongOutputShapeError(Exception):
 
 class _NemoConformer(_AsrWithDecoding):
     def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        super().__init__("nemo", model_files["vocab"], onnx_options)
+        super().__init__("nemo80", model_files["vocab"], onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
