@@ -18,7 +18,7 @@ melscale_fbanks = torchaudio.functional.melscale_fbanks(
 
 
 @script()
-def normalize(x, lens):
+def normalize(x: FLOAT["B", n_mels, "T"], lens: INT64["B"]):
     lens_3d = op.Unsqueeze(lens, [1, 2])
     mask = op.Range(0, op.Shape(x)[-1], 1) < lens_3d
     lens_3d = op.CastLike(lens_3d, x)
@@ -28,7 +28,7 @@ def normalize(x, lens):
 
 
 @script()
-def nemo_preprocessor(waveforms, waveforms_lens, melscale_fbanks):
+def nemo_preprocessor(waveforms: FLOAT["B", "N"], waveforms_lens: INT64["B"], melscale_fbanks: FLOAT[n_fft // 2 + 1, n_mels]):
     if preemph != 0.0:
         waveforms = op.Concat(waveforms[:, :1], waveforms[:, 1:] - preemph * waveforms[:, :-1], axis=-1)
 

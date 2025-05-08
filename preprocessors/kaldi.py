@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torchaudio
-from onnx import numpy_helper
+from onnx import TensorProto, numpy_helper
 from onnxscript import FLOAT, INT64, graph, script
 from onnxscript import opset17 as op
 
@@ -26,9 +26,9 @@ mel_banks = torch.nn.functional.pad(mel_banks, (0, 1)).T
 
 
 @script()
-def symmetric_pad(waveforms, lens):
+def symmetric_pad(waveforms: FLOAT["B", "N"], lens: INT64["B"]):
     @graph()
-    def pad(waveform, len):
+    def pad(waveform: FLOAT["N"], len: INT64):
         pad_left = op.Constant(value_int=win_length // 2 - hop_length // 2)
         pad_right = op.Constant(value_int=win_length // 2)
 
@@ -36,11 +36,11 @@ def symmetric_pad(waveforms, lens):
             waveform[pad_left - 1 :: -1], waveform[:len], waveform[len - 1 : len - pad_right - 1 : -1], waveform[len:], axis=-1
         )
 
-    return op.Scan(waveforms, lens, body=pad, num_scan_inputs=2)
+    return op.Cast(op.Scan(waveforms, lens, body=pad, num_scan_inputs=2), to=TensorProto.FLOAT)
 
 
 @script()
-def sliding_window(waveform):
+def sliding_window(waveform: FLOAT["B", "N"]):
     samples = op.Shape(waveform)[-1]
     waveform = waveform[:, : samples - (samples + hop_length - win_length) % hop_length]
 
@@ -51,18 +51,18 @@ def sliding_window(waveform):
     )
 
     @graph()
-    def sliding_buffer(prev, curr):
+    def sliding_buffer(prev: FLOAT["B", win_length - hop_length], curr: FLOAT["B", hop_length]):
         hop_len = op.Constant(value_int=hop_length // 1)
         frame = op.Concat(prev, curr, axis=-1)
         next = frame[:, hop_len:]
         return next, frame
 
     _, frames = op.Scan(X0, X, body=sliding_buffer, num_scan_inputs=1, scan_input_axes=(1,), scan_output_axes=(1,))
-    return frames
+    return op.Cast(frames, to=TensorProto.FLOAT)
 
 
 @script()
-def normalize(frames):
+def normalize(frames: FLOAT["B", "T", win_length]):
     if dither != 0.0:
         frames = frames + op.RandomNormalLike(frames, scale=dither)
 

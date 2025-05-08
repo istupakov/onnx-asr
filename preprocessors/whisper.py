@@ -22,7 +22,7 @@ melscale_fbanks128 = torchaudio.functional.melscale_fbanks(
 
 
 @script()
-def whisper_preprocessor(waveforms, waveforms_lens, melscale_fbanks):
+def whisper_preprocessor(waveforms: FLOAT["B", "N"], waveforms_lens: INT64["B"], melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"]):
     waveforms = op.Pad(
         waveforms, pads=(chunk_length * sample_rate - op.Shape(waveforms)[-1]) * op.Constant(value_ints=(0, 0, 0, 1))
     )
