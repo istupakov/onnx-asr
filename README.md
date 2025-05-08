@@ -27,7 +27,7 @@ The **onnx-asr** package supports many modern ASR [models](#supported-models-arc
 ## Supported models architectures
 
 The package supports the following modern ASR model architectures ([comparison](#comparison-with-original-implementations) with original implementations):
-* Nvidia NeMo Conformer/FastConformer/Parakeet (with CTC and RNN-T decoders)
+* Nvidia NeMo Conformer/FastConformer/Parakeet (with CTC, RNN-T and TDT decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
 * Sber GigaAM v2 (with CTC and RNN-T decoders)
 * OpenAI Whisper
@@ -79,6 +79,7 @@ print(model.recognize("test.wav"))
 * `nemo-fastconformer-ru-rnnt` for Nvidia FastConformer-Hybrid Large (ru) with RNN-T decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `nemo-parakeet-ctc-0.6b` for Nvidia Parakeet CTC 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-ctc-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-ctc-0.6b-onnx))
 * `nemo-parakeet-rnnt-0.6b` for Nvidia Parakeet RNNT 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-rnnt-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-rnnt-0.6b-onnx))
+* `nemo-parakeet-tdt-0.6b-v2` for Nvidia Parakeet TDT 0.6B V2 (en) ([origin](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2), [onnx](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v2-onnx))
 * `whisper-base` for OpenAI Whisper Base exported with onnxruntime ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
 * `alphacep/vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
 * `alphacep/vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
@@ -177,6 +178,7 @@ print(model.recognize("test.wav"))
 * All models from [supported model names](#supported-model-names)
 * `nemo-conformer-ctc` for NeMo Conformer/FastConformer/Parakeet with CTC decoder
 * `nemo-conformer-rnnt` for NeMo Conformer/FastConformer/Parakeet with RNN-T decoder
+* `nemo-conformer-tdt` for NeMo Conformer/FastConformer/Parakeet with TDT decoder
 * `kaldi-rnnt` or `vosk` for Kaldi Icefall Zipformer with stateless RNN-T decoder
 * `whisper-ort` for Whisper (exported with [onnxruntime](#openai-whisper-with-onnxruntime-export))
 * `whisper-hf` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))

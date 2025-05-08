@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithRnntDecoding
+from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
 from onnx_asr.utils import OnnxSessionOptions
 
 
@@ -48,7 +48,7 @@ class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
 _STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 
 
-class GigaamV2Rnnt(_AsrWithRnntDecoding[_STATE_TYPE], _GigaamV2):
+class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
     """GigaAM v2 RNN-T model implementation."""
 
     PRED_HIDDEN = 320
@@ -95,9 +95,9 @@ class GigaamV2Rnnt(_AsrWithRnntDecoding[_STATE_TYPE], _GigaamV2):
 
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
-    ) -> tuple[npt.NDArray[np.float32], _STATE_TYPE]:
+    ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
         decoder_out, *state = self._decoder.run(
             ["dec", "h", "c"], {"x": [[[self._blank_idx, *prev_tokens][-1]]], "h.1": prev_state[0], "c.1": prev_state[1]}
         )
         (joint,) = self._joiner.run(["joint"], {"enc": encoder_out[None, :, None], "dec": decoder_out.transpose(0, 2, 1)})
-        return np.squeeze(joint), tuple(state)
+        return np.squeeze(joint), -1, tuple(state)
