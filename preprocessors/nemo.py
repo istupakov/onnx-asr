@@ -7,18 +7,20 @@ sample_rate = 16_000
 n_fft = 512
 win_length = 400
 hop_length = 160
-n_mels = 80
 preemph = 0.97
 
 log_zero_guard_value = float(2**-24)
 
-melscale_fbanks = torchaudio.functional.melscale_fbanks(
-    n_fft // 2 + 1, 0, sample_rate // 2, n_mels, sample_rate, "slaney", "slaney"
+melscale_fbanks80 = torchaudio.functional.melscale_fbanks(
+    n_fft // 2 + 1, 0, sample_rate // 2, 80, sample_rate, "slaney", "slaney"
+)
+melscale_fbanks128 = torchaudio.functional.melscale_fbanks(
+    n_fft // 2 + 1, 0, sample_rate // 2, 128, sample_rate, "slaney", "slaney"
 )
 
 
 @script()
-def normalize(x: FLOAT["B", n_mels, "T"], lens: INT64["B"]):
+def normalize(x: FLOAT["B", "M", "T"], lens: INT64["B"]):
     lens_3d = op.Unsqueeze(lens, [1, 2])
     mask = op.Range(0, op.Shape(x)[-1], 1) < lens_3d
     lens_3d = op.CastLike(lens_3d, x)
@@ -28,7 +30,7 @@ def normalize(x: FLOAT["B", n_mels, "T"], lens: INT64["B"]):
 
 
 @script()
-def nemo_preprocessor(waveforms: FLOAT["B", "N"], waveforms_lens: INT64["B"], melscale_fbanks: FLOAT[n_fft // 2 + 1, n_mels]):
+def nemo_preprocessor(waveforms: FLOAT["B", "N"], waveforms_lens: INT64["B"], melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"]):
     if preemph != 0.0:
         waveforms = op.Concat(waveforms[:, :1], waveforms[:, 1:] - preemph * waveforms[:, :-1], axis=-1)
 
@@ -52,13 +54,26 @@ def nemo_preprocessor(waveforms: FLOAT["B", "N"], waveforms_lens: INT64["B"], me
 
 
 @script(doc_string="LogMelSpectrogram feature extractor for Nemo models")
-def NemoPreprocessor(
+def NemoPreprocessor80(
     waveforms: FLOAT["batch_size", "N"],
     waveforms_lens: INT64["batch_size"],
-) -> tuple[FLOAT["batch_size", n_mels, "T"], INT64["batch_size"]]:
+) -> tuple[FLOAT["batch_size", 80, "T"], INT64["batch_size"]]:
     features, features_lens = nemo_preprocessor(
         waveforms,
         waveforms_lens,
-        op.Constant(value=numpy_helper.from_array(melscale_fbanks.numpy(), "melscale_fbanks")),
+        op.Constant(value=numpy_helper.from_array(melscale_fbanks80.numpy(), "melscale_fbanks")),
+    )
+    return features, features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Nemo models")
+def NemoPreprocessor128(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", 128, "T"], INT64["batch_size"]]:
+    features, features_lens = nemo_preprocessor(
+        waveforms,
+        waveforms_lens,
+        op.Constant(value=numpy_helper.from_array(melscale_fbanks128.numpy(), "melscale_fbanks")),
     )
     return features, features_lens
