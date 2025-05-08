@@ -46,6 +46,7 @@ class OnnxSessionOptions(TypedDict, total=False):
     sess_options: rt.SessionOptions | None
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None
     provider_options: Sequence[dict[Any, Any]] | None
+    cpu_preprocessing: bool
 
 
 def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:

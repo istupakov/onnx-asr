@@ -22,6 +22,8 @@ class Preprocessor:
 
         """
         filename = str(Path(name).with_suffix(".onnx"))
+        if onnx_options.get("cpu_preprocessing", False):
+            onnx_options = {}
         self._preprocessor = rt.InferenceSession(files(__package__).joinpath(filename).read_bytes(), **onnx_options)
 
     def __call__(
