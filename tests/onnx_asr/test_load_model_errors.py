@@ -10,7 +10,7 @@ def test_model_not_supported_error() -> None:
 
 def test_model_path_not_found_error() -> None:
     with pytest.raises(onnx_asr.loader.ModelPathNotFoundError):
-        onnx_asr.load_model("onnx-community/whisper-tiny", "./xxx")
+        onnx_asr.load_model("whisper", "./xxx")
 
 
 def test_model_file_not_found_error() -> None:
@@ -25,9 +25,9 @@ def test_more_than_one_model_file_found_error() -> None:
 
 def test_no_model_name_or_path_specified_error() -> None:
     with pytest.raises(onnx_asr.loader.NoModelNameOrPathSpecifiedError):
-        onnx_asr.load_model("whisper-hf")
+        onnx_asr.load_model("whisper")
 
 
-@pytest.mark.parametrize("model", ["alphacep/vosk-model-small-ru", "onnx-community/whisper-tiny", "whisper-base"])
-def test_load_model(model: str) -> None:
-    onnx_asr.load_model(model)
+def test_invalid_model_type_in_config_error() -> None:
+    with pytest.raises(onnx_asr.loader.InvalidModelTypeInConfigError):
+        onnx_asr.load_model("onnx-community/pyannote-segmentation-3.0")

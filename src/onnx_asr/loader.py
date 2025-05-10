@@ -1,8 +1,9 @@
 """Loader for ASR models."""
 
+import json
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 import onnxruntime as rt
 
@@ -45,7 +46,7 @@ ModelTypes = Literal[
     "nemo-conformer-tdt",
     "vosk",
     "whisper-ort",
-    "whisper-hf",
+    "whisper",
 ]
 VadNames = Literal["silero"]
 
@@ -88,6 +89,20 @@ class NoModelNameOrPathSpecifiedError(Exception):
     def __init__(self) -> None:
         """Create error."""
         super().__init__("If the path is not specified, you must specify a specific model name.")
+
+
+class InvalidModelTypeInConfigError(Exception):
+    """Invalid model type in config error."""
+
+    def __init__(self, model_type: str) -> None:
+        """Create error."""
+        super().__init__(f"Invalid model type '{model_type}' in config.json.")
+
+
+def _download_config(repo_id: str) -> str:
+    from huggingface_hub import hf_hub_download
+
+    return hf_hub_download(repo_id, "config.json")
 
 
 def _download_model(repo_id: str, files: list[str]) -> str:
@@ -145,7 +160,7 @@ def load_model(
                 NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b` | `nemo-parakeet-tdt-0.6b-v2`)
                 Vosk (`vosk` | `alphacep/vosk-model-ru` | `alphacep/vosk-model-small-ru`)
                 Whisper Base exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
-                Whisper from onnx-community (`whisper-hf` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
+                Whisper from onnx-community (`whisper` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
         path: Path to directory with model files.
         quantization: Model quantization (`None` | `int8` | ... ).
         sess_options: Optional SessionOptions for onnxruntime.
@@ -157,8 +172,18 @@ def load_model(
         ASR model class.
 
     """
-    model_type: type[GigaamV2Ctc | GigaamV2Rnnt | KaldiTransducer | NemoConformerCtc | NemoConformerRnnt | WhisperOrt | WhisperHf]
     repo_id: str | None = None
+    if "/" in model and path is None and not model.startswith("alphacep/"):
+        repo_id = model
+        with Path(_download_config(repo_id)).open("rt", encoding="utf-8") as f:
+            config = json.load(f)
+            config_model_type = config.get("model_type")
+            if config_model_type in get_args(ModelTypes):
+                model = config_model_type
+            else:
+                raise InvalidModelTypeInConfigError(config_model_type)
+
+    model_type: type[GigaamV2Ctc | GigaamV2Rnnt | KaldiTransducer | NemoConformerCtc | NemoConformerRnnt | WhisperOrt | WhisperHf]
     match model:
         case "gigaam-v2-ctc":
             model_type = GigaamV2Ctc
@@ -197,11 +222,8 @@ def load_model(
         case "whisper-base":
             model_type = WhisperOrt
             repo_id = "istupakov/whisper-base-onnx"
-        case "whisper-hf":
+        case "whisper":
             model_type = WhisperHf
-        case model if model.startswith("onnx-community/") and "whisper" in model:
-            model_type = WhisperHf
-            repo_id = model
         case _:
             raise ModelNotSupportedError(model)
 
