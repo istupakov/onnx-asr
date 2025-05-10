@@ -29,7 +29,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.HF_HUB_CACHE }}
-        key: cache-hf-models-${{ hashFiles('tests/**/*.py') }}
+        key: cache-hf-models-${{ hashFiles('tests/onnx_asr/*.py') }}
 
     - name: Install dependencies
       run: pdm sync
@@ -40,7 +40,7 @@ jobs:
     - name: Check types with MyPy
       run: pdm run mypy .
     - name: Test with pytest
-      run: pdm run pytest
+      run: pdm run pytest --cov=onnx_asr
     - name: Build package dist
       run: pdm build
     
@@ -77,10 +77,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.HF_HUB_CACHE }}
-          key: cache-hf-models-${{ hashFiles('tests/**/*.py') }}
+          key: cache-hf-models-${{ hashFiles('tests/onnx_asr/*.py') }}
 
       - name: Install package
         shell: bash
         run: pip install pytest ${{ matrix.numpy-version }} $(find ./dist -iname onnx_asr-*.whl)[cpu,hub]
       - name: Test with pytest
         run: pytest ./tests/onnx_asr
+
+  complete:
+    name: Complete
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
