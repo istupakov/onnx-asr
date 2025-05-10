@@ -11,7 +11,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import Asr, TimestampedResult
-from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int32_array
 
 
 @typing.no_type_check
@@ -129,7 +129,8 @@ class WhisperOrt(_Whisper):
                 "decoder_input_ids": tokens.astype(np.int32),
             },
         )
-        return typing.cast(npt.NDArray[np.int32], sequences)[:, 0, :].astype(np.int64)
+        assert is_int32_array(sequences)
+        return sequences[:, 0, :].astype(np.int64)
 
 
 class WhisperHf(_Whisper):
@@ -162,11 +163,13 @@ class WhisperHf(_Whisper):
     def _encode(self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64]) -> npt.NDArray[np.float32]:
         input_features = super()._encode(waveforms, waveforms_len)
         (last_hidden_state,) = self._encoder.run(["last_hidden_state"], {"input_features": input_features})
-        return typing.cast(npt.NDArray[np.float32], last_hidden_state)
+        assert is_float32_array(last_hidden_state)
+        return last_hidden_state
 
     def _decode(self, tokens: npt.NDArray[np.int64], encoder_out: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         (logits,) = self._decoder.run(["logits"], {"input_ids": tokens, "encoder_hidden_states": encoder_out})
-        return typing.cast(npt.NDArray[np.float32], logits)
+        assert is_float32_array(logits)
+        return logits
 
     def _decoding(
         self, input_features: npt.NDArray[np.float32], tokens: npt.NDArray[np.int64], max_length: int = 448

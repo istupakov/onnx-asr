@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int64_array
 
 
 class Preprocessor:
@@ -33,4 +33,5 @@ class Preprocessor:
         features, features_lens = self._preprocessor.run(
             ["features", "features_lens"], {"waveforms": waveforms, "waveforms_lens": waveforms_lens}
         )
+        assert is_float32_array(features) and is_int64_array(features_lens)
         return features, features_lens
