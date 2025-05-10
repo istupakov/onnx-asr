@@ -11,7 +11,6 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import Asr, TimestampedResult
-from onnx_asr.preprocessors import Preprocessor
 from onnx_asr.utils import OnnxSessionOptions
 
 
@@ -32,9 +31,7 @@ def bytes_to_unicode() -> dict[int, str]:
 
 class _Whisper(Asr):
     def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        with model_files["preprocessor_config"].open("rt", encoding="utf-8") as f:
-            preprocessor_config = json.load(f)
-        self._preprocessor = Preprocessor(f"whisper{preprocessor_config['feature_size']}", onnx_options)
+        super().__init__(model_files, onnx_options)
 
         with model_files["vocab"].open("rt", encoding="utf-8") as f:
             self._tokens: dict[str, int] = json.load(f)
@@ -61,11 +58,7 @@ class _Whisper(Asr):
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
-        return {
-            "preprocessor_config": "preprocessor_config.json",
-            "vocab": "vocab.json",
-            "added_tokens": "added_tokens.json",
-        }
+        return {"vocab": "vocab.json", "added_tokens": "added_tokens.json"}
 
     def _encode(self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64]) -> npt.NDArray[np.float32]:
         input_features, _ = self._preprocessor(waveforms, waveforms_len)
@@ -116,6 +109,10 @@ class WhisperOrt(_Whisper):
         suffix = "?" + quantization if quantization else ""
         return {"model": f"whisper-*_beamsearch{suffix}.onnx"} | _Whisper._get_model_files(quantization)
 
+    @property
+    def _preprocessor_name(self) -> str:
+        return f"whisper{self.config.get('features_size', 80)}"
+
     def _decoding(
         self, input_features: npt.NDArray[np.float32], tokens: npt.NDArray[np.int64], max_length: int = 448
     ) -> npt.NDArray[np.int64]:
@@ -157,6 +154,10 @@ class WhisperHf(_Whisper):
             "encoder": f"**/encoder_model{suffix}.onnx",
             "decoder": f"**/decoder_model{suffix}.onnx",
         } | _Whisper._get_model_files(suffix)
+
+    @property
+    def _preprocessor_name(self) -> str:
+        return f"whisper{self.config.get('num_mel_bins', 80)}"
 
     def _encode(self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64]) -> npt.NDArray[np.float32]:
         input_features = super()._encode(waveforms, waveforms_len)

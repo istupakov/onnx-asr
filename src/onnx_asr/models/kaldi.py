@@ -25,7 +25,7 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
             onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        super().__init__("kaldi", model_files["vocab"], onnx_options)
+        super().__init__(model_files, onnx_options)
         self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
         self._decoder = rt.InferenceSession(model_files["decoder"], **onnx_options)
         self._joiner = rt.InferenceSession(model_files["joiner"], **onnx_options)
@@ -41,8 +41,17 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
         }
 
     @property
+    def _preprocessor_name(self) -> str:
+        assert self.config.get("features_size", 80) == 80
+        return "kaldi"
+
+    @property
+    def _subsampling_factor(self) -> int:
+        return self.config.get("subsampling_factor", 4)
+
+    @property
     def _max_tokens_per_step(self) -> int:
-        return 1
+        return self.config.get("max_tokens_per_step", 1)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]

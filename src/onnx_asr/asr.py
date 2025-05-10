@@ -1,11 +1,12 @@
 """Base ASR classes."""
 
+import json
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Generic, TypedDict, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -25,8 +26,31 @@ class TimestampedResult:
     tokens: list[str] | None = None
 
 
+class AsrConfig(TypedDict, total=False):
+    """Config for ASR model."""
+
+    model_type: str
+    features_size: int
+    subsampling_factor: int
+    max_tokens_per_step: int
+
+
 class Asr(ABC):
     """Base ASR class."""
+
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+        """Init base ASR class."""
+        if "config" in model_files:
+            with model_files["config"].open("rt", encoding="utf-8") as f:
+                self.config: AsrConfig = json.load(f)
+        else:
+            self.config = {}
+
+        self._preprocessor = Preprocessor(self._preprocessor_name, onnx_options)
+
+    @property
+    @abstractmethod
+    def _preprocessor_name(self) -> str: ...
 
     @abstractmethod
     def recognize_batch(
@@ -38,14 +62,20 @@ class Asr(ABC):
 
 class _AsrWithDecoding(Asr):
     DECODE_SPACE_PATTERN = re.compile(r"\A\s|\s\B|(\s)\b")
+    window_size = 0.01
 
-    def __init__(self, preprocessor_name: str, vocab_path: Path, onnx_options: OnnxSessionOptions):
-        self._preprocessor = Preprocessor(preprocessor_name, onnx_options)
-        with Path(vocab_path).open("rt", encoding="utf-8") as f:
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+        super().__init__(model_files, onnx_options)
+
+        with Path(model_files["vocab"]).open("rt", encoding="utf-8") as f:
             tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}
         self._vocab = {id: token.replace("\u2581", " ") for token, id in tokens.items()}
         self._vocab_size = len(self._vocab)
         self._blank_idx = tokens["<blk>"]
+
+    @property
+    @abstractmethod
+    def _subsampling_factor(self) -> int: ...
 
     @abstractmethod
     def _encode(
@@ -66,9 +96,8 @@ class _AsrWithDecoding(Asr):
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
     ) -> Iterator[TimestampedResult]:
         encoder_out, encoder_out_lens = self._encode(*self._preprocessor(waveforms, waveforms_len))
-        subsampling = np.round((waveforms_len / encoder_out_lens / 160).mean())
         return (
-            self._decode_tokens(tokens, (0.01 * subsampling * np.array(timestamps)).tolist())
+            self._decode_tokens(tokens, (self.window_size * self._subsampling_factor * np.array(timestamps)).tolist())
             for tokens, timestamps in self._decoding(encoder_out, encoder_out_lens)
         )
 
@@ -78,6 +107,7 @@ class _AsrWithCtcDecoding(_AsrWithDecoding):
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
     ) -> Iterator[tuple[list[int], list[int]]]:
         assert encoder_out.shape[-1] <= self._vocab_size
+        assert encoder_out.shape[1] == max(encoder_out_lens)
 
         for log_probs, log_probs_len in zip(encoder_out, encoder_out_lens, strict=True):
             tokens = log_probs[:log_probs_len].argmax(axis=-1)
@@ -88,12 +118,12 @@ class _AsrWithCtcDecoding(_AsrWithDecoding):
 
 
 class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
-    @abstractmethod
-    def _create_state(self) -> S: ...
-
     @property
     @abstractmethod
     def _max_tokens_per_step(self) -> int: ...
+
+    @abstractmethod
+    def _create_state(self) -> S: ...
 
     @abstractmethod
     def _decode(
