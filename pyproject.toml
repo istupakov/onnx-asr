@@ -59,6 +59,7 @@ asrs = [
 ]
 test = [
     "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
     "onnxruntime>=1.21.1",
     { include-group = "build" },
     { include-group = "asrs" },
@@ -137,8 +138,8 @@ ignore = ["D203", "D213"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore::DeprecationWarning:onnxscript.*",
     "ignore::DeprecationWarning:google.protobuf.*",
     "ignore::DeprecationWarning:torchmetrics.*",
     "ignore::FutureWarning:onnxscript.*",
+    "ignore::DeprecationWarning:importlib.*",
 ]
