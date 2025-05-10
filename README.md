@@ -48,15 +48,7 @@ pip install onnx-asr[cpu,hub]
 ```shell
 pip install onnx-asr[gpu,hub]
 ```
-3. With CPU `onnxruntime`
-```shell
-pip install onnx-asr[cpu]
-```
-4. With GPU `onnxruntime`
-```shell
-pip install onnx-asr[gpu]
-```
-5. Without `onnxruntime` (if you already have some `onnxruntime` version installed)
+3. Without `onnxruntime` and `huggingface-hub` (if you already have some version of `onnxruntime` installed and prefer to download the models yourself)
 ```shell
 pip install onnx-asr
 ```
@@ -181,7 +173,7 @@ print(model.recognize("test.wav"))
 * `nemo-conformer-tdt` for NeMo Conformer/FastConformer/Parakeet with TDT decoder
 * `kaldi-rnnt` or `vosk` for Kaldi Icefall Zipformer with stateless RNN-T decoder
 * `whisper-ort` for Whisper (exported with [onnxruntime](#openai-whisper-with-onnxruntime-export))
-* `whisper-hf` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))
+* `whisper` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))
 
 ## Comparison with original implementations
 
@@ -218,11 +210,23 @@ Hardware:
 |  Whisper large-v3-turbo  |        default       | 2.96%  | 10.27% |        N/A | 11           |
 |  Whisper large-v3-turbo  |       onnx-asr       | 2.63%  | 10.08% |        N/A | 9.8*         |
 
-1. \* `whisper-hf` model ([model types](#supported-model-types)) with `fp16` quantization.
+1. \* `whisper` model ([model types](#supported-model-types)) with `fp16` quantization.
 2. ** `whisper-ort` model ([model types](#supported-model-types)).
 3. All other models were run with the default precision - `fp32` on CPU and `fp32` or `fp16` (some of the original models) on GPU.
 
 ## Convert model to ONNX
+
+Save the model according to the instructions below and add config.json:
+
+```json
+{
+    "model_type": "nemo-conformer-rnnt", // See "Supported model types"
+    "features_size": 80, // Size of preprocessor features for Whisper or Nemo models, supported 80 and 128
+    "subsampling_factor": 8, // Subsampling factor - 4 for conformer models and 8 for fastconformer and parakeet models
+    "max_tokens_per_step": 10 // Max tokens per step for RNN-T decoder
+}
+```
+Then you can upload the model into Hugging Face and use `load_model` to download it.
 
 ### Nvidia NeMo Conformer/FastConformer/Parakeet
 Install **NeMo Toolkit**
@@ -282,14 +286,14 @@ Read onnxruntime [instruction](https://github.com/microsoft/onnxruntime/blob/mai
 
 Download model and export with *Beam Search* and *Forced Decoder Input Ids*:
 ```shell
-python3 -m onnxruntime.transformers.models.whisper.convert_to_onnx -m openai/whisper-base --output ./whisper-onnx --use_external_data_format --use_forced_decoder_ids --optimize_onnx --precision fp32
+python3 -m onnxruntime.transformers.models.whisper.convert_to_onnx -m openai/whisper-base --output ./whisper-onnx --use_forced_decoder_ids --optimize_onnx --precision fp32
 ```
 
-Save preprocessor and tokenizer configs
+Save tokenizer config
 ```py
-from transformers import WhisperProcessor
+from transformers import WhisperTokenizer
 
-processor = WhisperProcessor.from_pretrained("openai/whisper-base")
+processor = WhisperTokenizer.from_pretrained("openai/whisper-base")
 processor.save_pretrained("whisper-onnx")
 ```
 
