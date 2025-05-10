@@ -11,12 +11,18 @@ from onnx_asr.utils import OnnxSessionOptions
 
 
 class _GigaamV2(_AsrWithDecoding):
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        super().__init__("gigaam", model_files["vocab"], onnx_options)
-
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         return {"vocab": "v2_vocab.txt"}
+
+    @property
+    def _preprocessor_name(self) -> str:
+        assert self.config.get("features_size", 64) == 64
+        return "gigaam"
+
+    @property
+    def _subsampling_factor(self) -> int:
+        return self.config.get("subsampling_factor", 4)
 
 
 class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
@@ -42,7 +48,7 @@ class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         (log_probs,) = self._model.run(["log_probs"], {"features": features, "feature_lengths": features_lens})
-        return log_probs, (features_lens - 1) // 4 + 1
+        return log_probs, (features_lens - 1) // self._subsampling_factor + 1
 
 
 _STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
@@ -77,7 +83,7 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
 
     @property
     def _max_tokens_per_step(self) -> int:
-        return 3
+        return self.config.get("max_tokens_per_step", 3)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]

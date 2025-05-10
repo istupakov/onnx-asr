@@ -10,21 +10,18 @@ from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransduc
 from onnx_asr.utils import OnnxSessionOptions
 
 
-class WrongOutputShapeError(Exception):
-    """Wrong output shape error."""
-
-    def __init__(self) -> None:
-        """Create error."""
-        super().__init__("Wrong output shape error.")
-
-
 class _NemoConformer(_AsrWithDecoding):
-    def __init__(self, features: int, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        super().__init__(f"nemo{features}", model_files["vocab"], onnx_options)
-
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         return {"vocab": "vocab.txt"}
+
+    @property
+    def _preprocessor_name(self) -> str:
+        return f"nemo{self.config.get('features_size', 80)}"
+
+    @property
+    def _subsampling_factor(self) -> int:
+        return self.config.get("subsampling_factor", 8)
 
 
 class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
@@ -38,9 +35,8 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
             onnx_options: Options for onnxruntime InferenceSession.
 
         """
+        super().__init__(model_files, onnx_options)
         self._model = rt.InferenceSession(model_files["model"], **onnx_options)
-        shapes = {x.name: x.shape for x in self._model.get_inputs()}
-        super().__init__(shapes["audio_signal"][1], model_files, onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -51,14 +47,7 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         (logprobs,) = self._model.run(["logprobs"], {"audio_signal": features, "length": features_lens})
-        conformer_lens = (features_lens - 1) // 4 + 1
-        fastconformer_lens = (features_lens - 1) // 8 + 1
-        if logprobs.shape[1] == max(conformer_lens):
-            return logprobs, conformer_lens
-        elif logprobs.shape[1] == max(fastconformer_lens):
-            return logprobs, fastconformer_lens
-        else:
-            raise WrongOutputShapeError()
+        return logprobs, (features_lens - 1) // self._subsampling_factor + 1
 
 
 _STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
@@ -75,10 +64,9 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
             onnx_options: Options for onnxruntime InferenceSession.
 
         """
+        super().__init__(model_files, onnx_options)
         self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
         self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **onnx_options)
-        shapes = {x.name: x.shape for x in self._encoder.get_inputs()}
-        super().__init__(shapes["audio_signal"][1], model_files, onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -90,7 +78,7 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
 
     @property
     def _max_tokens_per_step(self) -> int:
-        return 10
+        return self.config.get("max_tokens_per_step", 10)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]

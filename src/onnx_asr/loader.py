@@ -93,7 +93,11 @@ class NoModelNameOrPathSpecifiedError(Exception):
 def _download_model(repo_id: str, files: list[str]) -> str:
     from huggingface_hub import snapshot_download
 
-    files = [*files, *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx")]
+    files = [
+        "config.json",
+        *files,
+        *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx"),
+    ]
     return snapshot_download(repo_id, allow_patterns=files)
 
 
@@ -105,6 +109,9 @@ def _find_files(path: str | Path | None, repo_id: str | None, files: dict[str, s
 
     if not Path(path).is_dir():
         raise ModelPathNotFoundError(path)
+
+    if Path(path, "config.json").exists():
+        files |= {"config": "config.json"}
 
     def find(filename: str) -> Path:
         files = list(Path(path).glob(filename))
