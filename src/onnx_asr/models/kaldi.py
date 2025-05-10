@@ -7,7 +7,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import _AsrWithTransducerDecoding
-from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int64_array
 
 _STATE_TYPE = dict[tuple[int, ...], npt.NDArray[np.float32]]
 
@@ -59,6 +59,7 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
         encoder_out, encoder_out_lens = self._encoder.run(
             ["encoder_out", "encoder_out_lens"], {"x": features, "x_lens": features_lens}
         )
+        assert is_float32_array(encoder_out) and is_int64_array(encoder_out_lens)
         return encoder_out.transpose(0, 2, 1), encoder_out_lens
 
     def _create_state(self) -> _STATE_TYPE:
@@ -68,7 +69,9 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
         (decoder_out,) = self._decoder.run(["decoder_out"], {"y": [[-1, self._blank_idx, *prev_tokens][-self.CONTEXT_SIZE :]]})
+        assert is_float32_array(decoder_out)
         (logit,) = self._joiner.run(["logit"], {"encoder_out": encoder_out[None, :], "decoder_out": decoder_out})
+        assert is_float32_array(logit)
         return np.squeeze(logit), -1, prev_state
 
 
@@ -82,8 +85,10 @@ class KaldiTransducerWithCache(KaldiTransducer):
 
         decoder_out = prev_state.get(context)
         if decoder_out is None:
-            (decoder_out,) = self._decoder.run(["decoder_out"], {"y": [context]})
-            prev_state[context] = decoder_out
+            (_decoder_out,) = self._decoder.run(["decoder_out"], {"y": [context]})
+            assert is_float32_array(_decoder_out)
+            prev_state[context] = (decoder_out := _decoder_out)
 
         (logit,) = self._joiner.run(["logit"], {"encoder_out": encoder_out[None, :], "decoder_out": decoder_out})
+        assert is_float32_array(logit)
         return np.squeeze(logit), -1, prev_state

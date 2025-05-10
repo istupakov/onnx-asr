@@ -16,6 +16,21 @@ def is_supported_sample_rate(sample_rate: int) -> TypeGuard[SampleRates]:
     return sample_rate in get_args(SampleRates)
 
 
+def is_float32_array(x: object) -> TypeGuard[npt.NDArray[np.float32]]:
+    """Numpy array is float32."""
+    return isinstance(x, np.ndarray) and x.dtype == np.float32
+
+
+def is_int32_array(x: object) -> TypeGuard[npt.NDArray[np.int32]]:
+    """Numpy array is int32."""
+    return isinstance(x, np.ndarray) and x.dtype == np.int32
+
+
+def is_int64_array(x: object) -> TypeGuard[npt.NDArray[np.int64]]:
+    """Numpy array is int64."""
+    return isinstance(x, np.ndarray) and x.dtype == np.int64
+
+
 class SupportedOnlyMonoAudioError(ValueError):
     """Supported only mono audio error."""
 

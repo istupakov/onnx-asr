@@ -7,7 +7,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
-from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int32_array
 
 
 class _GigaamV2(_AsrWithDecoding):
@@ -48,6 +48,7 @@ class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         (log_probs,) = self._model.run(["log_probs"], {"features": features, "feature_lengths": features_lens})
+        assert is_float32_array(log_probs)
         return log_probs, (features_lens - 1) // self._subsampling_factor + 1
 
 
@@ -91,6 +92,7 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
         encoder_out, encoder_out_lens = self._encoder.run(
             ["encoded", "encoded_len"], {"audio_signal": features, "length": features_lens}
         )
+        assert is_float32_array(encoder_out) and is_int32_array(encoder_out_lens)
         return encoder_out, encoder_out_lens.astype(np.int64)
 
     def _create_state(self) -> _STATE_TYPE:
@@ -102,8 +104,10 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
-        decoder_out, *state = self._decoder.run(
+        decoder_out, state1, state2 = self._decoder.run(
             ["dec", "h", "c"], {"x": [[[self._blank_idx, *prev_tokens][-1]]], "h.1": prev_state[0], "c.1": prev_state[1]}
         )
+        assert is_float32_array(decoder_out) and is_float32_array(state1) and is_float32_array(state2)
         (joint,) = self._joiner.run(["joint"], {"enc": encoder_out[None, :, None], "dec": decoder_out.transpose(0, 2, 1)})
-        return np.squeeze(joint), -1, tuple(state)
+        assert is_float32_array(joint)
+        return np.squeeze(joint), -1, (state1, state2)

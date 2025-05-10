@@ -7,7 +7,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
-from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.utils import OnnxSessionOptions, is_float32_array
 
 
 class _NemoConformer(_AsrWithDecoding):
@@ -47,6 +47,7 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         (logprobs,) = self._model.run(["logprobs"], {"audio_signal": features, "length": features_lens})
+        assert is_float32_array(logprobs)
         return logprobs, (features_lens - 1) // self._subsampling_factor + 1
 
 
@@ -86,7 +87,7 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
         encoder_out, encoder_out_lens = self._encoder.run(
             ["outputs", "encoded_lengths"], {"audio_signal": features, "length": features_lens}
         )
-        return encoder_out, encoder_out_lens
+        return encoder_out, encoder_out_lens  # type: ignore
 
     def _create_state(self) -> _STATE_TYPE:
         shapes = {x.name: x.shape for x in self._decoder_joint.get_inputs()}
@@ -98,7 +99,7 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
-        outputs, *state = self._decoder_joint.run(
+        outputs, state1, state2 = self._decoder_joint.run(
             ["outputs", "output_states_1", "output_states_2"],
             {
                 "encoder_outputs": encoder_out[None, :, None],
@@ -108,7 +109,8 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
                 "input_states_2": prev_state[1],
             },
         )
-        return np.squeeze(outputs), -1, tuple(state)
+        assert is_float32_array(outputs) and is_float32_array(state1) and is_float32_array(state2)
+        return np.squeeze(outputs), -1, (state1, state2)
 
 
 class NemoConformerTdt(NemoConformerRnnt):

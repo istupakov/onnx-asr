@@ -1,13 +1,12 @@
 """PyAnnote VAD implementation."""
 
-import typing
 from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.utils import OnnxSessionOptions, is_float32_array
 from onnx_asr.vad import Vad
 
 
@@ -31,4 +30,5 @@ class PyAnnoteVad(Vad):
 
     def _encode(self, waveforms: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         (logits,) = self._model.run(["logits"], {"input_values": waveforms[:, None]})
-        return typing.cast(npt.NDArray[np.float32], logits)
+        assert is_float32_array(logits)
+        return logits

@@ -1,6 +1,5 @@
 """Silero VAD implementation."""
 
-import typing
 from collections.abc import Iterable, Iterator
 from itertools import chain
 from pathlib import Path
@@ -9,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.utils import OnnxSessionOptions, is_float32_array
 from onnx_asr.vad import Vad
 
 
@@ -44,8 +43,10 @@ class SileroVad(Vad):
 
         def process(frame: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
             nonlocal state
-            output, state = self._model.run(["output", "stateN"], {"input": frame, "state": state, "sr": [self.SAMPLE_RATE]})
-            return typing.cast(npt.NDArray[np.float32], output[:, 0])
+            output, new_state = self._model.run(["output", "stateN"], {"input": frame, "state": state, "sr": [self.SAMPLE_RATE]})
+            assert is_float32_array(output) and is_float32_array(new_state)
+            state = new_state
+            return output[:, 0]
 
         yield process(np.pad(waveforms[:, : self.HOP_SIZE], ((0, 0), (self.CONTEXT_SIZE, 0))))
 
