@@ -17,6 +17,8 @@ def make_kernel(orig_freq: int):
 
 kernel08, width08, orig_freq08, new_freq08 = make_kernel(8_000)
 kernel22, width22, orig_freq22, new_freq22 = make_kernel(22_050)
+kernel24, width24, orig_freq24, new_freq24 = make_kernel(24_000)
+kernel32, width32, orig_freq32, new_freq32 = make_kernel(32_000)
 kernel44, width44, orig_freq44, new_freq44 = make_kernel(44_100)
 kernel48, width48, orig_freq48, new_freq48 = make_kernel(48_000)
 
@@ -65,6 +67,26 @@ def ResamplePreprocessor(
             (1, orig_freq22),
             orig_freq22,
             new_freq22,
+        )
+    elif sample_rate[0] == 24_000:
+        waveforms, waveforms_lens = resample(
+            waveforms,
+            waveforms_lens,
+            op.Constant(value=kernel24),
+            (0, width24, 0, width24 + orig_freq24),
+            (1, orig_freq24),
+            orig_freq24,
+            new_freq24,
+        )
+    elif sample_rate[0] == 32_000:
+        waveforms, waveforms_lens = resample(
+            waveforms,
+            waveforms_lens,
+            op.Constant(value=kernel32),
+            (0, width32, 0, width32 + orig_freq32),
+            (1, orig_freq32),
+            orig_freq32,
+            new_freq32,
         )
     elif sample_rate[0] == 44_100:
         waveforms, waveforms_lens = resample(

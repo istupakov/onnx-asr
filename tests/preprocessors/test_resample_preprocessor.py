@@ -25,7 +25,7 @@ def preprocessor(request):
     ],
     indirect=True,
 )
-@pytest.mark.parametrize("sample_rate", [8_000, 16_000, 22_050, 44_100, 48_000])
+@pytest.mark.parametrize("sample_rate", [8_000, 16_000, 22_050, 24_000, 32_000, 44_100, 48_000])
 def test_resample_preprocessor(preprocessor, sample_rate, waveforms):
     expected = [
         torchaudio.functional.resample(torch.tensor(waveform).unsqueeze(0), sample_rate, 16_000)[0].numpy()
