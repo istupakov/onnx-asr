@@ -25,7 +25,7 @@ def GigaamPreprocessor(
 ) -> tuple[FLOAT["batch_size", n_mels, "T"], INT64["batch_size"]]:
     waveforms = op.Pad(
         waveforms,
-        pads=op.Constant(value_ints=(0, n_fft // 2, 0, n_fft // 2)),
+        pads=op.Constant(value=[0, n_fft // 2, 0, n_fft // 2]),
         mode="reflect",
     )
 

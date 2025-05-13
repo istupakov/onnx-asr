@@ -1,12 +1,17 @@
 from pathlib import Path
 
+import onnx
 import onnxscript
 
 import preprocessors
 
 
 def save_model(function: onnxscript.OnnxFunction, filename: Path):
-    model = onnxscript.ir.from_proto(function.to_model_proto())
+    model = function.to_model_proto()
+    model = onnx.shape_inference.infer_shapes(model, check_type=True, strict_mode=True, data_prop=True)
+    onnx.checker.check_model(model, full_check=True)
+
+    model = onnxscript.ir.serde.deserialize_model(model)
     model = onnxscript.optimizer.optimize(model)
 
     model.producer_name = "OnnxScript"
@@ -14,7 +19,8 @@ def save_model(function: onnxscript.OnnxFunction, filename: Path):
     model.metadata_props["model_author"] = "Ilya Stupakov"
     model.metadata_props["model_license"] = "MIT License"
 
-    onnxscript.ir.save(model, filename)
+    model = onnxscript.ir.serde.serialize_model(model)
+    onnx.save_model(model, filename)
 
 
 def build():
