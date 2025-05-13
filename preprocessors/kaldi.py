@@ -26,33 +26,31 @@ mel_banks = torch.nn.functional.pad(mel_banks, (0, 1)).T
 
 
 @script()
-def symmetric_pad(waveforms: FLOAT["B", "N"], lens: INT64["B"]):
+def symmetric_pad(waveforms: FLOAT["batch_size", "N"], lens: INT64["batch_size"]):
     @graph()
-    def pad(waveform: FLOAT["N"], len: INT64):
-        pad_left = op.Constant(value_int=win_length // 2 - hop_length // 2)
-        pad_right = op.Constant(value_int=win_length // 2)
+    def pad(waveform: FLOAT["N"], len: INT64[1]):
+        pad_left = op.Constant(value=win_length // 2 - hop_length // 2)
+        pad_right = op.Constant(value=win_length // 2)
 
         return op.Concat(
             waveform[pad_left - 1 :: -1], waveform[:len], waveform[len - 1 : len - pad_right - 1 : -1], waveform[len:], axis=-1
         )
 
-    return op.Cast(op.Scan(waveforms, lens, body=pad, num_scan_inputs=2), to=TensorProto.FLOAT)
+    return op.Cast(op.Scan(waveforms, op.Unsqueeze(lens, axes=-1), body=pad, num_scan_inputs=2), to=TensorProto.FLOAT)
 
 
 @script()
-def sliding_window(waveform: FLOAT["B", "N"]):
-    samples = op.Shape(waveform)[-1]
-    waveform = waveform[:, : samples - (samples + hop_length - win_length) % hop_length]
-
+def sliding_window(waveform: FLOAT["batch_size", "N"]):
+    samples = op.Shape(waveform, start=1, end=2)[0]
     X0 = waveform[:, : win_length - hop_length]
     X = op.Reshape(
-        waveform[:, win_length - hop_length :],
-        shape=op.Constant(value_ints=(0, -1, hop_length)),
+        waveform[:, win_length - hop_length : samples - (samples + hop_length - win_length) % hop_length],
+        shape=op.Constant(value=[0, -1, hop_length]),
     )
 
     @graph()
-    def sliding_buffer(prev: FLOAT["B", win_length - hop_length], curr: FLOAT["B", hop_length]):
-        hop_len = op.Constant(value_int=hop_length // 1)
+    def sliding_buffer(prev: FLOAT["batch_size", win_length - hop_length], curr: FLOAT["batch_size", hop_length]):
+        hop_len = op.Constant(value=hop_length // 1)
         frame = op.Concat(prev, curr, axis=-1)
         next = frame[:, hop_len:]
         return next, frame
@@ -62,7 +60,7 @@ def sliding_window(waveform: FLOAT["B", "N"]):
 
 
 @script()
-def normalize(frames: FLOAT["B", "T", win_length]):
+def normalize(frames: FLOAT["batch_size", "T", win_length]):
     if dither != 0.0:
         frames = frames + op.RandomNormalLike(frames, scale=dither)
 
@@ -97,6 +95,8 @@ def KaldiPreprocessor(
     log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, min=float_eps))
 
     features_lens = (waveforms_lens + hop_length / 2) / hop_length
-    mask = op.Unsqueeze(op.Range(0, op.Shape(log_mel_spectrogram)[1], 1), [0, 2]) < op.Unsqueeze(features_lens, [1, 2])
+    mask = op.Unsqueeze(op.Range(0, op.Shape(log_mel_spectrogram, start=1, end=2), 1), [0, 2]) < op.Unsqueeze(
+        features_lens, [1, 2]
+    )
     features = op.Where(mask, log_mel_spectrogram, 0)
     return features, features_lens

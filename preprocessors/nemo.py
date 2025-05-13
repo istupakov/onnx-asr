@@ -20,9 +20,9 @@ melscale_fbanks128 = torchaudio.functional.melscale_fbanks(
 
 
 @script()
-def normalize(x: FLOAT["B", "M", "T"], lens: INT64["B"]):
+def normalize(x: FLOAT["batch_size", "M", "T"], lens: INT64["batch_size"]):
     lens_3d = op.Unsqueeze(lens, [1, 2])
-    mask = op.Range(0, op.Shape(x)[-1], 1) < lens_3d
+    mask = op.Range(0, op.Shape(x, start=2, end=3), 1) < lens_3d
     lens_3d = op.CastLike(lens_3d, x)
     mean = op.ReduceSum(op.Where(mask, x, 0), axes=[-1], keepdims=1) / lens_3d
     var = op.ReduceSumSquare(op.Where(mask, x - mean, 0), axes=(-1,), keepdims=1) / (lens_3d - 1)
@@ -30,18 +30,20 @@ def normalize(x: FLOAT["B", "M", "T"], lens: INT64["B"]):
 
 
 @script()
-def nemo_preprocessor(waveforms: FLOAT["B", "N"], waveforms_lens: INT64["B"], melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"]):
+def nemo_preprocessor(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"], melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"]
+):
     if preemph != 0.0:
         waveforms = op.Concat(waveforms[:, :1], waveforms[:, 1:] - preemph * waveforms[:, :-1], axis=-1)
 
     waveforms = op.Pad(
         waveforms,
-        pads=op.Constant(value_ints=(0, n_fft // 2, 0, n_fft // 2)),
+        pads=op.Constant(value=[0, n_fft // 2, 0, n_fft // 2]),
         mode="reflect",
     )
     hann_window = op.Pad(
         op.HannWindow(win_length, periodic=0, output_datatype=TensorProto.DOUBLE),
-        pads=op.Constant(value_ints=(n_fft // 2 - win_length // 2, n_fft // 2 - win_length // 2)),
+        pads=op.Constant(value=[n_fft // 2 - win_length // 2, n_fft // 2 - win_length // 2]),
     )
     image = op.STFT(op.CastLike(waveforms, hann_window), hop_length, hann_window)
     spectrogram = op.ReduceSumSquare(image, axes=(-1,), keepdims=0)
