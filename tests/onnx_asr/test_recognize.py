@@ -37,7 +37,7 @@ def test_wrong_sample_rate_error(model: TextResultsAsrAdapter) -> None:
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 
     with pytest.raises(onnx_asr.utils.WrongSampleRateError):
-        model.recognize(waveform, sample_rate=24_000)  # type: ignore
+        model.recognize(waveform, sample_rate=25_000)  # type: ignore
 
 
 @pytest.mark.parametrize("model", models, indirect=True)
