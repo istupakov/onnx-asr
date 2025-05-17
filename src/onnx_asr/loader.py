@@ -147,7 +147,7 @@ def load_model(
     sess_options: rt.SessionOptions | None = None,
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
-    cpu_preprocessing: bool = False,
+    cpu_preprocessing: bool = True,
 ) -> TextResultsAsrAdapter:
     """Load ASR model.
 
