@@ -192,25 +192,25 @@ Hardware:
 | Model                    | Package / decoding   | CER    | WER    | RTFx (CPU) | RTFx (GPU)   |
 |--------------------------|----------------------|--------|--------|------------|--------------|
 |       GigaAM v2 CTC      |        default       | 1.06%  | 5.23%  |        7.2 | 44.2         |
-|       GigaAM v2 CTC      |       onnx-asr       | 1.06%  | 5.23%  |       11.4 | 58.6         |
+|       GigaAM v2 CTC      |       onnx-asr       | 1.06%  | 5.23%  |       11.4 | 62.9         |
 |      GigaAM v2 RNN-T     |        default       | 1.10%  | 5.22%  |        5.5 | 23.3         |
-|      GigaAM v2 RNN-T     |       onnx-asr       | 1.10%  | 5.22%  |       10.4 | 26           |
+|      GigaAM v2 RNN-T     |       onnx-asr       | 1.10%  | 5.22%  |       10.4 | 26.9         |
 |  Nemo FastConformer CTC  |        default       | 3.11%  | 13.12% |       22.7 | 71.7         |
-|  Nemo FastConformer CTC  |       onnx-asr       | 3.11%  | 13.12% |       43.1 | 88.8         |
+|  Nemo FastConformer CTC  |       onnx-asr       | 3.11%  | 13.12% |       43.1 | 97.4         |
 | Nemo FastConformer RNN-T |        default       | 2.63%  | 11.62% |       15.9 | 13.9         |
-| Nemo FastConformer RNN-T |       onnx-asr       | 2.63%  | 11.62% |       26.0 | 49           |
+| Nemo FastConformer RNN-T |       onnx-asr       | 2.63%  | 11.62% |       26.0 | 53.0         |
 |      Vosk 0.52 small     |     greedy_search    | 3.64%  | 14.53% |       48.2 | 71.4         |
 |      Vosk 0.52 small     | modified_beam_search | 3.50%  | 14.25% |       29.0 | 24.7         |
-|      Vosk 0.52 small     |       onnx-asr       | 3.64%  | 14.53% |       42.5 | 60.2         |
+|      Vosk 0.52 small     |       onnx-asr       | 3.64%  | 14.53% |       42.5 | 72.2         |
 |         Vosk 0.54        |     greedy_search    | 2.21%  | 9.89%  |       34.8 | 64.2         |
 |         Vosk 0.54        | modified_beam_search | 2.21%  | 9.85%  |       23.9 | 24           |
-|         Vosk 0.54        |       onnx-asr       | 2.21%  | 9.89%  |       32.2 | 55.9         |
+|         Vosk 0.54        |       onnx-asr       | 2.21%  | 9.89%  |       32.2 | 64.2         |
 |       Whisper base       |        default       | 10.53% | 38.82% |        5.4 | 13.6         |
-|       Whisper base       |       onnx-asr       | 10.64% | 38.33% |      6.3** | 16.1*/19.4** |
+|       Whisper base       |       onnx-asr       | 10.64% | 38.33% |      6.3** | 16.1*/19.9** |
 |  Whisper large-v3-turbo  |        default       | 2.96%  | 10.27% |        N/A | 11           |
 |  Whisper large-v3-turbo  |       onnx-asr       | 2.63%  | 10.08% |        N/A | 9.8*         |
 
-1. \* `whisper` model ([model types](#supported-model-types)) with `fp16` quantization.
+1. \* `whisper` model ([model types](#supported-model-types)) with `fp16` precision.
 2. ** `whisper-ort` model ([model types](#supported-model-types)).
 3. All other models were run with the default precision - `fp32` on CPU and `fp32` or `fp16` (some of the original models) on GPU.
 
