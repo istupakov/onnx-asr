@@ -15,6 +15,9 @@
 [![onnxruntime](https://img.shields.io/badge/onnxruntime-required-blue?logo=onnx)](https://pypi.org/project/onnxruntime/)
 [![huggingface-hub](https://img.shields.io/badge/huggingface--hub-optional-blue?logo=huggingface)](https://pypi.org/project/huggingface-hub/)
 
+> [!TIP]
+> Supports **Parakeet TDT 0.6B V2 (En)** and **GigaAM v2 (Ru)** models!
+
 The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
  * Loading models from hugging face or local folders (including quantized versions)
  * Accepts wav files or NumPy arrays (built-in support for file reading and resampling)
@@ -45,12 +48,21 @@ The package can be installed from [PyPI](https://pypi.org/project/onnx-asr/):
 pip install onnx-asr[cpu,hub]
 ```
 2. With GPU `onnxruntime` and `huggingface-hub`
+
+> [!IMPORTANT]
+> First, you need to install the [required](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements) version of CUDA.
+
 ```shell
 pip install onnx-asr[gpu,hub]
 ```
+
 3. Without `onnxruntime` and `huggingface-hub` (if you already have some version of `onnxruntime` installed and prefer to download the models yourself)
 ```shell
 pip install onnx-asr
+```
+4. To build onnx-asr from source, you need to install [pdm](https://pdm-project.org/en/latest/#installation). Then you can build onnx-asr with command:
+```shell
+pdm build
 ```
 
 ## Usage examples
@@ -77,7 +89,8 @@ print(model.recognize("test.wav"))
 * `alphacep/vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
 * `onnx-community/whisper-tiny`, `onnx-community/whisper-base`, `onnx-community/whisper-small`, `onnx-community/whisper-large-v3-turbo`, etc. for OpenAI Whisper exported with Hugging Face optimum ([onnx-community](https://huggingface.co/onnx-community?search_models=whisper))
 
-Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a numpy array.
+> [!IMPORTANT]
+> Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a numpy array.
 
 Example with `soundfile`:
 ```py
@@ -121,6 +134,9 @@ model = onnx_asr.load_model("gigaam-v2-rnnt").with_vad(vad)
 for res in model.recognize("test.wav"):
     print(res)
 ```
+
+> [!NOTE]  
+> You will most likely need to adjust VAD parameters to get the correct results.
 
 #### Supported VAD names:
 * `silero` for Silero VAD ([origin](https://github.com/snakers4/silero-vad), [onnx](https://huggingface.co/onnx-community/silero-vad))
@@ -210,9 +226,10 @@ Hardware:
 |  Whisper large-v3-turbo  |        default       | 2.96%  | 10.27% |        N/A | 11           |
 |  Whisper large-v3-turbo  |       onnx-asr       | 2.63%  | 10.08% |        N/A | 9.8*         |
 
-1. \* `whisper` model ([model types](#supported-model-types)) with `fp16` precision.
-2. ** `whisper-ort` model ([model types](#supported-model-types)).
-3. All other models were run with the default precision - `fp32` on CPU and `fp32` or `fp16` (some of the original models) on GPU.
+> [!NOTE]
+> 1. \* `whisper` model ([model types](#supported-model-types)) with `fp16` precision.
+> 2. ** `whisper-ort` model ([model types](#supported-model-types)).
+> 3. All other models were run with the default precision - `fp32` on CPU and `fp32` or `fp16` (some of the original models) on GPU.
 
 ## Convert model to ONNX
 
