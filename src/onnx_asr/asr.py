@@ -141,7 +141,7 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
             t = 0
             emitted_tokens = 0
             while t < encodings_len:
-                probs, step, state = self._decode(tokens, prev_state, encodings[:, t])
+                probs, step, state = self._decode(tokens, prev_state, encodings[t])
                 assert probs.shape[-1] <= self._vocab_size
 
                 token = probs.argmax()
@@ -152,7 +152,7 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
                     timestamps.append(t)
                     emitted_tokens += 1
 
-                if step >= 0:
+                if step > 0:
                     t += step
                     emitted_tokens = 0
                 elif token == self._blank_idx or emitted_tokens == self._max_tokens_per_step:
