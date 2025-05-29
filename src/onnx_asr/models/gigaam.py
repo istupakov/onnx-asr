@@ -93,7 +93,7 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
             ["encoded", "encoded_len"], {"audio_signal": features, "length": features_lens}
         )
         assert is_float32_array(encoder_out) and is_int32_array(encoder_out_lens)
-        return encoder_out, encoder_out_lens.astype(np.int64)
+        return encoder_out.transpose(0, 2, 1), encoder_out_lens.astype(np.int64)
 
     def _create_state(self) -> _STATE_TYPE:
         return (
@@ -105,7 +105,8 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
         decoder_out, state1, state2 = self._decoder.run(
-            ["dec", "h", "c"], {"x": [[[self._blank_idx, *prev_tokens][-1]]], "h.1": prev_state[0], "c.1": prev_state[1]}
+            ["dec", "h", "c"],
+            {"x": [[prev_tokens[-1] if prev_tokens else self._blank_idx]], "h.1": prev_state[0], "c.1": prev_state[1]},
         )
         assert is_float32_array(decoder_out) and is_float32_array(state1) and is_float32_array(state2)
         (joint,) = self._joiner.run(["joint"], {"enc": encoder_out[None, :, None], "dec": decoder_out.transpose(0, 2, 1)})

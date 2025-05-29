@@ -60,7 +60,7 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
             ["encoder_out", "encoder_out_lens"], {"x": features, "x_lens": features_lens}
         )
         assert is_float32_array(encoder_out) and is_int64_array(encoder_out_lens)
-        return encoder_out.transpose(0, 2, 1), encoder_out_lens
+        return encoder_out, encoder_out_lens
 
     def _create_state(self) -> _STATE_TYPE:
         return {}
@@ -68,7 +68,7 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
-        (decoder_out,) = self._decoder.run(["decoder_out"], {"y": [[-1, self._blank_idx, *prev_tokens][-self.CONTEXT_SIZE :]]})
+        (decoder_out,) = self._decoder.run(["decoder_out"], {"y": ((-1, self._blank_idx, *prev_tokens)[-self.CONTEXT_SIZE :],)})
         assert is_float32_array(decoder_out)
         (logit,) = self._joiner.run(["logit"], {"encoder_out": encoder_out[None, :], "decoder_out": decoder_out})
         assert is_float32_array(logit)
@@ -81,7 +81,7 @@ class KaldiTransducerWithCache(KaldiTransducer):
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
-        context = tuple([-1, self._blank_idx, *prev_tokens][-self.CONTEXT_SIZE :])
+        context = (-1, self._blank_idx, *prev_tokens)[-self.CONTEXT_SIZE :]
 
         decoder_out = prev_state.get(context)
         if decoder_out is None:

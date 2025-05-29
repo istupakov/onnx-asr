@@ -7,7 +7,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
-from onnx_asr.utils import OnnxSessionOptions, is_float32_array
+from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int64_array
 
 
 class _NemoConformer(_AsrWithDecoding):
@@ -87,7 +87,8 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
         encoder_out, encoder_out_lens = self._encoder.run(
             ["outputs", "encoded_lengths"], {"audio_signal": features, "length": features_lens}
         )
-        return encoder_out, encoder_out_lens  # type: ignore
+        assert is_float32_array(encoder_out) and is_int64_array(encoder_out_lens)
+        return encoder_out.transpose(0, 2, 1), encoder_out_lens
 
     def _create_state(self) -> _STATE_TYPE:
         shapes = {x.name: x.shape for x in self._decoder_joint.get_inputs()}
@@ -103,7 +104,7 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
             ["outputs", "output_states_1", "output_states_2"],
             {
                 "encoder_outputs": encoder_out[None, :, None],
-                "targets": [[[self._blank_idx, *prev_tokens][-1]]],
+                "targets": [[prev_tokens[-1] if prev_tokens else self._blank_idx]],
                 "target_length": [1],
                 "input_states_1": prev_state[0],
                 "input_states_2": prev_state[1],
