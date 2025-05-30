@@ -8,11 +8,29 @@ from onnx_asr.utils import pad_list
 from preprocessors import resample
 
 
+def onnx_preprocessor(waveforms, waveforms_lens, sample_rate):
+    match sample_rate:
+        case 8_000:
+            return resample.ResamplePreprocessor8(waveforms, waveforms_lens)
+        case 16_000:
+            return waveforms, waveforms_lens
+        case 22_050:
+            return resample.ResamplePreprocessor22(waveforms, waveforms_lens)
+        case 24_000:
+            return resample.ResamplePreprocessor24(waveforms, waveforms_lens)
+        case 32_000:
+            return resample.ResamplePreprocessor32(waveforms, waveforms_lens)
+        case 44_100:
+            return resample.ResamplePreprocessor44(waveforms, waveforms_lens)
+        case 48_000:
+            return resample.ResamplePreprocessor48(waveforms, waveforms_lens)
+
+
 @pytest.fixture(scope="module")
 def preprocessor(request):
     match request.param:
         case "onnx_func":
-            return lambda x, x_len, sr: resample.ResamplePreprocessor(x, x_len, [sr])
+            return onnx_preprocessor
         case "onnx_model":
             return Resampler({})
 
