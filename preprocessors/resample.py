@@ -42,73 +42,97 @@ def resample(
     return op.Where(mask, resampled[:, :new_len], 0), resampled_lens
 
 
-@script(doc_string="Resampling waveform to 16 kHz")
-def ResamplePreprocessor(
-    waveforms: FLOAT["batch_size", "N"],
-    waveforms_lens: INT64["batch_size"],
-    sample_rate: INT64[1],
+@script(doc_string="Resampling waveform from 8 to 16 kHz")
+def ResamplePreprocessor8(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
 ) -> tuple[FLOAT["batch_size", "M"], INT64["batch_size"]]:
-    if sample_rate[0] == 8_000:
-        waveforms, waveforms_lens = resample(
-            waveforms,
-            waveforms_lens,
-            op.Constant(value=kernel08),
-            (0, width08, 0, width08 + orig_freq08),
-            (1, orig_freq08),
-            orig_freq08,
-            new_freq08,
-        )
-    elif sample_rate[0] == 22_050:
-        waveforms, waveforms_lens = resample(
-            waveforms,
-            waveforms_lens,
-            op.Constant(value=kernel22),
-            (0, width22, 0, width22 + orig_freq22),
-            (1, orig_freq22),
-            orig_freq22,
-            new_freq22,
-        )
-    elif sample_rate[0] == 24_000:
-        waveforms, waveforms_lens = resample(
-            waveforms,
-            waveforms_lens,
-            op.Constant(value=kernel24),
-            (0, width24, 0, width24 + orig_freq24),
-            (1, orig_freq24),
-            orig_freq24,
-            new_freq24,
-        )
-    elif sample_rate[0] == 32_000:
-        waveforms, waveforms_lens = resample(
-            waveforms,
-            waveforms_lens,
-            op.Constant(value=kernel32),
-            (0, width32, 0, width32 + orig_freq32),
-            (1, orig_freq32),
-            orig_freq32,
-            new_freq32,
-        )
-    elif sample_rate[0] == 44_100:
-        waveforms, waveforms_lens = resample(
-            waveforms,
-            waveforms_lens,
-            op.Constant(value=kernel44),
-            (0, width44, 0, width44 + orig_freq44),
-            (1, orig_freq44),
-            orig_freq44,
-            new_freq44,
-        )
-    elif sample_rate[0] == 48_000:
-        waveforms, waveforms_lens = resample(
-            waveforms,
-            waveforms_lens,
-            op.Constant(value=kernel48),
-            (0, width48, 0, width48 + orig_freq48),
-            (1, orig_freq48),
-            orig_freq48,
-            new_freq48,
-        )
+    resampled, resampled_lens = resample(
+        waveforms,
+        waveforms_lens,
+        op.Constant(value=kernel08),
+        (0, width08, 0, width08 + orig_freq08),
+        (1, orig_freq08),
+        orig_freq08,
+        new_freq08,
+    )
+    return resampled, resampled_lens
 
-    resampled = op.Identity(waveforms)
-    resampled_lens = op.Identity(waveforms_lens)
+
+@script(doc_string="Resampling waveform from 22 to 16 kHz")
+def ResamplePreprocessor22(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
+) -> tuple[FLOAT["batch_size", "M"], INT64["batch_size"]]:
+    resampled, resampled_lens = resample(
+        waveforms,
+        waveforms_lens,
+        op.Constant(value=kernel22),
+        (0, width22, 0, width22 + orig_freq22),
+        (1, orig_freq22),
+        orig_freq22,
+        new_freq22,
+    )
+    return resampled, resampled_lens
+
+
+@script(doc_string="Resampling waveform from 24 to 16 kHz")
+def ResamplePreprocessor24(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
+) -> tuple[FLOAT["batch_size", "M"], INT64["batch_size"]]:
+    resampled, resampled_lens = resample(
+        waveforms,
+        waveforms_lens,
+        op.Constant(value=kernel24),
+        (0, width24, 0, width24 + orig_freq24),
+        (1, orig_freq24),
+        orig_freq24,
+        new_freq24,
+    )
+    return resampled, resampled_lens
+
+
+@script(doc_string="Resampling waveform from 32 to 16 kHz")
+def ResamplePreprocessor32(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
+) -> tuple[FLOAT["batch_size", "M"], INT64["batch_size"]]:
+    resampled, resampled_lens = resample(
+        waveforms,
+        waveforms_lens,
+        op.Constant(value=kernel32),
+        (0, width32, 0, width32 + orig_freq32),
+        (1, orig_freq32),
+        orig_freq32,
+        new_freq32,
+    )
+    return resampled, resampled_lens
+
+
+@script(doc_string="Resampling waveform from 44 to 16 kHz")
+def ResamplePreprocessor44(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
+) -> tuple[FLOAT["batch_size", "M"], INT64["batch_size"]]:
+    resampled, resampled_lens = resample(
+        waveforms,
+        waveforms_lens,
+        op.Constant(value=kernel44),
+        (0, width44, 0, width44 + orig_freq44),
+        (1, orig_freq44),
+        orig_freq44,
+        new_freq44,
+    )
+    return resampled, resampled_lens
+
+
+@script(doc_string="Resampling waveform from 48 to 16 kHz")
+def ResamplePreprocessor48(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
+) -> tuple[FLOAT["batch_size", "M"], INT64["batch_size"]]:
+    resampled, resampled_lens = resample(
+        waveforms,
+        waveforms_lens,
+        op.Constant(value=kernel48),
+        (0, width48, 0, width48 + orig_freq48),
+        (1, orig_freq48),
+        orig_freq48,
+        new_freq48,
+    )
     return resampled, resampled_lens
