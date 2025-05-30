@@ -53,7 +53,7 @@ build = [
     "torchaudio>=2.6.0",
 ]
 asrs = [
-    "kaldi-native-fbank>=1.21.1",
+    "kaldi-native-fbank==1.21.1",
     "nemo-toolkit[asr]>=2.2.1",
     "openai-whisper>=20240930",
 ]
@@ -84,7 +84,12 @@ lint = { composite = ["ruff format --diff", "ruff check", "mypy ."] }
 [[tool.pdm.source]]
 name = "torch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
-include_packages = ["torch*"]
+include_packages = ["torch", "torchaudio"]
+exclude_packages = ["*"]
+
+[tool.pdm.resolution.overrides]
+protobuf = ">=4.25.1"
+numpy = "<2.2"
 
 [tool.mypy]
 python_version = "3.10"
