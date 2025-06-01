@@ -76,6 +76,9 @@ model = onnx_asr.load_model("gigaam-v2-rnnt")
 print(model.recognize("test.wav"))
 ```
 
+> [!IMPORTANT]
+> Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a numpy array.
+
 #### Supported model names:
 * `gigaam-v2-ctc` for Sber GigaAM v2 CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
 * `gigaam-v2-rnnt` for Sber GigaAM v2 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
@@ -90,7 +93,7 @@ print(model.recognize("test.wav"))
 * `onnx-community/whisper-tiny`, `onnx-community/whisper-base`, `onnx-community/whisper-small`, `onnx-community/whisper-large-v3-turbo`, etc. for OpenAI Whisper exported with Hugging Face optimum ([onnx-community](https://huggingface.co/onnx-community?search_models=whisper))
 
 > [!IMPORTANT]
-> Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a numpy array.
+> Some long-ago converted `onnx-community` models have a broken `fp16` precision version.
 
 Example with `soundfile`:
 ```py
