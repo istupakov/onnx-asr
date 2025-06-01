@@ -176,3 +176,7 @@ cython_debug/
 # ML models
 /models/
 *.onnx
+
+/*.ipynb
+*.wav
+*.mp3
