@@ -52,7 +52,7 @@ class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
         return log_probs, (features_lens - 1) // self._subsampling_factor + 1
 
 
-_STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
+_STATE_TYPE = list[npt.NDArray[np.float32]]
 
 
 class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
@@ -96,19 +96,24 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
         return encoder_out.transpose(0, 2, 1), encoder_out_lens.astype(np.int64)
 
     def _create_state(self) -> _STATE_TYPE:
-        return (
+        return [
             np.zeros(shape=(1, 1, self.PRED_HIDDEN), dtype=np.float32),
             np.zeros(shape=(1, 1, self.PRED_HIDDEN), dtype=np.float32),
-        )
+        ]
 
     def _decode(
         self, prev_tokens: list[int], prev_state: _STATE_TYPE, encoder_out: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
-        decoder_out, state1, state2 = self._decoder.run(
-            ["dec", "h", "c"],
-            {"x": [[prev_tokens[-1] if prev_tokens else self._blank_idx]], "h.1": prev_state[0], "c.1": prev_state[1]},
-        )
-        assert is_float32_array(decoder_out) and is_float32_array(state1) and is_float32_array(state2)
+        if len(prev_state) == 2:
+            decoder_out, state1, state2 = self._decoder.run(
+                ["dec", "h", "c"],
+                {"x": [[prev_tokens[-1] if prev_tokens else self._blank_idx]], "h.1": prev_state[0], "c.1": prev_state[1]},
+            )
+            assert is_float32_array(decoder_out) and is_float32_array(state1) and is_float32_array(state2)
+            prev_state[:] = (decoder_out, state1, state2)
+        else:
+            decoder_out, state1, state2 = prev_state
+
         (joint,) = self._joiner.run(["joint"], {"enc": encoder_out[None, :, None], "dec": decoder_out.transpose(0, 2, 1)})
         assert is_float32_array(joint)
-        return np.squeeze(joint), -1, (state1, state2)
+        return np.squeeze(joint), -1, [state1, state2]
