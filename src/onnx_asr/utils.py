@@ -64,6 +64,20 @@ class OnnxSessionOptions(TypedDict, total=False):
     cpu_preprocessing: bool
 
 
+def get_onnx_device(session: rt.InferenceSession) -> tuple[str, int]:
+    """Get ONNX device type and id from Session."""
+    provider = session.get_providers()[0]
+    match provider:
+        case "CUDAExecutionProvider" | "ROCMExecutionProvider":
+            device_type = "cuda"
+        case "DmlExecutionProvider":
+            device_type = "dml"
+        case _:
+            device_type = "cpu"
+
+    return device_type, int(session.get_provider_options()[provider].get("device_id", 0))
+
+
 def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
     """Read PCM wav file to Numpy array."""
     with wave.open(filename, mode="rb") as f:
