@@ -19,6 +19,7 @@
 > Supports **Parakeet TDT 0.6B V2 (En)** and **GigaAM v2 (Ru)** models!
 
 The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
+ * Works on a variety of devices, from IoT with Arm CPUs to servers with Nvidia GPUs ([benchmarks](#benchmarks)).
  * Loading models from hugging face or local folders (including quantized versions)
  * Accepts wav files or NumPy arrays (built-in support for file reading and resampling)
  * Batch processing
@@ -202,37 +203,89 @@ Packages with original implementations:
 * `openai-whisper` for Whisper models ([github](https://github.com/openai/whisper))
 * `sherpa-onnx` for Vosk models ([github](https://github.com/k2-fsa/sherpa-onnx), [docs](https://k2-fsa.github.io/sherpa/onnx/index.html))
 
-Tests were performed on a *test* subset of the [Russian LibriSpeech](https://openslr.org/96/) dataset.
-
 Hardware:
 1. CPU tests were run on a laptop with an Intel i7-7700HQ processor.
 2. GPU tests were run in Google Colab on Nvidia T4
 
+Tests of Russian ASR models were performed on a *test* subset of the [Russian LibriSpeech](https://huggingface.co/datasets/istupakov/russian_librispeech) dataset.
+
 | Model                    | Package / decoding   | CER    | WER    | RTFx (CPU) | RTFx (GPU)   |
 |--------------------------|----------------------|--------|--------|------------|--------------|
 |       GigaAM v2 CTC      |        default       | 1.06%  | 5.23%  |        7.2 | 44.2         |
-|       GigaAM v2 CTC      |       onnx-asr       | 1.06%  | 5.23%  |       11.4 | 62.9         |
+|       GigaAM v2 CTC      |       onnx-asr       | 1.06%  | 5.23%  |       11.6 | 64.3         |
 |      GigaAM v2 RNN-T     |        default       | 1.10%  | 5.22%  |        5.5 | 23.3         |
-|      GigaAM v2 RNN-T     |       onnx-asr       | 1.10%  | 5.22%  |       10.4 | 26.9         |
-|  Nemo FastConformer CTC  |        default       | 3.11%  | 13.12% |       22.7 | 71.7         |
-|  Nemo FastConformer CTC  |       onnx-asr       | 3.11%  | 13.12% |       43.1 | 97.4         |
-| Nemo FastConformer RNN-T |        default       | 2.63%  | 11.62% |       15.9 | 13.9         |
-| Nemo FastConformer RNN-T |       onnx-asr       | 2.63%  | 11.62% |       26.0 | 53.0         |
+|      GigaAM v2 RNN-T     |       onnx-asr       | 1.10%  | 5.22%  |       10.7 | 38.7         |
+|  Nemo FastConformer CTC  |        default       | 3.11%  | 13.12% |       29.1 | 143.0        |
+|  Nemo FastConformer CTC  |       onnx-asr       | 3.11%  | 13.12% |       45.8 | 103.3        |
+| Nemo FastConformer RNN-T |        default       | 2.63%  | 11.62% |       17.4 | 111.6        |
+| Nemo FastConformer RNN-T |       onnx-asr       | 2.63%  | 11.62% |       27.2 | 53.4         |
 |      Vosk 0.52 small     |     greedy_search    | 3.64%  | 14.53% |       48.2 | 71.4         |
 |      Vosk 0.52 small     | modified_beam_search | 3.50%  | 14.25% |       29.0 | 24.7         |
-|      Vosk 0.52 small     |       onnx-asr       | 3.64%  | 14.53% |       42.5 | 72.2         |
+|      Vosk 0.52 small     |       onnx-asr       | 3.64%  | 14.53% |       45.5 | 75.2         |
 |         Vosk 0.54        |     greedy_search    | 2.21%  | 9.89%  |       34.8 | 64.2         |
 |         Vosk 0.54        | modified_beam_search | 2.21%  | 9.85%  |       23.9 | 24           |
-|         Vosk 0.54        |       onnx-asr       | 2.21%  | 9.89%  |       32.2 | 64.2         |
-|       Whisper base       |        default       | 10.53% | 38.82% |        5.4 | 13.6         |
-|       Whisper base       |       onnx-asr       | 10.64% | 38.33% |      6.3** | 16.1*/19.9** |
-|  Whisper large-v3-turbo  |        default       | 2.96%  | 10.27% |        N/A | 11           |
-|  Whisper large-v3-turbo  |       onnx-asr       | 2.63%  | 10.08% |        N/A | 9.8*         |
+|         Vosk 0.54        |       onnx-asr       | 2.21%  | 9.89%  |       33.6 | 69.6         |
+|       Whisper base       |        default       | 10.61% | 38.89% |        5.4 | 17.3         |
+|       Whisper base       |       onnx-asr*      | 10.64% | 38.33% |        6.6 | 20.1         |
+|  Whisper large-v3-turbo  |        default       | 2.96%  | 10.27% |        N/A | 13.6         |
+|  Whisper large-v3-turbo  |       onnx-asr**     | 2.63%  | 10.13% |        N/A | 12.4         |
+
+Tests of English ASR models were performed on a *test* subset of the [Voxpopuli](https://huggingface.co/datasets/facebook/voxpopuli) dataset.
+
+| Model                     | Package / decoding   | CER    | WER    | RTFx (CPU) | RTFx (GPU)   |
+|---------------------------|----------------------|--------|--------|------------|--------------|
+|  Nemo Parakeet CTC 0.6B   |        default       | 4.09%  | 7.20%  | 8.3        | 107.7        |
+|  Nemo Parakeet CTC 0.6B   |       onnx-asr       | 4.09%  | 7.20%  | 11.5       | 89.0         |
+| Nemo Parakeet RNN-T 0.6B  |        default       | 3.64%  | 6.32%  | 6.7        | 85.0         |
+| Nemo Parakeet RNN-T 0.6B  |       onnx-asr       | 3.64%  | 6.32%  | 8.7        | 48.0         |
+| Nemo Parakeet TDT 0.6B V2 |        default       | 3.88%  | 6.52%  | 6.5        | 87.6         |
+| Nemo Parakeet TDT 0.6B V2 |       onnx-asr       | 3.88%  | 6.52%  | 10.5       | 70.1         |
+|       Whisper base        |        default       | 7.81%  | 13.24% | 8.4        | 27.7         |
+|       Whisper base        |       onnx-asr*      | 7.52%  | 12.76% | 9.2        | 28.9         |
+|  Whisper large-v3-turbo   |        default       | 6.85%  | 11.16% | N/A        | 20.4         |
+|  Whisper large-v3-turbo   |       onnx-asr**     | 10.31% | 14.65% | N/A        | 17.9         |
 
 > [!NOTE]
-> 1. \* `whisper` model ([model types](#supported-model-types)) with `fp16` precision.
-> 2. ** `whisper-ort` model ([model types](#supported-model-types)).
+> 1. \* `whisper-ort` model ([model types](#supported-model-types)).
+> 2. ** `whisper` model ([model types](#supported-model-types)) with `fp16` precision.
 > 3. All other models were run with the default precision - `fp32` on CPU and `fp32` or `fp16` (some of the original models) on GPU.
+
+## Benchmarks
+
+Hardware:
+1. Arm tests were run on an Orange Pi Zero 3 with a Cortex-A53 processor.
+2. x64 tests were run on a laptop with an Intel i7-7700HQ processor.
+3. T4 tests were run in Google Colab on Nvidia T4
+
+### Russian ASR models
+Notebook with benchmark code - [benchmark-ru](notebooks/benchmark-ru.ipynb)
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/istupakov/onnx-asr/blob/main/notebooks/benchmark-ru.ipynb)
+
+| Model                     | RTFx (Arm) | RTFx (x64) | RTFx (T4) |
+|---------------------------|------------|------------|-----------|
+| GigaAM v2 CTC             | 0.8        | 11.6       | 64.3      |
+| GigaAM v2 RNN-T           | 0.8        | 10.7       | 38.7      |
+| Nemo FastConformer CTC    | 4.0        | 45.8       | 103.3     |
+| Nemo FastConformer RNN-T  | 3.2        | 27.2       | 53.4      |
+| Vosk 0.52 small           | 5.1        | 45.5       | 75.2      |
+| Vosk 0.54                 | 3.8        | 33.6       | 69.6      |
+| Whisper base              | 0.8        | 6.6        | 20.1      |
+| Whisper large-v3-turbo    | N/A        | N/A        | 12.4      |
+
+### English ASR models
+
+Notebook with benchmark code - [benchmark-en](notebooks/benchmark-en.ipynb)
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/istupakov/onnx-asr/blob/main/notebooks/benchmark-en.ipynb)
+
+| Model                     | RTFx (Arm) | RTFx (x64) | RTFx (T4) |
+|---------------------------|------------|------------|-----------|
+| Nemo Parakeet CTC 0.6B    | 1.1        | 11.5       | 89.0      |
+| Nemo Parakeet RNN-T 0.6B  | 1.0        | 8.7        | 48.0      |
+| Nemo Parakeet TDT 0.6B V2 | 1.1        | 10.5       | 70.1      |
+| Whisper base              | 1.2        | 9.2        | 28.9      |
+| Whisper large-v3-turbo    | N/A        | N/A        | 17.9      |
 
 ## Convert model to ONNX
 
