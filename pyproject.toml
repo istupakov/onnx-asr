@@ -53,7 +53,7 @@ build = [
     "torchaudio>=2.6.0",
 ]
 asrs = [
-    "kaldi-native-fbank==1.21.1",
+    "kaldi-native-fbank>=1.21.1",
     "nemo-toolkit[asr]>=2.2.1",
     "openai-whisper>=20240930",
 ]
