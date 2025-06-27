@@ -258,9 +258,9 @@ Hardware:
 3. T4 tests were run in Google Colab on Nvidia T4
 
 ### Russian ASR models
-Notebook with benchmark code - [benchmark-ru](notebooks/benchmark-ru.ipynb)
+Notebook with benchmark code - [benchmark-ru](examples/benchmark-ru.ipynb)
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/istupakov/onnx-asr/blob/main/notebooks/benchmark-ru.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/istupakov/onnx-asr/blob/main/examples/benchmark-ru.ipynb)
 
 | Model                     | RTFx (Arm) | RTFx (x64) | RTFx (T4) |
 |---------------------------|------------|------------|-----------|
@@ -275,9 +275,9 @@ Notebook with benchmark code - [benchmark-ru](notebooks/benchmark-ru.ipynb)
 
 ### English ASR models
 
-Notebook with benchmark code - [benchmark-en](notebooks/benchmark-en.ipynb)
+Notebook with benchmark code - [benchmark-en](examples/benchmark-en.ipynb)
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/istupakov/onnx-asr/blob/main/notebooks/benchmark-en.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/istupakov/onnx-asr/blob/main/examples/benchmark-en.ipynb)
 
 | Model                     | RTFx (Arm) | RTFx (x64) | RTFx (T4) |
 |---------------------------|------------|------------|-----------|
