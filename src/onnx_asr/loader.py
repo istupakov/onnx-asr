@@ -33,6 +33,7 @@ ModelNames = Literal[
     "nemo-parakeet-ctc-0.6b",
     "nemo-parakeet-rnnt-0.6b",
     "nemo-parakeet-tdt-0.6b-v2",
+    "nemo-parakeet-tdt-0.6b-v3",
     "alphacep/vosk-model-ru",
     "alphacep/vosk-model-small-ru",
     "whisper-base",
@@ -158,6 +159,7 @@ def load_model(
                 NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt`)
                 NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
                 NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b` | `nemo-parakeet-tdt-0.6b-v2`)
+                NeMo Parakeet 0.6B Multilingual (`nemo-parakeet-tdt-0.6b-v3`)
                 Vosk (`vosk` | `alphacep/vosk-model-ru` | `alphacep/vosk-model-small-ru`)
                 Whisper Base exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
                 Whisper from onnx-community (`whisper` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
@@ -217,6 +219,9 @@ def load_model(
         case "nemo-parakeet-tdt-0.6b-v2":
             model_type = NemoConformerTdt
             repo_id = "istupakov/parakeet-tdt-0.6b-v2-onnx"
+        case "nemo-parakeet-tdt-0.6b-v3":
+            model_type = NemoConformerTdt
+            repo_id = "istupakov/parakeet-tdt-0.6b-v3-onnx"
         case "whisper-ort":
             model_type = WhisperOrt
         case "whisper-base":
