@@ -16,7 +16,7 @@
 [![huggingface-hub](https://img.shields.io/badge/huggingface--hub-optional-blue?logo=huggingface)](https://pypi.org/project/huggingface-hub/)
 
 > [!TIP]
-> Supports **Parakeet TDT 0.6B V2 (En)** and **GigaAM v2 (Ru)** models!
+> Supports **Parakeet TDT 0.6B V2 (En)**, **Parakeet TDT 0.6B V3 (Multilingual)** and **GigaAM v2 (Ru)** models!
 
 The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
  * Works on a variety of devices, from IoT with Arm CPUs to servers with Nvidia GPUs ([benchmarks](#benchmarks)).
@@ -88,6 +88,7 @@ print(model.recognize("test.wav"))
 * `nemo-parakeet-ctc-0.6b` for Nvidia Parakeet CTC 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-ctc-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-ctc-0.6b-onnx))
 * `nemo-parakeet-rnnt-0.6b` for Nvidia Parakeet RNNT 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-rnnt-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-rnnt-0.6b-onnx))
 * `nemo-parakeet-tdt-0.6b-v2` for Nvidia Parakeet TDT 0.6B V2 (en) ([origin](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2), [onnx](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v2-onnx))
+* `nemo-parakeet-tdt-0.6b-v3` for Nvidia Parakeet TDT 0.6B V3 (multilingual) ([origin](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3), [onnx](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx))
 * `whisper-base` for OpenAI Whisper Base exported with onnxruntime ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
 * `alphacep/vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
 * `alphacep/vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
