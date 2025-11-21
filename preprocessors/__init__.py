@@ -1,4 +1,4 @@
-from .gigaam import GigaamPreprocessor
+from .gigaam import GigaamPreprocessorV2, GigaamPreprocessorV3
 from .kaldi import KaldiPreprocessor
 from .nemo import NemoPreprocessor80, NemoPreprocessor128
 from .resample import (
@@ -12,7 +12,8 @@ from .resample import (
 from .whisper import WhisperPreprocessor80, WhisperPreprocessor128
 
 __all__ = [
-    "GigaamPreprocessor",
+    "GigaamPreprocessorV2",
+    "GigaamPreprocessorV3",
     "KaldiPreprocessor",
     "NemoPreprocessor80",
     "NemoPreprocessor128",

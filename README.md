@@ -16,7 +16,7 @@
 [![huggingface-hub](https://img.shields.io/badge/huggingface--hub-optional-blue?logo=huggingface)](https://pypi.org/project/huggingface-hub/)
 
 > [!TIP]
-> Supports **Parakeet TDT 0.6B V2 (En)**, **Parakeet TDT 0.6B V3 (Multilingual)** and **GigaAM v2 (Ru)** models!
+> Supports **Parakeet TDT 0.6B V2 (En)**, **Parakeet TDT 0.6B V3 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
 
 The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
  * Works on a variety of devices, from IoT with Arm CPUs to servers with Nvidia GPUs ([benchmarks](#benchmarks)).
@@ -33,7 +33,7 @@ The **onnx-asr** package supports many modern ASR [models](#supported-models-arc
 The package supports the following modern ASR model architectures ([comparison](#comparison-with-original-implementations) with original implementations):
 * Nvidia NeMo Conformer/FastConformer/Parakeet (with CTC, RNN-T and TDT decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
-* Sber GigaAM v2 (with CTC and RNN-T decoders)
+* Sber GigaAM v2/v3 (with CTC and RNN-T decoders)
 * OpenAI Whisper
 
 When saving these models in onnx format, usually only the encoder and decoder are saved. To run them, the corresponding preprocessor and decoding must be implemented. Therefore, the package contains these implementations for all supported models:
@@ -83,6 +83,8 @@ print(model.recognize("test.wav"))
 #### Supported model names:
 * `gigaam-v2-ctc` for Sber GigaAM v2 CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
 * `gigaam-v2-rnnt` for Sber GigaAM v2 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
+* `gigaam-v3-ctc` for Sber GigaAM v3 CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
+* `gigaam-v3-rnnt` for Sber GigaAM v3 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
 * `nemo-fastconformer-ru-ctc` for Nvidia FastConformer-Hybrid Large (ru) with CTC decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `nemo-fastconformer-ru-rnnt` for Nvidia FastConformer-Hybrid Large (ru) with RNN-T decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `nemo-parakeet-ctc-0.6b` for Nvidia Parakeet CTC 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-ctc-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-ctc-0.6b-onnx))
@@ -327,7 +329,7 @@ with Path(onnx_dir, "vocab.txt").open("wt") as f:
         f.write(f"{token} {i}\n")
 ```
 
-### Sber GigaAM v2
+### Sber GigaAM v2/v3
 Install **GigaAM**
 ```shell
 git clone https://github.com/salute-developers/GigaAM.git
