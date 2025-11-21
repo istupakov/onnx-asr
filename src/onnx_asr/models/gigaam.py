@@ -1,4 +1,4 @@
-"""GigaAM v2 model implementations."""
+"""GigaAM v2+ model implementations."""
 
 from pathlib import Path
 
@@ -13,12 +13,13 @@ from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int32_array
 class _GigaamV2(_AsrWithDecoding):
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
-        return {"vocab": "v2_vocab.txt"}
+        return {"vocab": "v?_vocab.txt"}
 
     @property
     def _preprocessor_name(self) -> str:
         assert self.config.get("features_size", 64) == 64
-        return "gigaam"
+        version = self.config.get("version", "v2")
+        return f"gigaam_{version}"
 
     @property
     def _subsampling_factor(self) -> int:
@@ -26,10 +27,10 @@ class _GigaamV2(_AsrWithDecoding):
 
 
 class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
-    """GigaAM v2 CTC model implementation."""
+    """GigaAM v2+ CTC model implementation."""
 
     def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        """Create GigaAM v2 CTC model.
+        """Create GigaAM v2+ CTC model.
 
         Args:
             model_files: Dict with paths to model files.
@@ -42,7 +43,7 @@ class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         suffix = "?" + quantization if quantization else ""
-        return {"model": f"v2_ctc{suffix}.onnx"} | _GigaamV2._get_model_files(quantization)
+        return {"model": f"v?_ctc{suffix}.onnx"} | _GigaamV2._get_model_files(quantization)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
@@ -56,12 +57,12 @@ _STATE_TYPE = list[npt.NDArray[np.float32]]
 
 
 class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
-    """GigaAM v2 RNN-T model implementation."""
+    """GigaAM v2+ RNN-T model implementation."""
 
     PRED_HIDDEN = 320
 
     def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        """Create GigaAM v2 RNN-T model.
+        """Create GigaAM v2+ RNN-T model.
 
         Args:
             model_files: Dict with paths to model files.
@@ -77,9 +78,9 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         suffix = "?" + quantization if quantization else ""
         return {
-            "encoder": f"v2_rnnt_encoder{suffix}.onnx",
-            "decoder": f"v2_rnnt_decoder{suffix}.onnx",
-            "joint": f"v2_rnnt_joint{suffix}.onnx",
+            "encoder": f"v?_rnnt_encoder{suffix}.onnx",
+            "decoder": f"v?_rnnt_decoder{suffix}.onnx",
+            "joint": f"v?_rnnt_joint{suffix}.onnx",
         } | _GigaamV2._get_model_files(quantization)
 
     @property

@@ -28,6 +28,8 @@ from .vad import Vad
 ModelNames = Literal[
     "gigaam-v2-ctc",
     "gigaam-v2-rnnt",
+    "gigaam-v3-ctc",
+    "gigaam-v3-rnnt",
     "nemo-fastconformer-ru-ctc",
     "nemo-fastconformer-ru-rnnt",
     "nemo-parakeet-ctc-0.6b",
@@ -154,7 +156,7 @@ def load_model(
 
     Args:
         model: Model name or type (download from Hugging Face supported if full model name is provided):
-                GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`),
+                GigaAM (`gigaam-v2-ctc` | `gigaam-v2-rnnt` | `gigaam-v3-ctc` | `gigaam-v3-rnnt`),
                 Kaldi Transducer (`kaldi-rnnt`)
                 NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt`)
                 NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
@@ -193,6 +195,12 @@ def load_model(
         case "gigaam-v2-rnnt":
             model_type = GigaamV2Rnnt
             repo_id = "istupakov/gigaam-v2-onnx"
+        case "gigaam-v3-ctc":
+            model_type = GigaamV2Ctc
+            repo_id = "istupakov/gigaam-v3-onnx"
+        case "gigaam-v3-rnnt":
+            model_type = GigaamV2Rnnt
+            repo_id = "istupakov/gigaam-v3-onnx"
         case "kaldi-rnnt" | "vosk":
             model_type = KaldiTransducer
         case "alphacep/vosk-model-ru" | "alphacep/vosk-model-small-ru":
