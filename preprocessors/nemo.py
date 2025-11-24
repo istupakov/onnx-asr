@@ -34,12 +34,14 @@ def nemo_preprocessor(
     waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"], melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"]
 ):
     if preemph != 0.0:
+        timemask = op.Range(0, op.Shape(waveforms, start=1, end=2), 1) < op.Unsqueeze(waveforms_lens, [1])
         waveforms = op.Concat(waveforms[:, :1], waveforms[:, 1:] - preemph * waveforms[:, :-1], axis=-1)
+        waveforms = op.Where(timemask, waveforms, 0)
 
     waveforms = op.Pad(
         waveforms,
         pads=op.Constant(value=[0, n_fft // 2, 0, n_fft // 2]),
-        mode="reflect",
+        mode="constant",
     )
     hann_window = op.Pad(
         op.HannWindow(win_length, periodic=0, output_datatype=TensorProto.DOUBLE),
@@ -51,7 +53,7 @@ def nemo_preprocessor(
     mel_spectrogram = op.MatMul(op.CastLike(spectrogram, melscale_fbanks), melscale_fbanks)
     log_mel_spectrogram = op.Log(mel_spectrogram + log_zero_guard_value)
 
-    features_lens = waveforms_lens / hop_length + 1
+    features_lens = waveforms_lens / hop_length
     return normalize(op.Transpose(log_mel_spectrogram, perm=(0, 2, 1)), features_lens), features_lens
 
 
