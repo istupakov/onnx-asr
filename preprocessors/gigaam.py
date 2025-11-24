@@ -1,3 +1,4 @@
+import torch
 import torchaudio
 from onnx import TensorProto, numpy_helper
 from onnxscript import FLOAT, INT64, script
@@ -18,7 +19,10 @@ clamp_min = 1e-9
 clamp_max = 1e9
 
 melscale_fbanks_v2 = torchaudio.functional.melscale_fbanks(n_fft_v2 // 2 + 1, f_min, f_max, n_mels, sample_rate)
-melscale_fbanks_v3 = torchaudio.functional.melscale_fbanks(n_fft_v3 // 2 + 1, f_min, f_max, n_mels, sample_rate)
+melscale_fbanks_v3 = (
+    torchaudio.functional.melscale_fbanks(n_fft_v3 // 2 + 1, f_min, f_max, n_mels, sample_rate).bfloat16().float()
+)
+hann_window_v3 = torch.hann_window(win_length_v3).bfloat16().double()
 
 
 @script(doc_string="LogMelSpectrogram feature extractor for GigaAM v2 models")
@@ -50,7 +54,7 @@ def GigaamPreprocessorV3(
     waveforms: FLOAT["batch_size", "N"],
     waveforms_lens: INT64["batch_size"],
 ) -> tuple[FLOAT["batch_size", n_mels, "T"], INT64["batch_size"]]:
-    hann_window = op.HannWindow(win_length_v3, output_datatype=TensorProto.DOUBLE)
+    hann_window = op.Constant(value=numpy_helper.from_array(hann_window_v3.numpy(), "hann_window"))
     image = op.STFT(op.CastLike(waveforms, hann_window), hop_length, hann_window)
     spectrogram = op.ReduceSumSquare(image, axes=(-1,), keepdims=0)
 

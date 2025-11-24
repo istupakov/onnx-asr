@@ -21,13 +21,17 @@ def preprocessor_origin_v2(waveforms, lens):
 
 
 def preprocessor_origin_v3(waveforms, lens):
-    transform = torchaudio.transforms.MelSpectrogram(
-        sample_rate=gigaam.sample_rate,
-        n_fft=gigaam.n_fft_v3,
-        win_length=gigaam.win_length_v3,
-        hop_length=gigaam.hop_length,
-        n_mels=gigaam.n_mels,
-        center=False,
+    transform = (
+        torchaudio.transforms.MelSpectrogram(
+            sample_rate=gigaam.sample_rate,
+            n_fft=gigaam.n_fft_v3,
+            win_length=gigaam.win_length_v3,
+            hop_length=gigaam.hop_length,
+            n_mels=gigaam.n_mels,
+            center=False,
+        )
+        .bfloat16()
+        .float()
     )
     features_lens = (
         torch.from_numpy(lens - gigaam.win_length_v3).div(gigaam.hop_length, rounding_mode="floor").add(1).long().numpy()
@@ -56,7 +60,7 @@ def preprocessor_torch_v3(waveforms, lens):
     spectrogram = torchaudio.functional.spectrogram(
         waveforms,
         pad=0,
-        window=torch.hann_window(gigaam.win_length_v3),
+        window=torch.hann_window(gigaam.win_length_v3).bfloat16().float(),
         n_fft=gigaam.n_fft_v3,
         hop_length=gigaam.hop_length,
         win_length=gigaam.win_length_v3,
