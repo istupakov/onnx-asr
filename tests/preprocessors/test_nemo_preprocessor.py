@@ -25,7 +25,9 @@ def preprocessor_origin(request):
 def preprocessor_torch(waveforms, lens, n_mels):
     waveforms = torch.from_numpy(waveforms)
     if nemo.preemph != 0.0:
+        timemask = torch.arange(waveforms.shape[-1]).unsqueeze(0) < torch.from_numpy(lens).unsqueeze(1)
         waveforms = torch.cat((waveforms[:, :1], waveforms[:, 1:] - nemo.preemph * waveforms[:, :-1]), dim=1)
+        waveforms = waveforms.masked_fill(~timemask, 0.0)
 
     spectrogram = torchaudio.functional.spectrogram(
         waveforms,
@@ -36,13 +38,14 @@ def preprocessor_torch(waveforms, lens, n_mels):
         win_length=nemo.win_length,
         power=2,
         normalized=False,
+        pad_mode="constant",
     )
     mel_spectrogram = torch.matmul(
         spectrogram.transpose(-1, -2), nemo.melscale_fbanks80 if n_mels == 80 else nemo.melscale_fbanks128
     ).transpose(-1, -2)
     log_mel_spectrogram = torch.log(mel_spectrogram + nemo.log_zero_guard_value)
 
-    features_lens = torch.from_numpy(lens) // nemo.hop_length + 1
+    features_lens = torch.from_numpy(lens) // nemo.hop_length
     mask = torch.arange(log_mel_spectrogram.shape[-1]) < features_lens[:, None, None]
     mean = torch.where(mask, log_mel_spectrogram, 0).sum(dim=-1, keepdim=True) / features_lens[:, None, None]
     var = torch.where(mask, (log_mel_spectrogram - mean) ** 2, 0).sum(dim=-1, keepdim=True) / (features_lens[:, None, None] - 1)
@@ -92,7 +95,6 @@ def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
     expected, expected_lens = preprocessor_origin(input_signal=torch.from_numpy(waveforms), length=torch.from_numpy(lens))
     actual, actual_lens = preprocessor(waveforms, lens)
 
-    assert expected.shape[2] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens.numpy())
     np.testing.assert_allclose(actual, expected.numpy(), atol=1e-4, rtol=1e-4)
 
