@@ -107,7 +107,7 @@ class _AsrWithCtcDecoding(_AsrWithDecoding):
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
     ) -> Iterator[tuple[list[int], list[int]]]:
         assert encoder_out.shape[-1] <= self._vocab_size
-        assert encoder_out.shape[1] == max(encoder_out_lens)
+        assert encoder_out.shape[1] >= max(encoder_out_lens)
 
         for log_probs, log_probs_len in zip(encoder_out, encoder_out_lens, strict=True):
             tokens = log_probs[:log_probs_len].argmax(axis=-1)
