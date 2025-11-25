@@ -118,3 +118,26 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
         (joint,) = self._joiner.run(["joint"], {"enc": encoder_out[None, :, None], "dec": decoder_out.transpose(0, 2, 1)})
         assert is_float32_array(joint)
         return np.squeeze(joint), -1, [state1, state2]
+
+
+class GigaamV3E2eCtc(GigaamV2Ctc):
+    """GigaAM v3 E2E CTC model implementation."""
+
+    @staticmethod
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else ""
+        return {"model": f"v3_e2e_ctc{suffix}.onnx", "vocab": "v3_e2e_ctc_vocab.txt"}
+
+
+class GigaamV3E2eRnnt(GigaamV2Rnnt):
+    """GigaAM v3 E2E RNN-T model implementation."""
+
+    @staticmethod
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else ""
+        return {
+            "encoder": f"v3_e2e_rnnt_encoder{suffix}.onnx",
+            "decoder": f"v3_e2e_rnnt_decoder{suffix}.onnx",
+            "joint": f"v3_e2e_rnnt_joint{suffix}.onnx",
+            "vocab": "v3_e2e_rnnt_vocab.txt",
+        }

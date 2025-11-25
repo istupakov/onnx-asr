@@ -13,6 +13,8 @@ from .adapters import TextResultsAsrAdapter
 from .models import (
     GigaamV2Ctc,
     GigaamV2Rnnt,
+    GigaamV3E2eCtc,
+    GigaamV3E2eRnnt,
     KaldiTransducer,
     NemoConformerCtc,
     NemoConformerRnnt,
@@ -30,6 +32,8 @@ ModelNames = Literal[
     "gigaam-v2-rnnt",
     "gigaam-v3-ctc",
     "gigaam-v3-rnnt",
+    "gigaam-v3-e2e-ctc",
+    "gigaam-v3-e2e-rnnt",
     "nemo-fastconformer-ru-ctc",
     "nemo-fastconformer-ru-rnnt",
     "nemo-parakeet-ctc-0.6b",
@@ -43,6 +47,8 @@ ModelNames = Literal[
 ModelTypes = Literal[
     "gigaam-v2-ctc",
     "gigaam-v2-rnnt",
+    "gigaam-v3-e2e-ctc",
+    "gigaam-v3-e2e-rnnt",
     "kaldi-rnnt",
     "nemo-conformer-ctc",
     "nemo-conformer-rnnt",
@@ -156,7 +162,8 @@ def load_model(
 
     Args:
         model: Model name or type (download from Hugging Face supported if full model name is provided):
-                GigaAM (`gigaam-v2-ctc` | `gigaam-v2-rnnt` | `gigaam-v3-ctc` | `gigaam-v3-rnnt`),
+                GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`)
+                GigaAM v3 (`gigaam-v3-ctc` | `gigaam-v3-rnnt` | `gigaam-v3-e2e-ctc` | `gigaam-v3-e2e-rnnt`)
                 Kaldi Transducer (`kaldi-rnnt`)
                 NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt`)
                 NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
@@ -200,6 +207,12 @@ def load_model(
             repo_id = "istupakov/gigaam-v3-onnx"
         case "gigaam-v3-rnnt":
             model_type = GigaamV2Rnnt
+            repo_id = "istupakov/gigaam-v3-onnx"
+        case "gigaam-v3-e2e-ctc":
+            model_type = GigaamV3E2eCtc
+            repo_id = "istupakov/gigaam-v3-onnx"
+        case "gigaam-v3-e2e-rnnt":
+            model_type = GigaamV3E2eRnnt
             repo_id = "istupakov/gigaam-v3-onnx"
         case "kaldi-rnnt" | "vosk":
             model_type = KaldiTransducer
