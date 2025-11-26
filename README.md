@@ -212,26 +212,32 @@ Hardware:
 
 Tests of Russian ASR models were performed on a *test* subset of the [Russian LibriSpeech](https://huggingface.co/datasets/istupakov/russian_librispeech) dataset.
 
-| Model                    | Package / decoding   | CER    | WER    | RTFx (CPU) | RTFx (GPU)   |
-|--------------------------|----------------------|--------|--------|------------|--------------|
-|       GigaAM v2 CTC      |        default       | 1.06%  | 5.23%  |        7.2 | 44.2         |
-|       GigaAM v2 CTC      |       onnx-asr       | 1.06%  | 5.23%  |       11.6 | 64.3         |
-|      GigaAM v2 RNN-T     |        default       | 1.10%  | 5.22%  |        5.5 | 23.3         |
-|      GigaAM v2 RNN-T     |       onnx-asr       | 1.10%  | 5.22%  |       10.7 | 38.7         |
-|  Nemo FastConformer CTC  |        default       | 3.11%  | 13.12% |       29.1 | 143.0        |
-|  Nemo FastConformer CTC  |       onnx-asr       | 3.11%  | 13.12% |       45.8 | 103.3        |
-| Nemo FastConformer RNN-T |        default       | 2.63%  | 11.62% |       17.4 | 111.6        |
-| Nemo FastConformer RNN-T |       onnx-asr       | 2.63%  | 11.62% |       27.2 | 53.4         |
-|      Vosk 0.52 small     |     greedy_search    | 3.64%  | 14.53% |       48.2 | 71.4         |
-|      Vosk 0.52 small     | modified_beam_search | 3.50%  | 14.25% |       29.0 | 24.7         |
-|      Vosk 0.52 small     |       onnx-asr       | 3.64%  | 14.53% |       45.5 | 75.2         |
-|         Vosk 0.54        |     greedy_search    | 2.21%  | 9.89%  |       34.8 | 64.2         |
-|         Vosk 0.54        | modified_beam_search | 2.21%  | 9.85%  |       23.9 | 24           |
-|         Vosk 0.54        |       onnx-asr       | 2.21%  | 9.89%  |       33.6 | 69.6         |
-|       Whisper base       |        default       | 10.61% | 38.89% |        5.4 | 17.3         |
-|       Whisper base       |       onnx-asr*      | 10.64% | 38.33% |        6.6 | 20.1         |
-|  Whisper large-v3-turbo  |        default       | 2.96%  | 10.27% |        N/A | 13.6         |
-|  Whisper large-v3-turbo  |       onnx-asr**     | 2.63%  | 10.13% |        N/A | 12.4         |
+| Model                     | Package / decoding   | CER    | WER    | RTFx (CPU) | RTFx (GPU)   |
+|---------------------------|----------------------|--------|--------|------------|--------------|
+|       GigaAM v2 CTC       |        default       | 1.06%  | 5.23%  |        7.2 | 44.2         |
+|       GigaAM v2 CTC       |       onnx-asr       | 1.06%  | 5.23%  |       11.6 | 64.3         |
+|      GigaAM v2 RNN-T      |        default       | 1.10%  | 5.22%  |        5.5 | 23.3         |
+|      GigaAM v2 RNN-T      |       onnx-asr       | 1.10%  | 5.22%  |       10.7 | 38.7         |
+|       GigaAM v3 CTC       |        default       | 0.98%  | 4.72%  |       12.2 | 73.3         |
+|       GigaAM v3 CTC       |       onnx-asr       | 0.98%  | 4.72%  |       14.5 | 68.3         |
+|      GigaAM v3 RNN-T      |        default       | 0.93%  | 4.39%  |        8.2 | 41.6         |
+|      GigaAM v3 RNN-T      |       onnx-asr       | 0.93%  | 4.39%  |       13.3 | 39.9         |
+|  Nemo FastConformer CTC   |        default       | 3.11%  | 13.12% |       29.1 | 143.0        |
+|  Nemo FastConformer CTC   |       onnx-asr       | 3.11%  | 13.12% |       45.8 | 103.3        |
+| Nemo FastConformer RNN-T  |        default       | 2.63%  | 11.62% |       17.4 | 111.6        |
+| Nemo FastConformer RNN-T  |       onnx-asr       | 2.63%  | 11.62% |       27.2 | 53.4         |
+| Nemo Parakeet TDT 0.6B V3 |        default       | 2.34%  | 10.95% |        5.6 | 75.4         |
+| Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 2.38%  | 10.95% |        9.7 | 59.7         |
+|      Vosk 0.52 small      |     greedy_search    | 3.64%  | 14.53% |       48.2 | 71.4         |
+|      Vosk 0.52 small      | modified_beam_search | 3.50%  | 14.25% |       29.0 | 24.7         |
+|      Vosk 0.52 small      |       onnx-asr       | 3.64%  | 14.53% |       45.5 | 75.2         |
+|         Vosk 0.54         |     greedy_search    | 2.21%  | 9.89%  |       34.8 | 64.2         |
+|         Vosk 0.54         | modified_beam_search | 2.21%  | 9.85%  |       23.9 | 24           |
+|         Vosk 0.54         |       onnx-asr       | 2.21%  | 9.89%  |       33.6 | 69.6         |
+|       Whisper base        |        default       | 10.61% | 38.89% |        5.4 | 17.3         |
+|       Whisper base        |       onnx-asr*      | 10.64% | 38.33% |        6.6 | 20.1         |
+|  Whisper large-v3-turbo   |        default       | 2.96%  | 10.27% |        N/A | 13.6         |
+|  Whisper large-v3-turbo   |       onnx-asr**     | 2.63%  | 10.13% |        N/A | 12.4         |
 
 Tests of English ASR models were performed on a *test* subset of the [Voxpopuli](https://huggingface.co/datasets/facebook/voxpopuli) dataset.
 
@@ -243,6 +249,8 @@ Tests of English ASR models were performed on a *test* subset of the [Voxpopuli]
 | Nemo Parakeet RNN-T 0.6B  |       onnx-asr       | 3.64%  | 6.32%  | 8.7        | 48.0         |
 | Nemo Parakeet TDT 0.6B V2 |        default       | 3.88%  | 6.52%  | 6.5        | 87.6         |
 | Nemo Parakeet TDT 0.6B V2 |       onnx-asr       | 3.88%  | 6.52%  | 10.5       | 70.1         |
+| Nemo Parakeet TDT 0.6B V3 |        default       | 3.97%  | 6.76%  | 6.1        | 90.0         |
+| Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 3.97%  | 6.75%  | 9.5        | 68.2         |
 |       Whisper base        |        default       | 7.81%  | 13.24% | 8.4        | 27.7         |
 |       Whisper base        |       onnx-asr*      | 7.52%  | 12.76% | 9.2        | 28.9         |
 |  Whisper large-v3-turbo   |        default       | 6.85%  | 11.16% | N/A        | 20.4         |
@@ -269,8 +277,11 @@ Notebook with benchmark code - [benchmark-ru](examples/benchmark-ru.ipynb)
 |---------------------------|------------|------------|-----------|
 | GigaAM v2 CTC             | 0.8        | 11.6       | 64.3      |
 | GigaAM v2 RNN-T           | 0.8        | 10.7       | 38.7      |
+| GigaAM v3 CTC             | N/A        | 14.5       | 68.3      |
+| GigaAM v3 RNN-T           | N/A        | 13.3       | 39.9      |
 | Nemo FastConformer CTC    | 4.0        | 45.8       | 103.3     |
 | Nemo FastConformer RNN-T  | 3.2        | 27.2       | 53.4      |
+| Nemo Parakeet TDT 0.6B V3 | N/A        | 9.7        | 59.7      |
 | Vosk 0.52 small           | 5.1        | 45.5       | 75.2      |
 | Vosk 0.54                 | 3.8        | 33.6       | 69.6      |
 | Whisper base              | 0.8        | 6.6        | 20.1      |
@@ -287,6 +298,7 @@ Notebook with benchmark code - [benchmark-en](examples/benchmark-en.ipynb)
 | Nemo Parakeet CTC 0.6B    | 1.1        | 11.5       | 89.0      |
 | Nemo Parakeet RNN-T 0.6B  | 1.0        | 8.7        | 48.0      |
 | Nemo Parakeet TDT 0.6B V2 | 1.1        | 10.5       | 70.1      |
+| Nemo Parakeet TDT 0.6B V3 | N/A        | 9.5        | 68.2      |
 | Whisper base              | 1.2        | 9.2        | 28.9      |
 | Whisper large-v3-turbo    | N/A        | N/A        | 17.9      |
 
