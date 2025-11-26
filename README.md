@@ -224,6 +224,10 @@ Tests of Russian ASR models were performed on a *test* subset of the [Russian Li
 |       GigaAM v3 CTC       |       onnx-asr       | 0.98%  | 4.72%  |       14.5 | 68.3         |
 |      GigaAM v3 RNN-T      |        default       | 0.93%  | 4.39%  |        8.2 | 41.6         |
 |      GigaAM v3 RNN-T      |       onnx-asr       | 0.93%  | 4.39%  |       13.3 | 39.9         |
+|     GigaAM v3 E2E CTC     |        default       | 1.50%  | 7.10%  |        N/A | 178.0        |
+|     GigaAM v3 E2E CTC     |       onnx-asr       | 1.56%  | 7.80%  |        N/A | 65.6         |
+|    GigaAM v3 E2E RNN-T    |        default       | 1.61%  | 6.94%  |        N/A | 47.6         |
+|    GigaAM v3 E2E RNN-T    |       onnx-asr       | 1.67%  | 7.60%  |        N/A | 42.8         |
 |  Nemo FastConformer CTC   |        default       | 3.11%  | 13.12% |       29.1 | 143.0        |
 |  Nemo FastConformer CTC   |       onnx-asr       | 3.11%  | 13.12% |       45.8 | 103.3        |
 | Nemo FastConformer RNN-T  |        default       | 2.63%  | 11.62% |       17.4 | 111.6        |
