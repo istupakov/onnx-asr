@@ -111,7 +111,7 @@ class _AsrWithCtcDecoding(_AsrWithDecoding):
 
         for log_probs, log_probs_len in zip(encoder_out, encoder_out_lens, strict=True):
             tokens = log_probs[:log_probs_len].argmax(axis=-1)
-            indices = np.flatnonzero(np.diff(tokens))
+            indices = np.flatnonzero(np.diff(tokens, append=self._blank_idx))
             tokens = tokens[indices]
             mask = tokens != self._blank_idx
             yield tokens[mask].tolist(), indices[mask].tolist()
