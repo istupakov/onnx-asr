@@ -39,7 +39,7 @@ class SileroVad(Vad):
             :, self.HOP_SIZE - self.CONTEXT_SIZE :: self.HOP_SIZE
         ]
 
-        state = np.zeros((2, frames.shape[0], 128), dtype=np.float32)
+        state: npt.NDArray[np.float32] = np.zeros((2, frames.shape[0], 128), dtype=np.float32)
 
         def process(frame: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
             nonlocal state
