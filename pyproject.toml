@@ -64,7 +64,7 @@ test = [
     { include-group = "build" },
     { include-group = "asrs" },
 ]
-lint = ["ruff>=0.11.6", "mypy~=1.16.1"]
+lint = ["ruff>=0.11.6", "mypy>=1.16.1"]
 
 [tool.pdm]
 distribution = true
@@ -88,7 +88,7 @@ include_packages = ["torch", "torchaudio"]
 exclude_packages = ["*"]
 
 [tool.pdm.resolution.overrides]
-numpy = "<2.2"
+numpy = "~=2.1"
 
 [tool.mypy]
 python_version = "3.10"
@@ -142,8 +142,5 @@ ignore = ["D203", "D213"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore::DeprecationWarning:google.protobuf.*",
-    "ignore::DeprecationWarning:torchmetrics.*",
-    "ignore::FutureWarning:onnxscript.*",
-    "ignore::DeprecationWarning:importlib.*",
+    "ignore::DeprecationWarning:sys.*",
 ]
