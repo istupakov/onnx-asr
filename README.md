@@ -1,11 +1,12 @@
 # ONNX ASR
 
-[![PyPI - Version](https://img.shields.io/pypi/v/onnx-asr.svg)](https://pypi.org/project/onnx-asr)
+[![PyPI - Version](https://img.shields.io/pypi/v/onnx-asr)](https://pypi.org/project/onnx-asr)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/onnx-asr)](https://pypi.org/project/onnx-asr)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/onnx-asr.svg)](https://pypi.org/project/onnx-asr)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/onnx-asr)](https://pypi.org/project/onnx-asr)
 [![PyPI - Types](https://img.shields.io/pypi/types/onnx-asr)](https://pypi.org/project/onnx-asr)
-[![GitHub License](https://img.shields.io/github/license/istupakov/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)
-[![CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
+[![GitHub - License](https://img.shields.io/github/license/istupakov/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)
+[![GitHub - CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
+[![GitHub - Release Date](https://img.shields.io/github/release-date/istupakov/onnx-asr)](https://github.com/istupakov/onnx-asr/releases/latest)
 
 [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
 
@@ -16,10 +17,10 @@
 [![huggingface-hub](https://img.shields.io/badge/huggingface--hub-optional-blue?logo=huggingface)](https://pypi.org/project/huggingface-hub/)
 
 > [!TIP]
-> Supports **Parakeet TDT 0.6B V2 (En)**, **Parakeet TDT 0.6B V3 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
+> Supports **Parakeet TDT 0.6B v2 (En) / v3 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
 
 The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
- * Works on a variety of devices, from IoT with Arm CPUs to servers with Nvidia GPUs ([benchmarks](#benchmarks)).
+ * Runs on Windows, Linux, and MacOS on a variety of devices, from IoT devices with Arm CPUs to servers with Nvidia GPUs ([benchmarks](#benchmarks))
  * Loading models from hugging face or local folders (including quantized versions)
  * Accepts wav files or NumPy arrays (built-in support for file reading and resampling)
  * Batch processing
