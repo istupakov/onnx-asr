@@ -10,6 +10,7 @@ models = [
     "gigaam-v2-rnnt",
     "nemo-fastconformer-ru-ctc",
     "nemo-fastconformer-ru-rnnt",
+    "istupakov/canary-180m-flash-onnx",
     "alphacep/vosk-model-ru",
     "alphacep/vosk-model-small-ru",
     "whisper-base",

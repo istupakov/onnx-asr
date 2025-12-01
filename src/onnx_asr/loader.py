@@ -16,6 +16,7 @@ from .models import (
     GigaamV3E2eCtc,
     GigaamV3E2eRnnt,
     KaldiTransducer,
+    NemoConformerAED,
     NemoConformerCtc,
     NemoConformerRnnt,
     NemoConformerTdt,
@@ -53,6 +54,7 @@ ModelTypes = Literal[
     "nemo-conformer-ctc",
     "nemo-conformer-rnnt",
     "nemo-conformer-tdt",
+    "nemo-conformer-aed",
     "vosk",
     "whisper-ort",
     "whisper",
@@ -165,7 +167,7 @@ def load_model(
                 GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`)
                 GigaAM v3 (`gigaam-v3-ctc` | `gigaam-v3-rnnt` | `gigaam-v3-e2e-ctc` | `gigaam-v3-e2e-rnnt`)
                 Kaldi Transducer (`kaldi-rnnt`)
-                NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt`)
+                NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt` | `nemo-conformer-aed`)
                 NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
                 NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b` | `nemo-parakeet-tdt-0.6b-v2`)
                 NeMo Parakeet 0.6B Multilingual (`nemo-parakeet-tdt-0.6b-v3`)
@@ -194,7 +196,16 @@ def load_model(
             else:
                 raise InvalidModelTypeInConfigError(config_model_type)
 
-    model_type: type[GigaamV2Ctc | GigaamV2Rnnt | KaldiTransducer | NemoConformerCtc | NemoConformerRnnt | WhisperOrt | WhisperHf]
+    model_type: type[
+        GigaamV2Ctc
+        | GigaamV2Rnnt
+        | KaldiTransducer
+        | NemoConformerCtc
+        | NemoConformerRnnt
+        | NemoConformerAED
+        | WhisperOrt
+        | WhisperHf
+    ]
     match model:
         case "gigaam-v2-ctc":
             model_type = GigaamV2Ctc
@@ -243,6 +254,8 @@ def load_model(
         case "nemo-parakeet-tdt-0.6b-v3":
             model_type = NemoConformerTdt
             repo_id = "istupakov/parakeet-tdt-0.6b-v3-onnx"
+        case "nemo-conformer-aed":
+            model_type = NemoConformerAED
         case "whisper-ort":
             model_type = WhisperOrt
         case "whisper-base":

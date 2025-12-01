@@ -33,6 +33,7 @@ class AsrConfig(TypedDict, total=False):
     features_size: int
     subsampling_factor: int
     max_tokens_per_step: int
+    max_sequence_length: int
 
 
 class Asr(ABC):
@@ -68,10 +69,10 @@ class _AsrWithDecoding(Asr):
         super().__init__(model_files, onnx_options)
 
         with Path(model_files["vocab"]).open("rt", encoding="utf-8") as f:
-            tokens = {token: int(id) for token, id in (line.strip("\n").split(" ") for line in f.readlines())}
-        self._vocab = {id: token.replace("\u2581", " ") for token, id in tokens.items()}
+            self._vocab = {
+                int(id): token.replace("\u2581", " ") for token, id in (line.strip("\n").split(" ") for line in f.readlines())
+            }
         self._vocab_size = len(self._vocab)
-        self._blank_idx = tokens["<blk>"]
 
     @property
     @abstractmethod
@@ -84,7 +85,7 @@ class _AsrWithDecoding(Asr):
 
     @abstractmethod
     def _decoding(
-        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
+        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], language: str | None
     ) -> Iterator[tuple[list[int], list[int]]]: ...
 
     def _decode_tokens(self, ids: list[int], timestamps: list[float]) -> TimestampedResult:
@@ -98,13 +99,17 @@ class _AsrWithDecoding(Asr):
         encoder_out, encoder_out_lens = self._encode(*self._preprocessor(waveforms, waveforms_len))
         return (
             self._decode_tokens(tokens, (self.window_size * self._subsampling_factor * np.array(timestamps)).tolist())
-            for tokens, timestamps in self._decoding(encoder_out, encoder_out_lens)
+            for tokens, timestamps in self._decoding(encoder_out, encoder_out_lens, language)
         )
 
 
 class _AsrWithCtcDecoding(_AsrWithDecoding):
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+        super().__init__(model_files, onnx_options)
+        self._blank_idx = next((id for id, token in self._vocab.items() if token == "<blk>"))
+
     def _decoding(
-        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
+        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], language: str | None
     ) -> Iterator[tuple[list[int], list[int]]]:
         assert encoder_out.shape[-1] <= self._vocab_size
         assert encoder_out.shape[1] >= max(encoder_out_lens)
@@ -118,6 +123,10 @@ class _AsrWithCtcDecoding(_AsrWithDecoding):
 
 
 class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+        super().__init__(model_files, onnx_options)
+        self._blank_idx = next((id for id, token in self._vocab.items() if token == "<blk>"))
+
     @property
     @abstractmethod
     def _max_tokens_per_step(self) -> int: ...
@@ -131,7 +140,7 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
     ) -> tuple[npt.NDArray[np.float32], int, S]: ...
 
     def _decoding(
-        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64]
+        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], language: str | None
     ) -> Iterator[tuple[list[int], list[int]]]:
         for encodings, encodings_len in zip(encoder_out, encoder_out_lens, strict=True):
             prev_state = self._create_state()
