@@ -94,6 +94,7 @@ print(model.recognize("test.wav"))
 * `nemo-parakeet-rnnt-0.6b` for Nvidia Parakeet RNNT 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-rnnt-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-rnnt-0.6b-onnx))
 * `nemo-parakeet-tdt-0.6b-v2` for Nvidia Parakeet TDT 0.6B V2 (en) ([origin](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2), [onnx](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v2-onnx))
 * `nemo-parakeet-tdt-0.6b-v3` for Nvidia Parakeet TDT 0.6B V3 (multilingual) ([origin](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3), [onnx](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx))
+* `nemo-canary-1b-v2` for Nvidia Canary 1B V2 (multilingual) ([origin](https://huggingface.co/nvidia/canary-1b-v2), [onnx](https://huggingface.co/istupakov/canary-1b-v2-onnx))
 * `whisper-base` for OpenAI Whisper Base exported with onnxruntime ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
 * `alphacep/vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
 * `alphacep/vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
@@ -236,6 +237,8 @@ Tests of Russian ASR models were performed on a *test* subset of the [Russian Li
 | Nemo FastConformer RNN-T  |       onnx-asr       | 2.63%  | 11.62% |       27.2 | 53.4         |
 | Nemo Parakeet TDT 0.6B V3 |        default       | 2.34%  | 10.95% |        5.6 | 75.4         |
 | Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 2.38%  | 10.95% |        9.7 | 59.7         |
+|     Nemo Canary 1B V2     |        default       | 4.89%  | 20.00% |        N/A | 14.0         |
+|     Nemo Canary 1B V2     |       onnx-asr       | 5.00%  | 20.03% |        N/A | 17.4         |
 |      Vosk 0.52 small      |     greedy_search    | 3.64%  | 14.53% |       48.2 | 71.4         |
 |      Vosk 0.52 small      | modified_beam_search | 3.50%  | 14.25% |       29.0 | 24.7         |
 |      Vosk 0.52 small      |       onnx-asr       | 3.64%  | 14.53% |       45.5 | 75.2         |
@@ -259,6 +262,8 @@ Tests of English ASR models were performed on a *test* subset of the [Voxpopuli]
 | Nemo Parakeet TDT 0.6B V2 |       onnx-asr       | 3.88%  | 6.52%  | 10.5       | 70.1         |
 | Nemo Parakeet TDT 0.6B V3 |        default       | 3.97%  | 6.76%  | 6.1        | 90.0         |
 | Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 3.97%  | 6.75%  | 9.5        | 68.2         |
+|     Nemo Canary 1B V2     |        default       | 4.62%  | 7.42%  | N/A        | 17.5         |
+|     Nemo Canary 1B V2     |       onnx-asr       | 4.67%  | 7.47%  | N/A        | 20.8         |
 |       Whisper base        |        default       | 7.81%  | 13.24% | 8.4        | 27.7         |
 |       Whisper base        |       onnx-asr*      | 7.52%  | 12.76% | 9.2        | 28.9         |
 |  Whisper large-v3-turbo   |        default       | 6.85%  | 11.16% | N/A        | 20.4         |
@@ -290,6 +295,7 @@ Notebook with benchmark code - [benchmark-ru](examples/benchmark-ru.ipynb)
 | Nemo FastConformer CTC    | 4.0        | 45.8       | 103.3     |
 | Nemo FastConformer RNN-T  | 3.2        | 27.2       | 53.4      |
 | Nemo Parakeet TDT 0.6B V3 | N/A        | 9.7        | 59.7      |
+| Nemo Canary 1B V2         | N/A        | N/A        | 17.4      |
 | Vosk 0.52 small           | 5.1        | 45.5       | 75.2      |
 | Vosk 0.54                 | 3.8        | 33.6       | 69.6      |
 | Whisper base              | 0.8        | 6.6        | 20.1      |
@@ -307,6 +313,7 @@ Notebook with benchmark code - [benchmark-en](examples/benchmark-en.ipynb)
 | Nemo Parakeet RNN-T 0.6B  | 1.0        | 8.7        | 48.0      |
 | Nemo Parakeet TDT 0.6B V2 | 1.1        | 10.5       | 70.1      |
 | Nemo Parakeet TDT 0.6B V3 | N/A        | 9.5        | 68.2      |
+| Nemo Canary 1B V2         | N/A        | N/A        | 20.8      |
 | Whisper base              | 1.2        | 9.2        | 28.9      |
 | Whisper large-v3-turbo    | N/A        | N/A        | 17.9      |
 
