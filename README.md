@@ -103,6 +103,9 @@ print(model.recognize("test.wav"))
 > [!IMPORTANT]
 > Some long-ago converted `onnx-community` models have a broken `fp16` precision version.
 
+> [!IMPORTANT]
+> Canary models do not work with the CoreML provider.
+
 Example with `soundfile`:
 ```py
 import onnx_asr

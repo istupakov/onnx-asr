@@ -20,7 +20,11 @@ models = [
 
 @pytest.fixture(scope="module")
 def model(request: pytest.FixtureRequest) -> TextResultsAsrAdapter:
-    return onnx_asr.load_model(request.param, quantization="int8" if request.param != "onnx-community/whisper-tiny" else "uint8")
+    return onnx_asr.load_model(
+        request.param,
+        quantization="int8" if request.param != "onnx-community/whisper-tiny" else "uint8",
+        providers=["CPUExecutionProvider"],
+    )
 
 
 @pytest.mark.parametrize("model", models, indirect=True)
