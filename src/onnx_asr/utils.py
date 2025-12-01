@@ -112,21 +112,21 @@ def read_wav_files(
         if isinstance(x, str):
             waveform, sample_rate = read_wav(x)
             if waveform.shape[1] != 1:
-                raise SupportedOnlyMonoAudioError()
+                raise SupportedOnlyMonoAudioError
             results.append(waveform[:, 0])
             sample_rates.append(sample_rate)
         else:
             if x.ndim != 1:
-                raise SupportedOnlyMonoAudioError()
+                raise SupportedOnlyMonoAudioError
             results.append(x)
             sample_rates.append(numpy_sample_rate)
 
     if len(set(sample_rates)) > 1:
-        raise DifferentSampleRatesError()
+        raise DifferentSampleRatesError
 
     if is_supported_sample_rate(sample_rates[0]):
         return *pad_list(results), sample_rates[0]
-    raise WrongSampleRateError()
+    raise WrongSampleRateError
 
 
 def pad_list(arrays: list[npt.NDArray[np.float32]]) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:

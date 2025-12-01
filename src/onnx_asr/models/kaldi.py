@@ -59,7 +59,8 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
         encoder_out, encoder_out_lens = self._encoder.run(
             ["encoder_out", "encoder_out_lens"], {"x": features, "x_lens": features_lens}
         )
-        assert is_float32_array(encoder_out) and is_int64_array(encoder_out_lens)
+        assert is_float32_array(encoder_out)
+        assert is_int64_array(encoder_out_lens)
         return encoder_out, encoder_out_lens
 
     def _create_state(self) -> _STATE_TYPE:

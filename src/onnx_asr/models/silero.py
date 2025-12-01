@@ -44,7 +44,8 @@ class SileroVad(Vad):
         def process(frame: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
             nonlocal state
             output, new_state = self._model.run(["output", "stateN"], {"input": frame, "state": state, "sr": [self.SAMPLE_RATE]})
-            assert is_float32_array(output) and is_float32_array(new_state)
+            assert is_float32_array(output)
+            assert is_float32_array(new_state)
             state = new_state
             return output[:, 0]
 

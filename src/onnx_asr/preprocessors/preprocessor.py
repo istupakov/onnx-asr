@@ -40,5 +40,6 @@ class Preprocessor:
         features, features_lens = self._preprocessor.run(
             ["features", "features_lens"], {"waveforms": waveforms, "waveforms_lens": waveforms_lens}
         )
-        assert is_float32_array(features) and is_int64_array(features_lens)
+        assert is_float32_array(features)
+        assert is_int64_array(features_lens)
         return features, features_lens

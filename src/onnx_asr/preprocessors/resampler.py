@@ -39,5 +39,6 @@ class Resampler:
             ["resampled", "resampled_lens"],
             {"waveforms": waveforms, "waveforms_lens": waveforms_lens, "sample_rate": np.array([sample_rate], dtype=np.int64)},
         )
-        assert is_float32_array(resampled) and is_int64_array(resampled_lens)
+        assert is_float32_array(resampled)
+        assert is_int64_array(resampled_lens)
         return resampled, resampled_lens

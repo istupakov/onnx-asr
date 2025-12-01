@@ -114,13 +114,13 @@ class InvalidModelTypeInConfigError(Exception):
 
 
 def _download_config(repo_id: str) -> str:
-    from huggingface_hub import hf_hub_download
+    from huggingface_hub import hf_hub_download  # noqa: PLC0415
 
     return hf_hub_download(repo_id, "config.json")
 
 
 def _download_model(repo_id: str, files: list[str]) -> str:
-    from huggingface_hub import snapshot_download
+    from huggingface_hub import snapshot_download  # noqa: PLC0415
 
     files = [
         "config.json",
@@ -133,7 +133,7 @@ def _download_model(repo_id: str, files: list[str]) -> str:
 def _find_files(path: str | Path | None, repo_id: str | None, files: dict[str, str]) -> dict[str, Path]:
     if path is None:
         if repo_id is None:
-            raise NoModelNameOrPathSpecifiedError()
+            raise NoModelNameOrPathSpecifiedError
         path = _download_model(repo_id, list(files.values()))
 
     if not Path(path).is_dir():
@@ -153,7 +153,7 @@ def _find_files(path: str | Path | None, repo_id: str | None, files: dict[str, s
     return {key: find(filename) for key, filename in files.items()}
 
 
-def load_model(
+def load_model(  # noqa: C901
     model: str | ModelNames | ModelTypes,
     path: str | Path | None = None,
     *,

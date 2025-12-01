@@ -79,7 +79,7 @@ def preprocessor(request):
 
 
 @pytest.mark.parametrize(
-    "preprocessor_origin,preprocessor",
+    ("preprocessor_origin", "preprocessor"),
     [
         (80, "torch 80"),
         (128, "torch 128"),
@@ -100,7 +100,7 @@ def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
 
 
 @pytest.mark.parametrize(
-    "preprocessor_origin,melscale_fbanks",
+    ("preprocessor_origin", "melscale_fbanks"),
     [(80, nemo.melscale_fbanks80), (128, nemo.melscale_fbanks128)],
     indirect=["preprocessor_origin"],
 )

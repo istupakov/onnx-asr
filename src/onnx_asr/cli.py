@@ -32,8 +32,8 @@ def run() -> None:
         vad = onnx_asr.load_vad(args.vad)
         for segment in model.with_vad(vad, batch_size=1).recognize(args.filename):
             for res in segment:
-                print(f"[{res.start:5.1f}, {res.end:5.1f}]: {res.text}")
-            print()
+                print(f"[{res.start:5.1f}, {res.end:5.1f}]: {res.text}")  # noqa: T201
+            print()  # noqa: T201
     else:
         for text in model.recognize(args.filename):
-            print(text)
+            print(text)  # noqa: T201

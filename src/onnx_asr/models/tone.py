@@ -29,9 +29,9 @@ class TOneCtc(_AsrWithCtcDecoding):
         self._chunk_size = shapes["signal"][1]
         self._state_size = shapes["state"][1]
 
-        self._vocab: dict[int, str] = dict(enumerate(self.config["decoder_params"]["vocabulary"]))  # type: ignore
+        self._vocab: dict[int, str] = dict(enumerate(self.config["decoder_params"]["vocabulary"]))  # type: ignore[typeddict-item]
         self._vocab_size = len(self._vocab) + 1
-        self._blank_idx = int(self.config["pad_token_id"])  # type: ignore
+        self._blank_idx = int(self.config["pad_token_id"])  # type: ignore[typeddict-item]
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -48,7 +48,7 @@ class TOneCtc(_AsrWithCtcDecoding):
 
     @property
     def _subsampling_factor(self) -> int:
-        return self.config["encoder_params"]["reduction_kernel_size"]  # type: ignore
+        return int(self.config["encoder_params"]["reduction_kernel_size"])  # type: ignore[typeddict-item]
 
     def _encode_chunk(
         self, waveforms: npt.NDArray[np.float32], state: npt.NDArray[np.float16]

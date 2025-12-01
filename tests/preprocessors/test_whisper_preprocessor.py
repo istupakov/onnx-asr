@@ -62,7 +62,7 @@ def preprocessor(request):
 
 
 @pytest.mark.parametrize(
-    "n_mels,preprocessor",
+    ("n_mels", "preprocessor"),
     [
         (80, "torch 80"),
         (128, "torch 128"),
@@ -83,7 +83,7 @@ def test_whisper_preprocessor(n_mels, preprocessor, waveforms):
     np.testing.assert_allclose(actual, expected, atol=5e-5)
 
 
-@pytest.mark.parametrize("n_mels,melscale_fbanks", [(80, whisper.melscale_fbanks80), (128, whisper.melscale_fbanks128)])
+@pytest.mark.parametrize(("n_mels", "melscale_fbanks"), [(80, whisper.melscale_fbanks80), (128, whisper.melscale_fbanks128)])
 def test_whisper_melscale_fbanks(n_mels, melscale_fbanks):
     expected = mel_filters("cpu", n_mels).T.numpy()
     actual = melscale_fbanks.numpy()

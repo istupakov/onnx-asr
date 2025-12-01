@@ -88,7 +88,8 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
         encoder_out, encoder_out_lens = self._encoder.run(
             ["outputs", "encoded_lengths"], {"audio_signal": features, "length": features_lens}
         )
-        assert is_float32_array(encoder_out) and is_int64_array(encoder_out_lens)
+        assert is_float32_array(encoder_out)
+        assert is_int64_array(encoder_out_lens)
         return encoder_out.transpose(0, 2, 1), encoder_out_lens
 
     def _create_state(self) -> _STATE_TYPE:
@@ -111,7 +112,9 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
                 "input_states_2": prev_state[1],
             },
         )
-        assert is_float32_array(outputs) and is_float32_array(state1) and is_float32_array(state2)
+        assert is_float32_array(outputs)
+        assert is_float32_array(state1)
+        assert is_float32_array(state2)
         return np.squeeze(outputs), -1, (state1, state2)
 
 
@@ -177,7 +180,8 @@ class NemoConformerAED(_NemoConformer):
         encoder_embeddings, encoder_mask = self._encoder.run(
             ["encoder_embeddings", "encoder_mask"], {"audio_signal": features, "length": features_lens}
         )
-        assert is_float32_array(encoder_embeddings) and is_int64_array(encoder_mask)
+        assert is_float32_array(encoder_embeddings)
+        assert is_int64_array(encoder_mask)
         return encoder_embeddings, encoder_mask
 
     def _decode(
@@ -196,7 +200,8 @@ class NemoConformerAED(_NemoConformer):
                 "decoder_mems": decoder_mems,
             },
         )
-        assert is_float32_array(logits) and is_float32_array(decoder_hidden_states)
+        assert is_float32_array(logits)
+        assert is_float32_array(decoder_hidden_states)
         return logits, decoder_hidden_states
 
     def _decoding(
