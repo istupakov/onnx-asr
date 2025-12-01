@@ -32,9 +32,9 @@ The **onnx-asr** package supports many modern ASR [models](#supported-models-arc
 ## Supported models architectures
 
 The package supports the following modern ASR model architectures ([comparison](#comparison-with-original-implementations) with original implementations):
-* Nvidia NeMo Conformer/FastConformer/Parakeet (with CTC, RNN-T and TDT decoders)
+* Nvidia NeMo Conformer/FastConformer/Parakeet/Canary (with CTC, RNN-T, TDT and Transformer decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
-* Sber GigaAM v2/v3 (with CTC and RNN-T decoders)
+* Sber GigaAM v2/v3 (with CTC and RNN-T decoders, including E2E versions)
 * OpenAI Whisper
 
 When saving these models in onnx format, usually only the encoder and decoder are saved. To run them, the corresponding preprocessor and decoding must be implemented. Therefore, the package contains these implementations for all supported models:
@@ -197,6 +197,7 @@ print(model.recognize("test.wav"))
 * `nemo-conformer-ctc` for NeMo Conformer/FastConformer/Parakeet with CTC decoder
 * `nemo-conformer-rnnt` for NeMo Conformer/FastConformer/Parakeet with RNN-T decoder
 * `nemo-conformer-tdt` for NeMo Conformer/FastConformer/Parakeet with TDT decoder
+* `nemo-conformer-aed` for NeMo Canary with Transformer decoder
 * `kaldi-rnnt` or `vosk` for Kaldi Icefall Zipformer with stateless RNN-T decoder
 * `whisper-ort` for Whisper (exported with [onnxruntime](#openai-whisper-with-onnxruntime-export))
 * `whisper` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))

@@ -1,5 +1,6 @@
 """NeMo model implementations."""
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import numpy as np
@@ -122,3 +123,101 @@ class NemoConformerTdt(NemoConformerRnnt):
     ) -> tuple[npt.NDArray[np.float32], int, _STATE_TYPE]:
         output, _, state = super()._decode(prev_tokens, prev_state, encoder_out)
         return output[: self._vocab_size], int(output[self._vocab_size :].argmax()), state
+
+
+class NemoConformerAED(_NemoConformer):
+    """NeMo Conformer AED model implementations."""
+
+    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+        """Create NeMo Conformer AED model.
+
+        Args:
+            model_files: Dict with paths to model files.
+            onnx_options: Options for onnxruntime InferenceSession.
+
+        """
+        super().__init__(model_files, onnx_options)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
+        self._decoder = rt.InferenceSession(model_files["decoder"], **onnx_options)
+
+        self._tokens = {token: id for id, token in self._vocab.items()}
+        self._eos_token_id = self._tokens["<|endoftext|>"]
+        self._transcribe_input = np.array(
+            [
+                [
+                    self._tokens["<|startofcontext|>"],
+                    self._tokens["<|startoftranscript|>"],
+                    self._tokens["<|emo:undefined|>"],
+                    self._tokens["<|en|>"],
+                    self._tokens["<|en|>"],
+                    self._tokens["<|pnc|>"],
+                    self._tokens["<|noitn|>"],
+                    self._tokens["<|notimestamp|>"],
+                    self._tokens["<|nodiarize|>"],
+                ]
+            ],
+            dtype=np.int64,
+        )
+
+    @staticmethod
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else ""
+        return {
+            "encoder": f"encoder-model{suffix}.onnx",
+            "decoder": f"decoder-model{suffix}.onnx",
+        } | _NemoConformer._get_model_files(quantization)
+
+    @property
+    def _max_sequence_length(self) -> int:
+        return self.config.get("max_sequence_length", 1024)
+
+    def _encode(
+        self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
+        encoder_embeddings, encoder_mask = self._encoder.run(
+            ["encoder_embeddings", "encoder_mask"], {"audio_signal": features, "length": features_lens}
+        )
+        assert is_float32_array(encoder_embeddings) and is_int64_array(encoder_mask)
+        return encoder_embeddings, encoder_mask
+
+    def _decode(
+        self,
+        input_ids: npt.NDArray[np.int64],
+        encoder_embeddings: npt.NDArray[np.float32],
+        encoder_mask: npt.NDArray[np.int64],
+        decoder_mems: npt.NDArray[np.float32],
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+        logits, decoder_hidden_states = self._decoder.run(
+            ["logits", "decoder_hidden_states"],
+            {
+                "input_ids": input_ids if decoder_mems.shape[2] == 0 else input_ids[:, -1:],
+                "encoder_embeddings": encoder_embeddings,
+                "encoder_mask": encoder_mask,
+                "decoder_mems": decoder_mems,
+            },
+        )
+        assert is_float32_array(logits) and is_float32_array(decoder_hidden_states)
+        return logits, decoder_hidden_states
+
+    def _decoding(
+        self, encoder_embeddings: npt.NDArray[np.float32], encoder_mask: npt.NDArray[np.int64], language: str | None
+    ) -> Iterator[tuple[list[int], list[int]]]:
+        batch_size = encoder_embeddings.shape[0]
+        tokens = np.repeat(self._transcribe_input, batch_size, axis=0)
+
+        if language:
+            tokens[:, 3] = self._tokens[f"<|{language}|>"]
+            tokens[:, 4] = self._tokens[f"<|{language}|>"]
+
+        shapes = {x.name: x.shape for x in self._decoder.get_inputs()}
+        decoder_mems = np.empty((shapes["decoder_mems"][0], batch_size, 0, shapes["decoder_mems"][3]), dtype=np.float32)
+        while tokens.shape[1] < self._max_sequence_length:
+            logits, decoder_mems = self._decode(tokens, encoder_embeddings, encoder_mask, decoder_mems)
+
+            next_tokens = np.argmax(logits[:, -1], axis=-1)
+            if (next_tokens == self._eos_token_id).all():
+                break
+
+            tokens = np.concatenate((tokens, next_tokens[:, None]), axis=-1)
+
+        return (([id for id in tok if not self._vocab[id].startswith("<|")], []) for tok in tokens)
