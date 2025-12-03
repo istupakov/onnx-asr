@@ -68,6 +68,15 @@ def ResamplePreprocessor16(
             kernel_args(8_000, 16_000)[2],
             kernel_args(8_000, 16_000)[3],
         )
+    elif sample_rate == 11_025:
+        res, lens = resample(
+            waveforms,
+            waveforms_lens,
+            kernel_args(11_025, 16_000)[0],
+            kernel_args(11_025, 16_000)[1],
+            kernel_args(11_025, 16_000)[2],
+            kernel_args(11_025, 16_000)[3],
+        )
     elif sample_rate == 22_050:
         res, lens = resample(
             waveforms,
