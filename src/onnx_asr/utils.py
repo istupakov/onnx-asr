@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-SampleRates = Literal[8_000, 16_000, 22_050, 24_000, 32_000, 44_100, 48_000]
+SampleRates = Literal[8_000, 11_025, 16_000, 22_050, 24_000, 32_000, 44_100, 48_000]
 
 
 def is_supported_sample_rate(sample_rate: int) -> TypeGuard[SampleRates]:
