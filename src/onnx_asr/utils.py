@@ -16,6 +16,11 @@ def is_supported_sample_rate(sample_rate: int) -> TypeGuard[SampleRates]:
     return sample_rate in get_args(SampleRates)
 
 
+def is_float16_array(x: object) -> TypeGuard[npt.NDArray[np.float16]]:
+    """Numpy array is float32."""
+    return isinstance(x, np.ndarray) and x.dtype == np.float16
+
+
 def is_float32_array(x: object) -> TypeGuard[npt.NDArray[np.float32]]:
     """Numpy array is float32."""
     return isinstance(x, np.ndarray) and x.dtype == np.float32

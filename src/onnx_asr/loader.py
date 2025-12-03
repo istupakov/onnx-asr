@@ -22,6 +22,7 @@ from .models import (
     NemoConformerTdt,
     PyAnnoteVad,
     SileroVad,
+    TOneCtc,
     WhisperHf,
     WhisperOrt,
 )
@@ -44,6 +45,7 @@ ModelNames = Literal[
     "nemo-canary-1b-v2",
     "alphacep/vosk-model-ru",
     "alphacep/vosk-model-small-ru",
+    "t-tech/t-one",
     "whisper-base",
 ]
 ModelTypes = Literal[
@@ -173,6 +175,7 @@ def load_model(
                 NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b` | `nemo-parakeet-tdt-0.6b-v2`)
                 NeMo Parakeet 0.6B Multilingual (`nemo-parakeet-tdt-0.6b-v3`)
                 NeMo Canary (`nemo-canary-1b-v2`)
+                T-One (`t-tech/t-one`)
                 Vosk (`vosk` | `alphacep/vosk-model-ru` | `alphacep/vosk-model-small-ru`)
                 Whisper Base exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
                 Whisper from onnx-community (`whisper` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
@@ -188,7 +191,7 @@ def load_model(
 
     """
     repo_id: str | None = None
-    if "/" in model and path is None and not model.startswith("alphacep/"):
+    if "/" in model and path is None and not model.startswith("alphacep/") and not model.startswith("t-tech/"):
         repo_id = model
         with Path(_download_config(repo_id)).open("rt", encoding="utf-8") as f:
             config = json.load(f)
@@ -205,6 +208,7 @@ def load_model(
         | NemoConformerCtc
         | NemoConformerRnnt
         | NemoConformerAED
+        | TOneCtc
         | WhisperOrt
         | WhisperHf
     ]
@@ -261,6 +265,9 @@ def load_model(
         case "nemo-canary-1b-v2":
             model_type = NemoConformerAED
             repo_id = "istupakov/canary-1b-v2-onnx"
+        case "t-tech/t-one":
+            model_type = TOneCtc
+            repo_id = model
         case "whisper-ort":
             model_type = WhisperOrt
         case "whisper-base":
@@ -280,7 +287,7 @@ def load_model(
 
     return TextResultsAsrAdapter(
         model_type(_find_files(path, repo_id, model_type._get_model_files(quantization)), onnx_options),
-        Resampler(16_000, onnx_options),
+        Resampler(model_type._get_sample_rate(), onnx_options),
     )
 
 
