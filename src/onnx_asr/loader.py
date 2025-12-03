@@ -280,7 +280,7 @@ def load_model(
 
     return TextResultsAsrAdapter(
         model_type(_find_files(path, repo_id, model_type._get_model_files(quantization)), onnx_options),
-        Resampler(onnx_options),
+        Resampler(16_000, onnx_options),
     )
 
 

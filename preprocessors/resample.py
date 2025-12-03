@@ -55,6 +55,80 @@ def kernel_args(orig_freq, new_freq):
     return orig_freq, new_freq, (0, width, 0, width + orig_freq), (1, orig_freq)
 
 
+@script(doc_string="Resampling waveform to 8 kHz")
+def ResamplePreprocessor8(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"], sample_rate: INT64
+) -> tuple[FLOAT["batch_size", "M"], INT64["batch_size"]]:
+    if sample_rate == 11_025:
+        res, lens = resample(
+            waveforms,
+            waveforms_lens,
+            kernel_args(11_025, 8_000)[0],
+            kernel_args(11_025, 8_000)[1],
+            kernel_args(11_025, 8_000)[2],
+            kernel_args(11_025, 8_000)[3],
+        )
+    elif sample_rate == 16_000:
+        res, lens = resample(
+            waveforms,
+            waveforms_lens,
+            kernel_args(16_000, 8_000)[0],
+            kernel_args(16_000, 8_000)[1],
+            kernel_args(16_000, 8_000)[2],
+            kernel_args(16_000, 8_000)[3],
+        )
+    elif sample_rate == 22_050:
+        res, lens = resample(
+            waveforms,
+            waveforms_lens,
+            kernel_args(22_050, 8_000)[0],
+            kernel_args(22_050, 8_000)[1],
+            kernel_args(22_050, 8_000)[2],
+            kernel_args(22_050, 8_000)[3],
+        )
+    elif sample_rate == 24_000:
+        res, lens = resample(
+            waveforms,
+            waveforms_lens,
+            kernel_args(24_000, 8_000)[0],
+            kernel_args(24_000, 8_000)[1],
+            kernel_args(24_000, 8_000)[2],
+            kernel_args(24_000, 8_000)[3],
+        )
+    elif sample_rate == 32_000:
+        res, lens = resample(
+            waveforms,
+            waveforms_lens,
+            kernel_args(32_000, 8_000)[0],
+            kernel_args(32_000, 8_000)[1],
+            kernel_args(32_000, 8_000)[2],
+            kernel_args(32_000, 8_000)[3],
+        )
+    elif sample_rate == 44_100:
+        res, lens = resample(
+            waveforms,
+            waveforms_lens,
+            kernel_args(44_100, 8_000)[0],
+            kernel_args(44_100, 8_000)[1],
+            kernel_args(44_100, 8_000)[2],
+            kernel_args(44_100, 8_000)[3],
+        )
+    elif sample_rate == 48_000:
+        res, lens = resample(
+            waveforms,
+            waveforms_lens,
+            kernel_args(48_000, 8_000)[0],
+            kernel_args(48_000, 8_000)[1],
+            kernel_args(48_000, 8_000)[2],
+            kernel_args(48_000, 8_000)[3],
+        )
+    else:
+        res, lens = waveforms, waveforms_lens
+
+    resampled, resampled_lens = op.Identity(res), op.Identity(lens)
+    return resampled, resampled_lens
+
+
 @script(doc_string="Resampling waveform to 16 kHz")
 def ResamplePreprocessor16(
     waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"], sample_rate: INT64
