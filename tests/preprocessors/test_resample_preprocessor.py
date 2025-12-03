@@ -9,21 +9,7 @@ from preprocessors import resample
 
 
 def onnx_preprocessor(waveforms, waveforms_lens, sample_rate):
-    match sample_rate:
-        case 8_000:
-            return resample.ResamplePreprocessor8(waveforms, waveforms_lens)
-        case 16_000:
-            return waveforms, waveforms_lens
-        case 22_050:
-            return resample.ResamplePreprocessor22(waveforms, waveforms_lens)
-        case 24_000:
-            return resample.ResamplePreprocessor24(waveforms, waveforms_lens)
-        case 32_000:
-            return resample.ResamplePreprocessor32(waveforms, waveforms_lens)
-        case 44_100:
-            return resample.ResamplePreprocessor44(waveforms, waveforms_lens)
-        case 48_000:
-            return resample.ResamplePreprocessor48(waveforms, waveforms_lens)
+    return resample.ResamplePreprocessor16(waveforms, waveforms_lens, sample_rate)
 
 
 @pytest.fixture(scope="module")

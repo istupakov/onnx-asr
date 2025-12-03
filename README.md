@@ -114,7 +114,7 @@ import soundfile as sf
 model = onnx_asr.load_model("whisper-base")
 
 waveform, sample_rate = sf.read("test.wav", dtype="float32")
-model.recognize(waveform)
+model.recognize(waveform, sample_rate=sample_rate)
 ```
 
 Batch processing is also supported:

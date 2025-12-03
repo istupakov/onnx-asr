@@ -8,16 +8,14 @@ import preprocessors
 
 def save_model(function: onnxscript.OnnxFunction, filename: Path):
     model = function.to_model_proto()
-    model = onnxscript.ir.serde.deserialize_model(model)
 
-    model = onnxscript.optimizer.optimize(model)
+    model = onnxscript.optimizer.optimize(model, input_size_limit=100)
 
     model.producer_name = "OnnxScript"
     model.producer_version = onnxscript.__version__
-    model.metadata_props["model_author"] = "Ilya Stupakov"
-    model.metadata_props["model_license"] = "MIT License"
+    model.metadata_props.add(key="model_author", value="Ilya Stupakov")
+    model.metadata_props.add(key="model_license", value="MIT License")
 
-    model = onnxscript.ir.serde.serialize_model(model)
     onnx.checker.check_model(model, full_check=True)
     onnx.save_model(model, filename)
 
@@ -31,9 +29,4 @@ def build():
     save_model(preprocessors.NemoPreprocessor128, preprocessors_dir.joinpath("nemo128.onnx"))
     save_model(preprocessors.WhisperPreprocessor80, preprocessors_dir.joinpath("whisper80.onnx"))
     save_model(preprocessors.WhisperPreprocessor128, preprocessors_dir.joinpath("whisper128.onnx"))
-    save_model(preprocessors.ResamplePreprocessor8, preprocessors_dir.joinpath("resample8.onnx"))
-    save_model(preprocessors.ResamplePreprocessor22, preprocessors_dir.joinpath("resample22.onnx"))
-    save_model(preprocessors.ResamplePreprocessor24, preprocessors_dir.joinpath("resample24.onnx"))
-    save_model(preprocessors.ResamplePreprocessor32, preprocessors_dir.joinpath("resample32.onnx"))
-    save_model(preprocessors.ResamplePreprocessor44, preprocessors_dir.joinpath("resample44.onnx"))
-    save_model(preprocessors.ResamplePreprocessor48, preprocessors_dir.joinpath("resample48.onnx"))
+    save_model(preprocessors.ResamplePreprocessor16, preprocessors_dir.joinpath("resample16.onnx"))
