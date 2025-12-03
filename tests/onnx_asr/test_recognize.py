@@ -13,6 +13,7 @@ models = [
     "istupakov/canary-180m-flash-onnx",
     "alphacep/vosk-model-ru",
     "alphacep/vosk-model-small-ru",
+    "t-tech/t-one",
     "whisper-base",
     "onnx-community/whisper-tiny",
 ]
@@ -20,11 +21,14 @@ models = [
 
 @pytest.fixture(scope="module")
 def model(request: pytest.FixtureRequest) -> TextResultsAsrAdapter:
-    return onnx_asr.load_model(
-        request.param,
-        quantization="int8" if request.param != "onnx-community/whisper-tiny" else "uint8",
-        providers=["CPUExecutionProvider"],
-    )
+    if request.param == "t-tech/t-one":
+        quantization = None
+    elif request.param == "onnx-community/whisper-tiny":
+        quantization = "uint8"
+    else:
+        quantization = "int8"
+
+    return onnx_asr.load_model(request.param, quantization=quantization, providers=["CPUExecutionProvider"])
 
 
 @pytest.mark.parametrize("model", models, indirect=True)

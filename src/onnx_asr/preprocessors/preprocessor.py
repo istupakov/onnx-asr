@@ -21,6 +21,10 @@ class Preprocessor:
             onnx_options: Options for onnxruntime InferenceSession.
 
         """
+        if name == "identity":
+            self._preprocessor = None
+            return
+
         filename = str(Path(name).with_suffix(".onnx"))
         if onnx_options.get("cpu_preprocessing", False):
             onnx_options = {"sess_options": onnx_options.get("sess_options")}
@@ -30,6 +34,9 @@ class Preprocessor:
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         """Convert waveforms to model features."""
+        if not self._preprocessor:
+            return waveforms, waveforms_lens
+
         features, features_lens = self._preprocessor.run(
             ["features", "features_lens"], {"waveforms": waveforms, "waveforms_lens": waveforms_lens}
         )

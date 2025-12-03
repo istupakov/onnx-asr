@@ -5,6 +5,7 @@ from .kaldi import KaldiTransducer
 from .nemo import NemoConformerAED, NemoConformerCtc, NemoConformerRnnt, NemoConformerTdt
 from .pyannote import PyAnnoteVad
 from .silero import SileroVad
+from .tone import TOneCtc
 from .whisper import WhisperHf, WhisperOrt
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "NemoConformerTdt",
     "PyAnnoteVad",
     "SileroVad",
+    "TOneCtc",
     "WhisperHf",
     "WhisperOrt",
 ]
