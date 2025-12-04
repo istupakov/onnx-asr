@@ -10,14 +10,14 @@
 
 [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
 
-**onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. The package is written in pure Python with minimal dependencies (no `pytorch` or `transformers`):
+**onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. It's written in pure Python with minimal dependencies (no PyTorch, Transformers, or FFmpeg required):
 
 [![numpy](https://img.shields.io/badge/numpy-required-blue?logo=numpy)](https://pypi.org/project/numpy/)
 [![onnxruntime](https://img.shields.io/badge/onnxruntime-required-blue?logo=onnx)](https://pypi.org/project/onnxruntime/)
 [![huggingface-hub](https://img.shields.io/badge/huggingface--hub-optional-blue?logo=huggingface)](https://pypi.org/project/huggingface-hub/)
 
 > [!TIP]
-> Supports **Parakeet TDT 0.6B v2 (En) / v3 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
+> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
 
 The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
  * Runs on Windows, Linux, and MacOS on a variety of devices, from IoT devices with Arm CPUs to servers with Nvidia GPUs ([benchmarks](#benchmarks))
@@ -35,6 +35,7 @@ The package supports the following modern ASR model architectures ([comparison](
 * Nvidia NeMo Conformer/FastConformer/Parakeet/Canary (with CTC, RNN-T, TDT and Transformer decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
 * Sber GigaAM v2/v3 (with CTC and RNN-T decoders, including E2E versions)
+* T-Tech T-one (with CTC decoder, no streaming support yet)
 * OpenAI Whisper
 
 When saving these models in onnx format, usually only the encoder and decoder are saved. To run them, the corresponding preprocessor and decoding must be implemented. Therefore, the package contains these implementations for all supported models:
@@ -98,6 +99,7 @@ print(model.recognize("test.wav"))
 * `whisper-base` for OpenAI Whisper Base exported with onnxruntime ([origin](https://huggingface.co/openai/whisper-base), [onnx](https://huggingface.co/istupakov/whisper-base-onnx))
 * `alphacep/vosk-model-ru` for Alpha Cephei Vosk 0.54-ru ([origin](https://huggingface.co/alphacep/vosk-model-ru))
 * `alphacep/vosk-model-small-ru` for Alpha Cephei Vosk 0.52-small-ru ([origin](https://huggingface.co/alphacep/vosk-model-small-ru))
+* `t-tech/t-one` for T-Tech T-one ([origin](https://huggingface.co/t-tech/T-one))
 * `onnx-community/whisper-tiny`, `onnx-community/whisper-base`, `onnx-community/whisper-small`, `onnx-community/whisper-large-v3-turbo`, etc. for OpenAI Whisper exported with Hugging Face optimum ([onnx-community](https://huggingface.co/onnx-community?search_models=whisper))
 
 > [!IMPORTANT]
@@ -213,6 +215,7 @@ Packages with original implementations:
 * `nemo-toolkit` for NeMo models ([github](https://github.com/nvidia/nemo))
 * `openai-whisper` for Whisper models ([github](https://github.com/openai/whisper))
 * `sherpa-onnx` for Vosk models ([github](https://github.com/k2-fsa/sherpa-onnx), [docs](https://k2-fsa.github.io/sherpa/onnx/index.html))
+* `T-one` for T-Tech T-one model ([github](https://github.com/voicekit-team/T-one))
 
 Hardware:
 1. CPU tests were run on a laptop with an Intel i7-7700HQ processor.
@@ -242,6 +245,8 @@ Tests of Russian ASR models were performed on a *test* subset of the [Russian Li
 | Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 2.38%  | 10.95% |        9.7 | 59.7         |
 |     Nemo Canary 1B V2     |        default       | 4.89%  | 20.00% |        N/A | 14.0         |
 |     Nemo Canary 1B V2     |       onnx-asr       | 5.00%  | 20.03% |        N/A | 17.4         |
+|       T-Tech T-one        |        default       | 1.28%  | 6.56%  |       11.9 | N/A          |
+|       T-Tech T-one        |       onnx-asr       | 1.28%  | 6.57%  |       11.7 | 16.5         |
 |      Vosk 0.52 small      |     greedy_search    | 3.64%  | 14.53% |       48.2 | 71.4         |
 |      Vosk 0.52 small      | modified_beam_search | 3.50%  | 14.25% |       29.0 | 24.7         |
 |      Vosk 0.52 small      |       onnx-asr       | 3.64%  | 14.53% |       45.5 | 75.2         |
@@ -299,6 +304,7 @@ Notebook with benchmark code - [benchmark-ru](examples/benchmark-ru.ipynb)
 | Nemo FastConformer RNN-T  | 3.2        | 27.2       | 53.4      |
 | Nemo Parakeet TDT 0.6B V3 | N/A        | 9.7        | 59.7      |
 | Nemo Canary 1B V2         | N/A        | N/A        | 17.4      |
+| T-Tech T-one              | N/A        | 11.7       | 16.5      |
 | Vosk 0.52 small           | 5.1        | 45.5       | 75.2      |
 | Vosk 0.54                 | 3.8        | 33.6       | 69.6      |
 | Whisper base              | 0.8        | 6.6        | 20.1      |
