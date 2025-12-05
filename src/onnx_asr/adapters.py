@@ -118,7 +118,9 @@ class TimestampedSegmentResultsAsrAdapter(AsrAdapter[Iterator[TimestampedSegment
     def _recognize_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
     ) -> Iterator[Iterator[TimestampedSegmentResult]]:
-        return self.vad.recognize_batch(self.asr, waveforms, waveforms_len, language, **self._vadargs)
+        return self.vad.recognize_batch(
+            self.asr, waveforms, waveforms_len, self.asr._get_sample_rate(), language, **self._vadargs
+        )
 
 
 class SegmentResultsAsrAdapter(AsrAdapter[Iterator[SegmentResult]]):
@@ -141,5 +143,7 @@ class SegmentResultsAsrAdapter(AsrAdapter[Iterator[SegmentResult]]):
     ) -> Iterator[Iterator[SegmentResult]]:
         return (
             (SegmentResult(res.start, res.end, res.text) for res in results)
-            for results in self.vad.recognize_batch(self.asr, waveforms, waveforms_len, language, **self._vadargs)
+            for results in self.vad.recognize_batch(
+                self.asr, waveforms, waveforms_len, self.asr._get_sample_rate(), language, **self._vadargs
+            )
         )
