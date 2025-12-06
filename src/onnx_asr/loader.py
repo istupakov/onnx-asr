@@ -163,6 +163,7 @@ def load_model(  # noqa: C901
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
     cpu_preprocessing: bool = True,
+    max_preprocessing_threads: int | None = 1,
 ) -> TextResultsAsrAdapter:
     """Load ASR model.
 
@@ -185,7 +186,8 @@ def load_model(  # noqa: C901
         sess_options: Optional SessionOptions for onnxruntime.
         providers: Optional providers for onnxruntime.
         provider_options: Optional provider_options for onnxruntime.
-        cpu_preprocessing: Run preprocessors in CPU.
+        cpu_preprocessing: Run preprocessors on CPU.
+        max_preprocessing_threads: Max parallel preprocessing threads (None - auto, 1 - without parallel processing).
 
     Returns:
         ASR model class.
@@ -286,11 +288,15 @@ def load_model(  # noqa: C901
     }
 
     preprocessing_onnx_options: OnnxSessionOptions = {"sess_options": sess_options} if cpu_preprocessing else onnx_options
+    if max_preprocessing_threads != 1:
+        preprocessing_sess_options = preprocessing_onnx_options["sess_options"] or rt.SessionOptions()
+        preprocessing_sess_options.intra_op_num_threads = 1
+        preprocessing_onnx_options["sess_options"] = preprocessing_sess_options
 
     return TextResultsAsrAdapter(
         model_type(
             _find_files(path, repo_id, model_type._get_model_files(quantization)),
-            AsrRuntimeConfig(onnx_options, PreprocessorRuntimeConfig(preprocessing_onnx_options)),
+            AsrRuntimeConfig(onnx_options, PreprocessorRuntimeConfig(preprocessing_onnx_options, max_preprocessing_threads)),
         ),
         Resampler(model_type._get_sample_rate(), preprocessing_onnx_options),
     )
