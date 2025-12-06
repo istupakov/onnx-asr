@@ -4,15 +4,15 @@ import json
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Generic, Literal, TypedDict, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
-from .preprocessors import Preprocessor
-from .utils import OnnxSessionOptions
+from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig
+from onnx_asr.utils import OnnxSessionOptions
 
 S = TypeVar("S")
 
@@ -36,10 +36,18 @@ class AsrConfig(TypedDict, total=False):
     max_sequence_length: int
 
 
+@dataclass()
+class AsrRuntimeConfig:
+    """ASR runtime config."""
+
+    onnx_options: OnnxSessionOptions = field(default_factory=OnnxSessionOptions)
+    preprocessor_config: PreprocessorRuntimeConfig = field(default_factory=PreprocessorRuntimeConfig)
+
+
 class Asr(ABC):
     """Base ASR class."""
 
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
         """Init base ASR class."""
         if "config" in model_files:
             with model_files["config"].open("rt", encoding="utf-8") as f:
@@ -47,7 +55,7 @@ class Asr(ABC):
         else:
             self.config = {}
 
-        self._preprocessor = Preprocessor(self._preprocessor_name, onnx_options)
+        self._preprocessor = Preprocessor(self._preprocessor_name, runtime_config.preprocessor_config)
 
     @staticmethod
     def _get_sample_rate() -> Literal[8_000, 16_000]:
@@ -69,8 +77,8 @@ class _AsrWithDecoding(Asr):
     DECODE_SPACE_PATTERN = re.compile(r"\A\s|\s\B|(\s)\b")
     window_step = 0.01
 
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        super().__init__(model_files, onnx_options)
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
+        super().__init__(model_files, runtime_config)
 
         if "vocab" in model_files:
             with Path(model_files["vocab"]).open("rt", encoding="utf-8") as f:

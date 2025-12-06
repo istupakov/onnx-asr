@@ -6,8 +6,8 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import _AsrWithTransducerDecoding
-from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int64_array
+from onnx_asr.asr import AsrRuntimeConfig, _AsrWithTransducerDecoding
+from onnx_asr.utils import is_float32_array, is_int64_array
 
 _STATE_TYPE = dict[tuple[int, ...], npt.NDArray[np.float32]]
 
@@ -17,18 +17,18 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
 
     CONTEXT_SIZE = 2
 
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
         """Create Kaldi Transducer model.
 
         Args:
             model_files: Dict with paths to model files.
-            onnx_options: Options for onnxruntime InferenceSession.
+            runtime_config: Runtime configuration.
 
         """
-        super().__init__(model_files, onnx_options)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
-        self._decoder = rt.InferenceSession(model_files["decoder"], **onnx_options)
-        self._joiner = rt.InferenceSession(model_files["joiner"], **onnx_options)
+        super().__init__(model_files, runtime_config)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **runtime_config.onnx_options)
+        self._decoder = rt.InferenceSession(model_files["decoder"], **runtime_config.onnx_options)
+        self._joiner = rt.InferenceSession(model_files["joiner"], **runtime_config.onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:

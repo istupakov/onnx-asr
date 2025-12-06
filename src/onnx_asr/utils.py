@@ -66,7 +66,6 @@ class OnnxSessionOptions(TypedDict, total=False):
     sess_options: rt.SessionOptions | None
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None
     provider_options: Sequence[dict[Any, Any]] | None
-    cpu_preprocessing: bool
 
 
 def get_onnx_device(session: rt.InferenceSession) -> tuple[str, int]:

@@ -6,8 +6,8 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
-from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int32_array
+from onnx_asr.asr import AsrRuntimeConfig, _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
+from onnx_asr.utils import is_float32_array, is_int32_array
 
 
 class _GigaamV2(_AsrWithDecoding):
@@ -29,16 +29,16 @@ class _GigaamV2(_AsrWithDecoding):
 class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
     """GigaAM v2+ CTC model implementation."""
 
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
         """Create GigaAM v2+ CTC model.
 
         Args:
             model_files: Dict with paths to model files.
-            onnx_options: Options for onnxruntime InferenceSession.
+            runtime_config: Runtime configuration.
 
         """
-        super().__init__(model_files, onnx_options)
-        self._model = rt.InferenceSession(model_files["model"], **onnx_options)
+        super().__init__(model_files, runtime_config)
+        self._model = rt.InferenceSession(model_files["model"], **runtime_config.onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -61,18 +61,18 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
 
     PRED_HIDDEN = 320
 
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
         """Create GigaAM v2+ RNN-T model.
 
         Args:
             model_files: Dict with paths to model files.
-            onnx_options: Options for onnxruntime InferenceSession.
+            runtime_config: Runtime configuration.
 
         """
-        super().__init__(model_files, onnx_options)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
-        self._decoder = rt.InferenceSession(model_files["decoder"], **onnx_options)
-        self._joiner = rt.InferenceSession(model_files["joint"], **onnx_options)
+        super().__init__(model_files, runtime_config)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **runtime_config.onnx_options)
+        self._decoder = rt.InferenceSession(model_files["decoder"], **runtime_config.onnx_options)
+        self._joiner = rt.InferenceSession(model_files["joint"], **runtime_config.onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
