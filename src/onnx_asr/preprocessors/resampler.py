@@ -21,8 +21,6 @@ class Resampler:
             onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        if onnx_options.get("cpu_preprocessing", False):
-            onnx_options = {"sess_options": onnx_options.get("sess_options")}
         self._target_sample_rate = sample_rate
         self._preprocessor = rt.InferenceSession(
             files(__package__).joinpath(f"resample{sample_rate // 1000}.onnx").read_bytes(), **onnx_options

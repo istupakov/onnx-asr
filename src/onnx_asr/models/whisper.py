@@ -11,8 +11,8 @@ import numpy.typing as npt
 import onnxruntime as rt
 from onnxruntime import OrtValue
 
-from onnx_asr.asr import Asr, TimestampedResult
-from onnx_asr.utils import OnnxSessionOptions, get_onnx_device, is_float32_array, is_int32_array
+from onnx_asr.asr import Asr, AsrRuntimeConfig, TimestampedResult
+from onnx_asr.utils import get_onnx_device, is_float32_array, is_int32_array
 
 
 @typing.no_type_check
@@ -31,8 +31,8 @@ def bytes_to_unicode() -> dict[int, str]:
 
 
 class _Whisper(Asr):
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        super().__init__(model_files, onnx_options)
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
+        super().__init__(model_files, runtime_config)
 
         with model_files["vocab"].open("rt", encoding="utf-8") as f:
             self._tokens: dict[str, int] = json.load(f)
@@ -94,16 +94,16 @@ class _Whisper(Asr):
 class WhisperOrt(_Whisper):
     """Whisper (exported via onnxruntime) model implementation."""
 
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
         """Create Whisper model.
 
         Args:
             model_files: Dict with paths to model files.
-            onnx_options: Options for onnxruntime InferenceSession.
+            runtime_config: Runtime configuration.
 
         """
-        super().__init__(model_files, onnx_options)
-        self._model = rt.InferenceSession(model_files["model"], **onnx_options)
+        super().__init__(model_files, runtime_config)
+        self._model = rt.InferenceSession(model_files["model"], **runtime_config.onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -135,17 +135,17 @@ class WhisperOrt(_Whisper):
 class WhisperHf(_Whisper):
     """Whisper (exported via optimum) model implementation."""
 
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
         """Create Whisper model.
 
         Args:
             model_files: Dict with paths to model files.
-            onnx_options: Options for onnxruntime InferenceSession.
+            runtime_config: Runtime configuration.
 
         """
-        super().__init__(model_files, onnx_options)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
-        self._decoder = rt.InferenceSession(model_files["decoder"], **onnx_options)
+        super().__init__(model_files, runtime_config)
+        self._encoder = rt.InferenceSession(model_files["encoder"], **runtime_config.onnx_options)
+        self._decoder = rt.InferenceSession(model_files["decoder"], **runtime_config.onnx_options)
         self._device_type, self._device_id = get_onnx_device(self._encoder)
 
     @staticmethod

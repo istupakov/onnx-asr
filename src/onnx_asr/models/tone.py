@@ -7,23 +7,23 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import _AsrWithCtcDecoding
-from onnx_asr.utils import OnnxSessionOptions, is_float16_array, is_float32_array
+from onnx_asr.asr import AsrRuntimeConfig, _AsrWithCtcDecoding
+from onnx_asr.utils import is_float16_array, is_float32_array
 
 
 class TOneCtc(_AsrWithCtcDecoding):
     """T-one CTC model implementation."""
 
-    def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
+    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
         """Create T-one CTC model.
 
         Args:
             model_files: Dict with paths to model files.
-            onnx_options: Options for onnxruntime InferenceSession.
+            runtime_config: Runtime configuration.
 
         """
-        super().__init__(model_files, onnx_options)
-        self._model = rt.InferenceSession(model_files["model"], **onnx_options)
+        super().__init__(model_files, runtime_config)
+        self._model = rt.InferenceSession(model_files["model"], **runtime_config.onnx_options)
 
         shapes = {x.name: x.shape for x in self._model.get_inputs()}
         self._chunk_size = shapes["signal"][1]

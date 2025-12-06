@@ -7,10 +7,9 @@ from typing import Any, Literal, get_args
 
 import onnxruntime as rt
 
-from onnx_asr.utils import OnnxSessionOptions
-
-from .adapters import TextResultsAsrAdapter
-from .models import (
+from onnx_asr.adapters import TextResultsAsrAdapter
+from onnx_asr.asr import AsrRuntimeConfig
+from onnx_asr.models import (
     GigaamV2Ctc,
     GigaamV2Rnnt,
     GigaamV3E2eCtc,
@@ -26,8 +25,10 @@ from .models import (
     WhisperHf,
     WhisperOrt,
 )
-from .preprocessors import Resampler
-from .vad import Vad
+from onnx_asr.preprocessors import Resampler
+from onnx_asr.preprocessors.preprocessor import PreprocessorRuntimeConfig
+from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.vad import Vad
 
 ModelNames = Literal[
     "gigaam-v2-ctc",
@@ -282,12 +283,16 @@ def load_model(  # noqa: C901
         "sess_options": sess_options,
         "providers": providers or rt.get_available_providers(),
         "provider_options": provider_options,
-        "cpu_preprocessing": cpu_preprocessing,
     }
 
+    preprocessing_onnx_options: OnnxSessionOptions = {"sess_options": sess_options} if cpu_preprocessing else onnx_options
+
     return TextResultsAsrAdapter(
-        model_type(_find_files(path, repo_id, model_type._get_model_files(quantization)), onnx_options),
-        Resampler(model_type._get_sample_rate(), onnx_options),
+        model_type(
+            _find_files(path, repo_id, model_type._get_model_files(quantization)),
+            AsrRuntimeConfig(onnx_options, PreprocessorRuntimeConfig(preprocessing_onnx_options)),
+        ),
+        Resampler(model_type._get_sample_rate(), preprocessing_onnx_options),
     )
 
 

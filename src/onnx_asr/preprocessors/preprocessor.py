@@ -1,5 +1,6 @@
 """ASR preprocessor implementations."""
 
+from dataclasses import dataclass, field
 from importlib.resources import files
 from pathlib import Path
 
@@ -10,15 +11,22 @@ import onnxruntime as rt
 from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int64_array
 
 
+@dataclass()
+class PreprocessorRuntimeConfig:
+    """Preprocessor runtime config."""
+
+    onnx_options: OnnxSessionOptions = field(default_factory=OnnxSessionOptions)
+
+
 class Preprocessor:
     """ASR preprocessor implementation."""
 
-    def __init__(self, name: str, onnx_options: OnnxSessionOptions):
+    def __init__(self, name: str, runtime_config: PreprocessorRuntimeConfig):
         """Create ASR preprocessor.
 
         Args:
             name: Preprocessor name.
-            onnx_options: Options for onnxruntime InferenceSession.
+            runtime_config: Runtime configuration.
 
         """
         if name == "identity":
@@ -26,9 +34,9 @@ class Preprocessor:
             return
 
         filename = str(Path(name).with_suffix(".onnx"))
-        if onnx_options.get("cpu_preprocessing", False):
-            onnx_options = {"sess_options": onnx_options.get("sess_options")}
-        self._preprocessor = rt.InferenceSession(files(__package__).joinpath(filename).read_bytes(), **onnx_options)
+        self._preprocessor = rt.InferenceSession(
+            files(__package__).joinpath(filename).read_bytes(), **runtime_config.onnx_options
+        )
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]

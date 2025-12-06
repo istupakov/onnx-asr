@@ -4,7 +4,7 @@ import pytest
 import torch
 import torchaudio
 
-from onnx_asr.preprocessors import Preprocessor
+from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig
 from onnx_asr.utils import pad_list
 from preprocessors import kaldi
 
@@ -56,7 +56,7 @@ def preprocessor(request):
         case "onnx_func":
             return kaldi.KaldiPreprocessor
         case "onnx_model":
-            return Preprocessor("kaldi", {})
+            return Preprocessor("kaldi", PreprocessorRuntimeConfig())
 
 
 @pytest.mark.parametrize(
