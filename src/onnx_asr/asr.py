@@ -3,7 +3,7 @@
 import json
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, Literal, TypedDict, TypeVar
@@ -91,10 +91,11 @@ class _AsrWithDecoding(Asr):
     @abstractmethod
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], language: str | None
-    ) -> Iterator[tuple[list[int], list[int]]]: ...
+    ) -> Iterator[tuple[Iterable[int], Iterable[int]]]: ...
 
-    def _decode_tokens(self, ids: list[int], timestamps: list[float]) -> TimestampedResult:
+    def _decode_tokens(self, ids: Iterable[int], indices: Iterable[int]) -> TimestampedResult:
         tokens = [self._vocab[i] for i in ids]
+        timestamps = (self.window_step * self._subsampling_factor * np.asarray(indices)).tolist()
         text = re.sub(self.DECODE_SPACE_PATTERN, lambda x: " " if x.group(1) else "", "".join(tokens))
         return TimestampedResult(text, timestamps, tokens)
 
@@ -103,24 +104,22 @@ class _AsrWithDecoding(Asr):
     ) -> Iterator[TimestampedResult]:
         encoder_out, encoder_out_lens = self._encode(*self._preprocessor(waveforms, waveforms_len))
         return (
-            self._decode_tokens(tokens, (self.window_step * self._subsampling_factor * np.array(timestamps)).tolist())
-            for tokens, timestamps in self._decoding(encoder_out, encoder_out_lens, language)
+            self._decode_tokens(tokens, indices) for tokens, indices in self._decoding(encoder_out, encoder_out_lens, language)
         )
 
 
 class _AsrWithCtcDecoding(_AsrWithDecoding):
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], language: str | None
-    ) -> Iterator[tuple[list[int], list[int]]]:
+    ) -> Iterator[tuple[Iterable[int], Iterable[int]]]:
         assert encoder_out.shape[-1] <= self._vocab_size
         assert encoder_out.shape[1] >= max(encoder_out_lens)
 
-        for log_probs, log_probs_len in zip(encoder_out, encoder_out_lens, strict=True):
-            tokens = log_probs[:log_probs_len].argmax(axis=-1)
-            indices = np.flatnonzero(np.diff(tokens, append=self._blank_idx))
-            tokens = tokens[indices]
-            mask = tokens != self._blank_idx
-            yield tokens[mask].tolist(), indices[mask].tolist()
+        batch_tokens = encoder_out.argmax(axis=-1)
+        batch_mask = np.diff(batch_tokens, axis=-1, append=self._blank_idx) != 0
+        batch_mask &= batch_tokens != self._blank_idx
+        batch_indices = (mask[:mask_len].nonzero() for mask, mask_len in zip(batch_mask, encoder_out_lens, strict=True))
+        return ((tokens[indices], indices[0]) for tokens, indices in zip(batch_tokens, batch_indices, strict=True))
 
 
 class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
@@ -138,7 +137,7 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
 
     def _decoding(
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], language: str | None
-    ) -> Iterator[tuple[list[int], list[int]]]:
+    ) -> Iterator[tuple[Iterable[int], Iterable[int]]]:
         for encodings, encodings_len in zip(encoder_out, encoder_out_lens, strict=True):
             prev_state = self._create_state()
             tokens: list[int] = []
