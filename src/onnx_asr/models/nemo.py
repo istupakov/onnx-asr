@@ -1,6 +1,6 @@
 """NeMo model implementations."""
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 import numpy as np
@@ -206,7 +206,7 @@ class NemoConformerAED(_NemoConformer):
 
     def _decoding(
         self, encoder_embeddings: npt.NDArray[np.float32], encoder_mask: npt.NDArray[np.int64], language: str | None
-    ) -> Iterator[tuple[list[int], list[int]]]:
+    ) -> Iterator[tuple[Iterable[int], Iterable[int]]]:
         batch_size = encoder_embeddings.shape[0]
         tokens = np.repeat(self._transcribe_input, batch_size, axis=0)
 
