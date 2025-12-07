@@ -163,7 +163,8 @@ def load_model(  # noqa: C901
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
     cpu_preprocessing: bool = True,
-    max_preprocessing_threads: int | None = 1,
+    preprocessor_config: PreprocessorRuntimeConfig | None = None,
+    resampler_config: OnnxSessionOptions | None = None,
 ) -> TextResultsAsrAdapter:
     """Load ASR model.
 
@@ -187,7 +188,8 @@ def load_model(  # noqa: C901
         providers: Optional providers for onnxruntime.
         provider_options: Optional provider_options for onnxruntime.
         cpu_preprocessing: Run preprocessors on CPU.
-        max_preprocessing_threads: Max parallel preprocessing threads (None - auto, 1 - without parallel processing).
+        preprocessor_config: Preprocessor ONNX and concurrency config.
+        resampler_config: Resampler ONNX config.
 
     Returns:
         ASR model class.
@@ -281,24 +283,25 @@ def load_model(  # noqa: C901
         case _:
             raise ModelNotSupportedError(model)
 
-    onnx_options: OnnxSessionOptions = {
+    onnx_options: PreprocessorRuntimeConfig = {
         "sess_options": sess_options,
         "providers": providers or rt.get_available_providers(),
         "provider_options": provider_options,
     }
 
-    preprocessing_onnx_options: OnnxSessionOptions = {"sess_options": sess_options} if cpu_preprocessing else onnx_options
-    if max_preprocessing_threads != 1:
-        preprocessing_sess_options = preprocessing_onnx_options["sess_options"] or rt.SessionOptions()
-        preprocessing_sess_options.intra_op_num_threads = 1
-        preprocessing_onnx_options["sess_options"] = preprocessing_sess_options
+    if resampler_config is None:
+        resampler_config = {"sess_options": sess_options} if cpu_preprocessing else onnx_options
+
+    if preprocessor_config is None:
+        preprocessor_config = {"sess_options": sess_options} if cpu_preprocessing else onnx_options
+        preprocessor_config |= {"max_concurrent_workers": 1}
 
     return TextResultsAsrAdapter(
         model_type(
             _find_files(path, repo_id, model_type._get_model_files(quantization)),
-            AsrRuntimeConfig(onnx_options, PreprocessorRuntimeConfig(preprocessing_onnx_options, max_preprocessing_threads)),
+            AsrRuntimeConfig(onnx_options, preprocessor_config),
         ),
-        Resampler(model_type._get_sample_rate(), preprocessing_onnx_options),
+        Resampler(model_type._get_sample_rate(), resampler_config),
     )
 
 
