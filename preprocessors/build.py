@@ -10,6 +10,7 @@ def save_model(function: onnxscript.OnnxFunction, filename: Path):
     model = function.to_model_proto()
 
     model = onnxscript.optimizer.optimize(model, input_size_limit=100)
+    model = onnxscript.optimizer.optimize(model, input_size_limit=100)
 
     model.producer_name = "OnnxScript"
     model.producer_version = onnxscript.__version__
