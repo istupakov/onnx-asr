@@ -129,7 +129,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "D", "PGH003", "PLR0911", "PLR2004"]
 "preprocessors/*" = ["ANN", "D", "F821", "N802", "N806"]
-"*.ipynb" = ["ANN", "D", "ERA", "RUF001"]
+"*.ipynb" = ["ANN", "D", "ERA", "RUF001", "T"]
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning:sys.*"]
