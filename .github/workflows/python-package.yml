@@ -81,9 +81,12 @@ jobs:
           path: ${{ env.HF_HUB_CACHE }}
           key: cache-hf-models-${{ hashFiles('tests/onnx_asr/*.py') }}
 
+      - name: Install onnxruntime
+        shell: bash
+        run: pip install --pre onnxruntime
       - name: Install package
         shell: bash
-        run: pip install pytest ${{ matrix.numpy-version }} $(find ./dist -iname onnx_asr-*.whl)[cpu,hub]
+        run: pip install pytest ${{ matrix.numpy-version }} $(find ./dist -iname onnx_asr-*.whl)[hub]
       - name: Test with pytest
         run: pytest ./tests/onnx_asr
 
