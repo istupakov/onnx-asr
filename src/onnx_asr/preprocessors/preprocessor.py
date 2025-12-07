@@ -1,7 +1,6 @@
 """ASR preprocessor implementations."""
 
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
 from importlib.resources import files
 from pathlib import Path
 
@@ -12,12 +11,11 @@ import onnxruntime as rt
 from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int64_array
 
 
-@dataclass()
-class PreprocessorRuntimeConfig:
+class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
     """Preprocessor runtime config."""
 
-    onnx_options: OnnxSessionOptions = field(default_factory=OnnxSessionOptions)
-    max_concurrent_workers: int | None = 1
+    max_concurrent_workers: int | None
+    """Max parallel preprocessing threads (None - auto, 1 - without parallel processing)."""
 
 
 class Preprocessor:
@@ -31,15 +29,12 @@ class Preprocessor:
             runtime_config: Runtime configuration.
 
         """
+        self._max_concurrent_workers = runtime_config.pop("max_concurrent_workers", 1)
         if name == "identity":
             self._preprocessor = None
-            return
-
-        filename = str(Path(name).with_suffix(".onnx"))
-        self._preprocessor = rt.InferenceSession(
-            files(__package__).joinpath(filename).read_bytes(), **runtime_config.onnx_options
-        )
-        self._max_concurrent_workers = runtime_config.max_concurrent_workers
+        else:
+            filename = str(Path(name).with_suffix(".onnx"))
+            self._preprocessor = rt.InferenceSession(files(__package__).joinpath(filename).read_bytes(), **runtime_config)
 
     def _preprocess(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
