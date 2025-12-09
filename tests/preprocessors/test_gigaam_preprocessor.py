@@ -3,7 +3,7 @@ import pytest
 import torch
 import torchaudio
 
-from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig
+from onnx_asr.preprocessors import Preprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import gigaam
 
@@ -82,13 +82,17 @@ def preprocessor(request):
         case "onnx_func_v2":
             return gigaam.GigaamPreprocessorV2
         case "onnx_model_v2":
-            return Preprocessor("gigaam_v2", PreprocessorRuntimeConfig())
+            return Preprocessor("gigaam_v2", {})
+        case "onnx_model_v2_mt":
+            return Preprocessor("gigaam_v2", {"max_concurrent_workers": 2})
         case "torch_v3":
             return preprocessor_torch_v3
         case "onnx_func_v3":
             return gigaam.GigaamPreprocessorV3
         case "onnx_model_v3":
-            return Preprocessor("gigaam_v3", PreprocessorRuntimeConfig())
+            return Preprocessor("gigaam_v3", {})
+        case "onnx_model_v3_mt":
+            return Preprocessor("gigaam_v3", {"max_concurrent_workers": 2})
 
 
 @pytest.mark.parametrize(
@@ -97,6 +101,7 @@ def preprocessor(request):
         ("torch_v2", True),
         ("onnx_func_v2", False),
         ("onnx_model_v2", False),
+        ("onnx_model_v2_mt", False),
     ],
     indirect=["preprocessor"],
 )
@@ -119,6 +124,7 @@ def test_gigaam_preprocessor_v2(preprocessor, equal, waveforms):
         ("torch_v3", True),
         ("onnx_func_v3", False),
         ("onnx_model_v3", False),
+        ("onnx_model_v3_mt", False),
     ],
     indirect=["preprocessor"],
 )
