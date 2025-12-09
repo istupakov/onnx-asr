@@ -4,7 +4,7 @@ import torch
 import torchaudio
 from nemo.collections.asr.modules import AudioToMelSpectrogramPreprocessor
 
-from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig
+from onnx_asr.preprocessors import Preprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import nemo
 
@@ -73,9 +73,13 @@ def preprocessor(request):
         case "onnx_func 128":
             return nemo.NemoPreprocessor128
         case "onnx_model 80":
-            return Preprocessor("nemo80", PreprocessorRuntimeConfig())
+            return Preprocessor("nemo80", {})
         case "onnx_model 128":
-            return Preprocessor("nemo128", PreprocessorRuntimeConfig())
+            return Preprocessor("nemo128", {})
+        case "onnx_model_mt 80":
+            return Preprocessor("nemo80", {"max_concurrent_workers": 2})
+        case "onnx_model_mt 128":
+            return Preprocessor("nemo128", {"max_concurrent_workers": 2})
 
 
 @pytest.mark.parametrize(
@@ -87,6 +91,8 @@ def preprocessor(request):
         (128, "onnx_func 128"),
         (80, "onnx_model 80"),
         (128, "onnx_model 128"),
+        (80, "onnx_model_mt 80"),
+        (128, "onnx_model_mt 128"),
     ],
     indirect=["preprocessor_origin", "preprocessor"],
 )

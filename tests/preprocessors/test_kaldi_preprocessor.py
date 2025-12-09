@@ -4,7 +4,7 @@ import pytest
 import torch
 import torchaudio
 
-from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig
+from onnx_asr.preprocessors import Preprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import kaldi
 
@@ -48,7 +48,15 @@ def preprocessor_torch(waveforms, lens):
     return pad_features(results)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(
+    scope="module",
+    params=[
+        "torch",
+        "onnx_func",
+        "onnx_model",
+        "onnx_model_mt",
+    ],
+)
 def preprocessor(request):
     match request.param:
         case "torch":
@@ -56,18 +64,11 @@ def preprocessor(request):
         case "onnx_func":
             return kaldi.KaldiPreprocessor
         case "onnx_model":
-            return Preprocessor("kaldi", PreprocessorRuntimeConfig())
+            return Preprocessor("kaldi", {})
+        case "onnx_model_mt":
+            return Preprocessor("kaldi", {"max_concurrent_workers": 2})
 
 
-@pytest.mark.parametrize(
-    "preprocessor",
-    [
-        "torch",
-        "onnx_func",
-        "onnx_model",
-    ],
-    indirect=True,
-)
 def test_kaldi_preprocessor(preprocessor, waveforms):
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin(waveforms, lens)
