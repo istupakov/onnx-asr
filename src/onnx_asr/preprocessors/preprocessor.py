@@ -60,4 +60,4 @@ class Preprocessor:
             features, features_lens = zip(
                 *executor.map(self._preprocess, waveforms[:, None], waveforms_lens[:, None]), strict=True
             )
-        return np.concat(features, axis=0), np.concat(features_lens, axis=0)
+        return np.concatenate(features, axis=0), np.concatenate(features_lens, axis=0)
