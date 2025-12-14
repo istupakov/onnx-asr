@@ -9,8 +9,8 @@ def test_model_not_supported_error() -> None:
 
 
 def test_model_path_not_found_error() -> None:
-    with pytest.raises(onnx_asr.loader.ModelPathNotFoundError):
-        onnx_asr.load_model("whisper", "./xxx")
+    with pytest.raises(onnx_asr.loader.ModelPathNotDirectoryError):
+        onnx_asr.load_model("whisper", "pyproject.toml")
 
 
 def test_model_file_not_found_error() -> None:
@@ -26,6 +26,11 @@ def test_more_than_one_model_file_found_error() -> None:
 def test_no_model_name_or_path_specified_error() -> None:
     with pytest.raises(onnx_asr.loader.NoModelNameOrPathSpecifiedError):
         onnx_asr.load_model("whisper")
+
+
+def test_no_model_name_and_empty_path_specified_error() -> None:
+    with pytest.raises(onnx_asr.loader.NoModelNameOrPathSpecifiedError):
+        onnx_asr.load_model("whisper", "./xxx")
 
 
 def test_invalid_model_type_in_config_error() -> None:
