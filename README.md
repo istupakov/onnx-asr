@@ -75,7 +75,7 @@ pdm build
 Load ONNX model from Hugging Face and recognize wav file:
 ```py
 import onnx_asr
-model = onnx_asr.load_model("gigaam-v2-rnnt")
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 print(model.recognize("test.wav"))
 ```
 
@@ -113,7 +113,7 @@ Example with `soundfile`:
 import onnx_asr
 import soundfile as sf
 
-model = onnx_asr.load_model("whisper-base")
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 
 waveform, sample_rate = sf.read("test.wav", dtype="float32")
 model.recognize(waveform, sample_rate=sample_rate)
@@ -122,21 +122,21 @@ model.recognize(waveform, sample_rate=sample_rate)
 Batch processing is also supported:
 ```py
 import onnx_asr
-model = onnx_asr.load_model("nemo-fastconformer-ru-ctc")
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 print(model.recognize(["test1.wav", "test2.wav", "test3.wav", "test4.wav"]))
 ```
 
-Some models have a quantized versions:
+Most models have a quantized versions:
 ```py
 import onnx_asr
-model = onnx_asr.load_model("alphacep/vosk-model-ru", quantization="int8")
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", quantization="int8")
 print(model.recognize("test.wav"))
 ```
 
 Return tokens and timestamps:
 ```py
 import onnx_asr
-model = onnx_asr.load_model("alphacep/vosk-model-ru").with_timestamps()
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3").with_timestamps()
 print(model.recognize("test1.wav"))
 ```
 
@@ -146,7 +146,7 @@ Load VAD ONNX model from Hugging Face and recognize wav file:
 ```py
 import onnx_asr
 vad = onnx_asr.load_vad("silero")
-model = onnx_asr.load_model("gigaam-v2-rnnt").with_vad(vad)
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3").with_vad(vad)
 for res in model.recognize("test.wav"):
     print(res)
 ```
@@ -161,7 +161,7 @@ for res in model.recognize("test.wav"):
 
 Package has simple CLI interface
 ```shell
-onnx-asr nemo-fastconformer-ru-ctc test.wav
+onnx-asr nemo-parakeet-tdt-0.6b-v3 test.wav
 ```
 
 For full usage parameters, see help:
@@ -176,17 +176,19 @@ Create simple web interface with Gradio:
 import onnx_asr
 import gradio as gr
 
-model = onnx_asr.load_model("gigaam-v2-rnnt")
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 
 def recognize(audio):
-    if audio:
-        sample_rate, waveform = audio
-        waveform = waveform / 2**15
-        if waveform.ndim == 2:
-            waveform = waveform.mean(axis=1)
-        return model.recognize(waveform, sample_rate=sample_rate)
+    if not audio:
+        return None
 
-demo = gr.Interface(fn=recognize, inputs=gr.Audio(min_length=1, max_length=30), outputs="text")
+    sample_rate, waveform = audio
+    waveform = waveform / 2**15
+    if waveform.ndim == 2:
+        waveform = waveform.mean(axis=1)
+    return model.recognize(waveform, sample_rate=sample_rate)
+
+demo = gr.Interface(fn=recognize, inputs="audio", outputs="text")
 demo.launch()
 ```
 
@@ -195,9 +197,13 @@ demo.launch()
 Load ONNX model from local directory and recognize wav file:
 ```py
 import onnx_asr
-model = onnx_asr.load_model("gigaam-v2-ctc", "models/gigaam-onnx")
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", "models/parakeet-v3")
 print(model.recognize("test.wav"))
 ```
+
+> [!NOTE]  
+> If the directory does not exist, it will be created and the model will be loaded into it.
+
 #### Supported model types:
 * All models from [supported model names](#supported-model-names)
 * `nemo-conformer-ctc` for NeMo Conformer/FastConformer/Parakeet with CTC decoder

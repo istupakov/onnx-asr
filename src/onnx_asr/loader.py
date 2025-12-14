@@ -74,8 +74,8 @@ class ModelNotSupportedError(ValueError):
         super().__init__(f"Model '{model}' not supported!")
 
 
-class ModelPathNotFoundError(NotADirectoryError):
-    """Model path not found error."""
+class ModelPathNotDirectoryError(NotADirectoryError):
+    """Model path not a directory error."""
 
     def __init__(self, path: str | Path):
         """Create error."""
@@ -120,7 +120,7 @@ def _download_config(repo_id: str) -> str:
     return hf_hub_download(repo_id, "config.json")
 
 
-def _download_model(repo_id: str, files: list[str]) -> str:
+def _download_model(repo_id: str, files: list[str], *, local_dir: str | Path | None, local_files_only: bool) -> str:
     from huggingface_hub import snapshot_download  # noqa: PLC0415
 
     files = [
@@ -128,17 +128,12 @@ def _download_model(repo_id: str, files: list[str]) -> str:
         *files,
         *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx"),
     ]
-    return snapshot_download(repo_id, allow_patterns=files)
+    return snapshot_download(repo_id, local_dir=local_dir, local_files_only=local_files_only, allow_patterns=files)
 
 
-def _find_files(path: str | Path | None, repo_id: str | None, files: dict[str, str]) -> dict[str, Path]:
-    if path is None:
-        if repo_id is None:
-            raise NoModelNameOrPathSpecifiedError
-        path = _download_model(repo_id, list(files.values()))
-
+def _find_files(path: str | Path, files: dict[str, str]) -> dict[str, Path]:
     if not Path(path).is_dir():
-        raise ModelPathNotFoundError(path)
+        raise ModelPathNotDirectoryError(path)
 
     if Path(path, "config.json").exists():
         files |= {"config": "config.json"}
@@ -152,6 +147,19 @@ def _find_files(path: str | Path | None, repo_id: str | None, files: dict[str, s
         return files[0]
 
     return {key: find(filename) for key, filename in files.items()}
+
+
+def _download_files(path: str | Path | None, repo_id: str | None, files: dict[str, str]) -> dict[str, Path]:
+    if path is not None and Path(path).exists():
+        return _find_files(path, files)
+
+    if repo_id is None:
+        raise NoModelNameOrPathSpecifiedError
+
+    try:
+        return _find_files(_download_model(repo_id, list(files.values()), local_dir=path, local_files_only=True), files)
+    except (FileNotFoundError, ModelFileNotFoundError):
+        return _find_files(_download_model(repo_id, list(files.values()), local_dir=path, local_files_only=False), files)
 
 
 def load_model(  # noqa: C901
@@ -196,7 +204,9 @@ def load_model(  # noqa: C901
 
     """
     repo_id: str | None = None
-    if "/" in model and path is None and not model.startswith("alphacep/") and not model.startswith("t-tech/"):
+
+    local_model = path is not None and Path(path).exists()
+    if not local_model and "/" in model and not model.startswith(("alphacep/", "t-tech/")):
         repo_id = model
         with Path(_download_config(repo_id)).open("rt", encoding="utf-8") as f:
             config = json.load(f)
@@ -217,67 +227,68 @@ def load_model(  # noqa: C901
         | WhisperOrt
         | WhisperHf
     ]
+    default_repo_id = None
     match model:
         case "gigaam-v2-ctc":
             model_type = GigaamV2Ctc
-            repo_id = "istupakov/gigaam-v2-onnx"
+            default_repo_id = "istupakov/gigaam-v2-onnx"
         case "gigaam-v2-rnnt":
             model_type = GigaamV2Rnnt
-            repo_id = "istupakov/gigaam-v2-onnx"
+            default_repo_id = "istupakov/gigaam-v2-onnx"
         case "gigaam-v3-ctc":
             model_type = GigaamV2Ctc
-            repo_id = "istupakov/gigaam-v3-onnx"
+            default_repo_id = "istupakov/gigaam-v3-onnx"
         case "gigaam-v3-rnnt":
             model_type = GigaamV2Rnnt
-            repo_id = "istupakov/gigaam-v3-onnx"
+            default_repo_id = "istupakov/gigaam-v3-onnx"
         case "gigaam-v3-e2e-ctc":
             model_type = GigaamV3E2eCtc
-            repo_id = "istupakov/gigaam-v3-onnx"
+            default_repo_id = "istupakov/gigaam-v3-onnx"
         case "gigaam-v3-e2e-rnnt":
             model_type = GigaamV3E2eRnnt
-            repo_id = "istupakov/gigaam-v3-onnx"
+            default_repo_id = "istupakov/gigaam-v3-onnx"
         case "kaldi-rnnt" | "vosk":
             model_type = KaldiTransducer
         case "alphacep/vosk-model-ru" | "alphacep/vosk-model-small-ru":
             model_type = KaldiTransducer
-            repo_id = model
+            default_repo_id = model
         case "nemo-conformer-ctc":
             model_type = NemoConformerCtc
         case "nemo-fastconformer-ru-ctc":
             model_type = NemoConformerCtc
-            repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
+            default_repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
         case "nemo-parakeet-ctc-0.6b":
             model_type = NemoConformerCtc
-            repo_id = "istupakov/parakeet-ctc-0.6b-onnx"
+            default_repo_id = "istupakov/parakeet-ctc-0.6b-onnx"
         case "nemo-conformer-rnnt":
             model_type = NemoConformerRnnt
         case "nemo-fastconformer-ru-rnnt":
             model_type = NemoConformerRnnt
-            repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
+            default_repo_id = "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx"
         case "nemo-parakeet-rnnt-0.6b":
             model_type = NemoConformerRnnt
-            repo_id = "istupakov/parakeet-rnnt-0.6b-onnx"
+            default_repo_id = "istupakov/parakeet-rnnt-0.6b-onnx"
         case "nemo-conformer-tdt":
             model_type = NemoConformerTdt
         case "nemo-parakeet-tdt-0.6b-v2":
             model_type = NemoConformerTdt
-            repo_id = "istupakov/parakeet-tdt-0.6b-v2-onnx"
+            default_repo_id = "istupakov/parakeet-tdt-0.6b-v2-onnx"
         case "nemo-parakeet-tdt-0.6b-v3":
             model_type = NemoConformerTdt
-            repo_id = "istupakov/parakeet-tdt-0.6b-v3-onnx"
+            default_repo_id = "istupakov/parakeet-tdt-0.6b-v3-onnx"
         case "nemo-conformer-aed":
             model_type = NemoConformerAED
         case "nemo-canary-1b-v2":
             model_type = NemoConformerAED
-            repo_id = "istupakov/canary-1b-v2-onnx"
+            default_repo_id = "istupakov/canary-1b-v2-onnx"
         case "t-tech/t-one":
             model_type = TOneCtc
-            repo_id = model
+            default_repo_id = model
         case "whisper-ort":
             model_type = WhisperOrt
         case "whisper-base":
             model_type = WhisperOrt
-            repo_id = "istupakov/whisper-base-onnx"
+            default_repo_id = "istupakov/whisper-base-onnx"
         case "whisper":
             model_type = WhisperHf
         case _:
@@ -298,7 +309,7 @@ def load_model(  # noqa: C901
 
     return TextResultsAsrAdapter(
         model_type(
-            _find_files(path, repo_id, model_type._get_model_files(quantization)),
+            _download_files(path, repo_id or default_repo_id, model_type._get_model_files(quantization)),
             AsrRuntimeConfig(onnx_options, preprocessor_config),
         ),
         Resampler(model_type._get_sample_rate(), resampler_config),
@@ -345,4 +356,4 @@ def load_vad(
         "provider_options": provider_options,
     }
 
-    return model_type(_find_files(path, repo_id, model_type._get_model_files(quantization)), onnx_options)
+    return model_type(_download_files(path, repo_id, model_type._get_model_files(quantization)), onnx_options)
