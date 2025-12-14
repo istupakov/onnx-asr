@@ -149,7 +149,7 @@ def _find_files(path: str | Path, files: dict[str, str]) -> dict[str, Path]:
     return {key: find(filename) for key, filename in files.items()}
 
 
-def _download_files(path: str | Path | None, repo_id: str | None, files: dict[str, str]) -> dict[str, Path]:
+def _download_files(repo_id: str | None, path: str | Path | None, files: dict[str, str]) -> dict[str, Path]:
     if path is not None and Path(path).exists():
         return _find_files(path, files)
 
@@ -160,6 +160,23 @@ def _download_files(path: str | Path | None, repo_id: str | None, files: dict[st
         return _find_files(_download_model(repo_id, list(files.values()), local_dir=path, local_files_only=True), files)
     except (FileNotFoundError, ModelFileNotFoundError):
         return _find_files(_download_model(repo_id, list(files.values()), local_dir=path, local_files_only=False), files)
+
+
+def _find_model_type(repo_id: str, path: str | Path | None) -> str:
+    if path is not None and Path(path).exists():
+        config_path = Path(path, "config.json")
+        if not config_path.is_file():
+            raise ModelFileNotFoundError(config_path.name, path)
+    else:
+        config_path = Path(_download_config(repo_id))
+
+    with config_path.open("rt", encoding="utf-8") as f:
+        config = json.load(f)
+        config_model_type: str = config.get("model_type")
+        if config_model_type not in get_args(ModelTypes):
+            raise InvalidModelTypeInConfigError(config_model_type)
+
+        return config_model_type
 
 
 def load_model(  # noqa: C901
@@ -203,18 +220,11 @@ def load_model(  # noqa: C901
         ASR model class.
 
     """
-    repo_id: str | None = None
-
-    local_model = path is not None and Path(path).exists()
-    if not local_model and "/" in model and not model.startswith(("alphacep/", "t-tech/")):
+    if "/" in model and not model.startswith(("alphacep/", "t-tech/")):
         repo_id = model
-        with Path(_download_config(repo_id)).open("rt", encoding="utf-8") as f:
-            config = json.load(f)
-            config_model_type = config.get("model_type")
-            if config_model_type in get_args(ModelTypes):
-                model = config_model_type
-            else:
-                raise InvalidModelTypeInConfigError(config_model_type)
+        model = _find_model_type(repo_id, path)
+    else:
+        repo_id = None
 
     model_type: type[
         GigaamV2Ctc
@@ -309,7 +319,7 @@ def load_model(  # noqa: C901
 
     return TextResultsAsrAdapter(
         model_type(
-            _download_files(path, repo_id or default_repo_id, model_type._get_model_files(quantization)),
+            _download_files(repo_id or default_repo_id, path, model_type._get_model_files(quantization)),
             AsrRuntimeConfig(onnx_options, preprocessor_config),
         ),
         Resampler(model_type._get_sample_rate(), resampler_config),
@@ -356,4 +366,4 @@ def load_vad(
         "provider_options": provider_options,
     }
 
-    return model_type(_download_files(path, repo_id, model_type._get_model_files(quantization)), onnx_options)
+    return model_type(_download_files(repo_id, path, model_type._get_model_files(quantization)), onnx_options)
