@@ -6,7 +6,8 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.utils import OnnxSessionOptions, is_float32_array
+from onnx_asr.onnx import OnnxSessionOptions
+from onnx_asr.utils import is_float32_array
 from onnx_asr.vad import Vad
 
 

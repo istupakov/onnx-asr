@@ -11,8 +11,8 @@ from typing import Generic, Literal, TypedDict, TypeVar
 import numpy as np
 import numpy.typing as npt
 
+from onnx_asr.onnx import OnnxSessionOptions
 from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig
-from onnx_asr.utils import OnnxSessionOptions
 
 S = TypeVar("S")
 

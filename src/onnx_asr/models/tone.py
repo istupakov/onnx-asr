@@ -8,6 +8,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import AsrRuntimeConfig, _AsrWithCtcDecoding
+from onnx_asr.onnx import TensorRtOptions
 from onnx_asr.utils import is_float16_array, is_float32_array
 
 
@@ -23,7 +24,9 @@ class TOneCtc(_AsrWithCtcDecoding):
 
         """
         super().__init__(model_files, runtime_config)
-        self._model = rt.InferenceSession(model_files["model"], **runtime_config.onnx_options)
+        self._model = rt.InferenceSession(
+            model_files["model"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+        )
 
         shapes = {x.name: x.shape for x in self._model.get_inputs()}
         self._chunk_size = shapes["signal"][1]
@@ -49,6 +52,9 @@ class TOneCtc(_AsrWithCtcDecoding):
     @property
     def _subsampling_factor(self) -> int:
         return int(self.config["encoder_params"]["reduction_kernel_size"])  # type: ignore[typeddict-item]
+
+    def _encoder_shapes(self, **kwargs: int) -> str:
+        return "signal:{batch}x2400x1,state:{batch}x219729".format(**kwargs)
 
     def _encode_chunk(
         self, waveforms: npt.NDArray[np.float32], state: npt.NDArray[np.float16]

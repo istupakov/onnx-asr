@@ -1,12 +1,10 @@
 """Utils for ASR."""
 
 import wave
-from collections.abc import Sequence
-from typing import Any, Literal, TypedDict, TypeGuard, get_args
+from typing import Literal, TypeGuard, get_args
 
 import numpy as np
 import numpy.typing as npt
-import onnxruntime as rt
 
 SampleRates = Literal[8_000, 11_025, 16_000, 22_050, 24_000, 32_000, 44_100, 48_000]
 
@@ -58,28 +56,6 @@ class DifferentSampleRatesError(ValueError):
     def __init__(self) -> None:
         """Create error."""
         super().__init__("All sample rates in a batch must be the same.")
-
-
-class OnnxSessionOptions(TypedDict, total=False):
-    """Options for onnxruntime InferenceSession."""
-
-    sess_options: rt.SessionOptions | None
-    providers: Sequence[str | tuple[str, dict[Any, Any]]] | None
-    provider_options: Sequence[dict[Any, Any]] | None
-
-
-def get_onnx_device(session: rt.InferenceSession) -> tuple[str, int]:
-    """Get ONNX device type and id from Session."""
-    provider = session.get_providers()[0]
-    match provider:
-        case "CUDAExecutionProvider" | "ROCMExecutionProvider":
-            device_type = "cuda"
-        case "DmlExecutionProvider":
-            device_type = "dml"
-        case _:
-            device_type = "cpu"
-
-    return device_type, int(session.get_provider_options()[provider].get("device_id", 0))
 
 
 def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:

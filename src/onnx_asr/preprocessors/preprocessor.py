@@ -8,7 +8,8 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.utils import OnnxSessionOptions, is_float32_array, is_int64_array
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions, contains_onnx_providers
+from onnx_asr.utils import is_float32_array, is_int64_array
 
 
 class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
@@ -33,8 +34,17 @@ class Preprocessor:
         if name == "identity":
             self._preprocessor = None
         else:
+            if name == "kaldi" and contains_onnx_providers(runtime_config, TensorRtOptions.get_provider_names()):
+                name = "kaldi_fast"
+
             filename = str(Path(name).with_suffix(".onnx"))
-            self._preprocessor = rt.InferenceSession(files(__package__).joinpath(filename).read_bytes(), **runtime_config)
+            self._preprocessor = rt.InferenceSession(
+                files(__package__).joinpath(filename).read_bytes(),
+                **TensorRtOptions.add_profile(runtime_config, self._preprocessor_shapes),
+            )
+
+    def _preprocessor_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
+        return "waveforms:{batch}x{len},waveforms_lens:{batch}".format(len=waveform_len_ms * 16, **kwargs)
 
     def _preprocess(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]

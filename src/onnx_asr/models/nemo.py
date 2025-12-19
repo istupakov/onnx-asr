@@ -8,6 +8,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import AsrRuntimeConfig, _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
+from onnx_asr.onnx import TensorRtOptions
 from onnx_asr.utils import is_float32_array, is_int64_array
 
 
@@ -17,12 +18,21 @@ class _NemoConformer(_AsrWithDecoding):
         return {"vocab": "vocab.txt"}
 
     @property
+    def _features_size(self) -> int:
+        return self.config.get("features_size", 80)
+
+    @property
     def _preprocessor_name(self) -> str:
-        return f"nemo{self.config.get('features_size', 80)}"
+        return f"nemo{self._features_size}"
 
     @property
     def _subsampling_factor(self) -> int:
         return self.config.get("subsampling_factor", 8)
+
+    def _encoder_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
+        return "audio_signal:{batch}x{features_size}x{len},length:{batch}".format(
+            len=waveform_len_ms // 10, features_size=self._features_size, **kwargs
+        )
 
 
 class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
@@ -37,7 +47,9 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
 
         """
         super().__init__(model_files, runtime_config)
-        self._model = rt.InferenceSession(model_files["model"], **runtime_config.onnx_options)
+        self._model = rt.InferenceSession(
+            model_files["model"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+        )
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -67,7 +79,9 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
 
         """
         super().__init__(model_files, runtime_config)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **runtime_config.onnx_options)
+        self._encoder = rt.InferenceSession(
+            model_files["encoder"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+        )
         self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **runtime_config.onnx_options)
 
     @staticmethod
@@ -140,7 +154,9 @@ class NemoConformerAED(_NemoConformer):
 
         """
         super().__init__(model_files, runtime_config)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **runtime_config.onnx_options)
+        self._encoder = rt.InferenceSession(
+            model_files["encoder"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+        )
         self._decoder = rt.InferenceSession(model_files["decoder"], **runtime_config.onnx_options)
 
         self._tokens = {token: id for id, token in self._vocab.items()}

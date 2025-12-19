@@ -7,7 +7,8 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.utils import OnnxSessionOptions, SampleRates, is_float32_array, is_int64_array
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
+from onnx_asr.utils import SampleRates, is_float32_array, is_int64_array
 
 
 class Resampler:
@@ -28,8 +29,13 @@ class Resampler:
                 continue
             self._preprocessors[orig_freq] = rt.InferenceSession(
                 files(__package__).joinpath(f"resample_{orig_freq // 1000}_{sample_rate // 1000}.onnx").read_bytes(),
-                **onnx_options,
+                **TensorRtOptions.add_profile(onnx_options, self._preprocessor_shapes),
             )
+
+    def _preprocessor_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
+        return "waveforms:{batch}x{len},waveforms_lens:{batch}".format(
+            len=kwargs.get("resampler_waveform_len_ms", waveform_len_ms) * 48, **kwargs
+        )
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64], sample_rate: SampleRates
