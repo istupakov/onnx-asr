@@ -1,7 +1,7 @@
 """Waveform resampler implementations."""
 
 from importlib.resources import files
-from typing import Literal
+from typing import Literal, get_args
 
 import numpy as np
 import numpy.typing as npt
@@ -22,9 +22,14 @@ class Resampler:
 
         """
         self._target_sample_rate = sample_rate
-        self._preprocessor = rt.InferenceSession(
-            files(__package__).joinpath(f"resample{sample_rate // 1000}.onnx").read_bytes(), **onnx_options
-        )
+        self._preprocessors = {}
+        for orig_freq in get_args(SampleRates):
+            if orig_freq == sample_rate:
+                continue
+            self._preprocessors[orig_freq] = rt.InferenceSession(
+                files(__package__).joinpath(f"resample_{orig_freq // 1000}_{sample_rate // 1000}.onnx").read_bytes(),
+                **onnx_options,
+            )
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64], sample_rate: SampleRates
@@ -33,9 +38,9 @@ class Resampler:
         if sample_rate == self._target_sample_rate:
             return waveforms, waveforms_lens
 
-        resampled, resampled_lens = self._preprocessor.run(
+        resampled, resampled_lens = self._preprocessors[sample_rate].run(
             ["resampled", "resampled_lens"],
-            {"waveforms": waveforms, "waveforms_lens": waveforms_lens, "sample_rate": np.array([sample_rate], dtype=np.int64)},
+            {"waveforms": waveforms, "waveforms_lens": waveforms_lens},
         )
         assert is_float32_array(resampled)
         assert is_int64_array(resampled_lens)
