@@ -7,6 +7,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import AsrRuntimeConfig, _AsrWithTransducerDecoding
+from onnx_asr.onnx import TensorRtOptions
 from onnx_asr.utils import is_float32_array, is_int64_array
 
 _STATE_TYPE = dict[tuple[int, ...], npt.NDArray[np.float32]]
@@ -26,7 +27,9 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
 
         """
         super().__init__(model_files, runtime_config)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **runtime_config.onnx_options)
+        self._encoder = rt.InferenceSession(
+            model_files["encoder"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+        )
         self._decoder = rt.InferenceSession(model_files["decoder"], **runtime_config.onnx_options)
         self._joiner = rt.InferenceSession(model_files["joiner"], **runtime_config.onnx_options)
 
@@ -52,6 +55,9 @@ class KaldiTransducer(_AsrWithTransducerDecoding[_STATE_TYPE]):
     @property
     def _max_tokens_per_step(self) -> int:
         return self.config.get("max_tokens_per_step", 1)
+
+    def _encoder_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
+        return "x:{batch}x{len}x80,x_lens:{batch}".format(len=waveform_len_ms // 10, **kwargs)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]

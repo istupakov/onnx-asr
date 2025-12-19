@@ -12,7 +12,8 @@ import onnxruntime as rt
 from onnxruntime import OrtValue
 
 from onnx_asr.asr import Asr, AsrRuntimeConfig, TimestampedResult
-from onnx_asr.utils import get_onnx_device, is_float32_array, is_int32_array
+from onnx_asr.onnx import get_onnx_device
+from onnx_asr.utils import is_float32_array, is_int32_array
 
 
 @typing.no_type_check

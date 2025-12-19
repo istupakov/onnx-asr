@@ -25,9 +25,8 @@ from onnx_asr.models import (
     WhisperHf,
     WhisperOrt,
 )
-from onnx_asr.preprocessors import Resampler
-from onnx_asr.preprocessors.preprocessor import PreprocessorRuntimeConfig
-from onnx_asr.utils import OnnxSessionOptions
+from onnx_asr.onnx import OnnxSessionOptions
+from onnx_asr.preprocessors import PreprocessorRuntimeConfig, Resampler
 from onnx_asr.vad import Vad
 
 ModelNames = Literal[

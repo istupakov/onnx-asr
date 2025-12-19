@@ -7,6 +7,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from onnx_asr.asr import AsrRuntimeConfig, _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
+from onnx_asr.onnx import TensorRtOptions
 from onnx_asr.utils import is_float32_array, is_int32_array
 
 
@@ -38,12 +39,17 @@ class GigaamV2Ctc(_AsrWithCtcDecoding, _GigaamV2):
 
         """
         super().__init__(model_files, runtime_config)
-        self._model = rt.InferenceSession(model_files["model"], **runtime_config.onnx_options)
+        self._model = rt.InferenceSession(
+            model_files["model"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+        )
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         suffix = "?" + quantization if quantization else ""
         return {"model": f"v?_ctc{suffix}.onnx"} | _GigaamV2._get_model_files(quantization)
+
+    def _encoder_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
+        return "features:{batch}x64x{len},feature_lengths:{batch}".format(len=waveform_len_ms // 10, **kwargs)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
@@ -70,7 +76,9 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
 
         """
         super().__init__(model_files, runtime_config)
-        self._encoder = rt.InferenceSession(model_files["encoder"], **runtime_config.onnx_options)
+        self._encoder = rt.InferenceSession(
+            model_files["encoder"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+        )
         self._decoder = rt.InferenceSession(model_files["decoder"], **runtime_config.onnx_options)
         self._joiner = rt.InferenceSession(model_files["joint"], **runtime_config.onnx_options)
 
@@ -86,6 +94,9 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
     @property
     def _max_tokens_per_step(self) -> int:
         return self.config.get("max_tokens_per_step", 3)
+
+    def _encoder_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
+        return "audio_signal:{batch}x64x{len},length:{batch}".format(len=waveform_len_ms // 10, **kwargs)
 
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
