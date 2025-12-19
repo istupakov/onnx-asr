@@ -29,7 +29,7 @@ def preprocessor_torch(waveforms, lens, n_mels):
         normalized=False,
     )[..., :-1]
     mel_spectrogram = torch.matmul(
-        spectrogram.transpose(-1, -2), whisper.melscale_fbanks80 if n_mels == 80 else whisper.melscale_fbanks128
+        spectrogram.transpose(-1, -2), torch.from_numpy(whisper.melscale_fbanks80 if n_mels == 80 else whisper.melscale_fbanks128)
     ).transpose(-1, -2)
     log_mel_spectrogram = torch.clamp(mel_spectrogram, min=whisper.clamp_min).log10()
     features = (torch.maximum(log_mel_spectrogram, log_mel_spectrogram.max() - 8.0) + 4.0) / 4.0
@@ -86,6 +86,5 @@ def test_whisper_preprocessor(n_mels, preprocessor, waveforms):
 @pytest.mark.parametrize(("n_mels", "melscale_fbanks"), [(80, whisper.melscale_fbanks80), (128, whisper.melscale_fbanks128)])
 def test_whisper_melscale_fbanks(n_mels, melscale_fbanks):
     expected = mel_filters("cpu", n_mels).T.numpy()
-    actual = melscale_fbanks.numpy()
 
-    np.testing.assert_allclose(actual, expected, atol=5e-7)
+    np.testing.assert_allclose(melscale_fbanks, expected, atol=5e-7)

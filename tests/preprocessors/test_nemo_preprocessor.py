@@ -41,7 +41,7 @@ def preprocessor_torch(waveforms, lens, n_mels):
         pad_mode="constant",
     )
     mel_spectrogram = torch.matmul(
-        spectrogram.transpose(-1, -2), nemo.melscale_fbanks80 if n_mels == 80 else nemo.melscale_fbanks128
+        spectrogram.transpose(-1, -2), torch.from_numpy(nemo.melscale_fbanks80 if n_mels == 80 else nemo.melscale_fbanks128)
     ).transpose(-1, -2)
     log_mel_spectrogram = torch.log(mel_spectrogram + nemo.log_zero_guard_value)
 
@@ -112,6 +112,5 @@ def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
 )
 def test_nemo_melscale_fbanks(preprocessor_origin, melscale_fbanks):
     expected = preprocessor_origin.filter_banks[0].T.numpy()
-    actual = melscale_fbanks.numpy()
 
-    np.testing.assert_allclose(actual, expected, atol=5e-7)
+    np.testing.assert_allclose(melscale_fbanks, expected, atol=5e-7)
