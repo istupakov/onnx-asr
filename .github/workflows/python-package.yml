@@ -20,13 +20,13 @@ jobs:
     name: Build package
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: pdm-project/setup-pdm@v4
       with:
         cache: true
-        python-version: "3.12"
+        python-version: "3.13"
     - name: Cache HF models
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.HF_HUB_CACHE }}
         key: cache-hf-models-${{ hashFiles('tests/onnx_asr/*.py') }}
@@ -44,7 +44,7 @@ jobs:
     - name: Build package dist
       run: pdm build
     
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: wheels
         path: ./dist/onnx_asr-*.whl
@@ -63,18 +63,18 @@ jobs:
         - python-version: "3.13"
           numpy-version: numpy==1.*
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: wheels
           path: ./dist
       - name: Cache HF models
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.HF_HUB_CACHE }}
           key: cache-hf-models-${{ hashFiles('tests/onnx_asr/*.py') }}
@@ -90,4 +90,4 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
