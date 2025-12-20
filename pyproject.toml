@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "Automatic Speech Recognition in Python using ONNX models"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
 keywords = ["asr", "speech recognition", "onnx", "stt"]
-dependencies = ["numpy"]
+dependencies = ["numpy>=1.21.6"]
 requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
@@ -21,6 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Free Threading :: 2 - Beta",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -131,5 +133,8 @@ ignore = [
 "preprocessors/*" = ["ANN", "D", "F821", "N802", "N806"]
 "*.ipynb" = ["ANN", "D", "ERA", "RUF001", "T"]
 
-[tool.pytest.ini_options]
-filterwarnings = ["ignore::DeprecationWarning:sys.*"]
+[tool.pytest]
+filterwarnings = [
+    "ignore::DeprecationWarning:onnxscript.*",
+    "ignore::DeprecationWarning:sys.*",
+]
