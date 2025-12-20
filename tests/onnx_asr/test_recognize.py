@@ -1,4 +1,5 @@
 import numpy as np
+import onnxruntime
 import pytest
 
 import onnx_asr
@@ -11,25 +12,29 @@ models = [
     "gigaam-v2-rnnt",
     "nemo-fastconformer-ru-ctc",
     "nemo-fastconformer-ru-rnnt",
-    "istupakov/canary-180m-flash-onnx",
     "alphacep/vosk-model-ru",
     "alphacep/vosk-model-small-ru",
     "t-tech/t-one",
     "whisper-base",
     "onnx-community/whisper-tiny",
+    pytest.param(
+        "istupakov/canary-180m-flash-onnx",
+        marks=pytest.mark.skipif(onnxruntime.__version__ == "1.18.1", reason="Missed Trilu ONNX operator"),
+    ),
 ]
 
 
 @pytest.fixture(scope="module", params=models)
 def model(request: pytest.FixtureRequest) -> TextResultsAsrAdapter:
-    if request.param == "t-tech/t-one":
-        quantization = None
-    elif request.param == "onnx-community/whisper-tiny":
-        quantization = "uint8"
-    else:
-        quantization = "int8"
-
-    return onnx_asr.load_model(request.param, quantization=quantization, providers=["CPUExecutionProvider"])
+    match request.param:
+        case "t-tech/t-one":
+            return onnx_asr.load_model(request.param, providers=["CPUExecutionProvider"])
+        case "onnx-community/whisper-tiny":
+            return onnx_asr.load_model(request.param, quantization="uint8")
+        case "istupakov/canary-180m-flash-onnx":
+            return onnx_asr.load_model(request.param, quantization="int8", providers=["CPUExecutionProvider"])
+        case _:
+            return onnx_asr.load_model(request.param, quantization="int8")
 
 
 @pytest.fixture(scope="module")
