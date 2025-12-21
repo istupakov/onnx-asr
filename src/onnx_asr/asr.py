@@ -147,6 +147,7 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], language: str | None
     ) -> Iterator[tuple[Iterable[int], Iterable[int]]]:
         for encodings, encodings_len in zip(encoder_out, encoder_out_lens, strict=True):
+            assert encodings_len <= encodings.shape[0]
             prev_state = self._create_state()
             tokens: list[int] = []
             timestamps: list[int] = []
