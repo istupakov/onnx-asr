@@ -104,6 +104,7 @@ class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer)
         )
         assert is_float32_array(encoder_out)
         assert is_int64_array(encoder_out_lens)
+        encoder_out_lens = np.minimum(encoder_out_lens, encoder_out.shape[2])  # In fp16 models the wrong length may be returned
         return encoder_out.transpose(0, 2, 1), encoder_out_lens
 
     def _create_state(self) -> _STATE_TYPE:
