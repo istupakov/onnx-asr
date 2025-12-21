@@ -227,42 +227,72 @@ Hardware:
 1. CPU tests were run on a laptop with an Intel i7-7700HQ processor.
 2. GPU tests were run in Google Colab on Nvidia T4
 
+
+model	providers	quantization	 	 	 	 
+gigaam-v2-ctc	['TensorrtExecutionProvider']	None	1352	1.06%	5.23%	194.1
+gigaam-v2-rnnt	['TensorrtExecutionProvider']	None	1352	1.10%	5.22%	85.6
+gigaam-v3-ctc	['TensorrtExecutionProvider']	None	1352	0.98%	4.72%	216.4
+gigaam-v3-rnnt	['TensorrtExecutionProvider']	None	1352	0.93%	4.39%	94.9
+gigaam-v3-e2e-ctc	['TensorrtExecutionProvider']	None	1352	1.56%	7.80%	218.3
+gigaam-v3-e2e-rnnt	['TensorrtExecutionProvider']	None	1352	1.67%	7.60%	107.3
+nemo-fastconformer-ru-ctc	['TensorrtExecutionProvider']	None	1352	3.13%	13.10%	470.6
+nemo-fastconformer-ru-rnnt	['TensorrtExecutionProvider']	None	1352	2.62%	11.57%	125.1
+t-tech/t-one	['TensorrtExecutionProvider']	None	1352	1.28%	6.56%	42.2
+
+model	providers	quantization	 	 	 	 
+gigaam-v2-ctc	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	1.06%	5.23%	614.0
+gigaam-v2-rnnt	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	1.10%	5.22%	102.0
+gigaam-v3-ctc	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	0.99%	4.73%	705.6
+gigaam-v3-rnnt	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	0.93%	4.39%	103.3
+gigaam-v3-e2e-ctc	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	1.56%	7.79%	709.1
+gigaam-v3-e2e-rnnt	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	1.67%	7.61%	127.0
+nemo-fastconformer-ru-ctc	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	3.13%	13.12%	763.2
+nemo-fastconformer-ru-rnnt	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	2.61%	11.57%	124.3
+nemo-parakeet-tdt-0.6b-v3	[('TensorrtExecutionProvider', {'trt_fp16_enable': True})]	None	1352	2.37%	10.94%	184.0
+
+model	providers	quantization	 	 	 	 
+nemo-parakeet-tdt-0.6b-v3	['CUDAExecutionProvider']	None	1352	2.38%	10.95%	61.9
+alphacep/vosk-model-ru	['CUDAExecutionProvider']	None	1352	2.21%	9.90%	101.6
+alphacep/vosk-model-small-ru	['CUDAExecutionProvider']	None	1352	3.63%	14.46%	113.8
+whisper-base	['CUDAExecutionProvider']	None	1352	10.64%	38.33%	56.3
+onnx-community/whisper-large-v3-turbo	['CUDAExecutionProvider']	fp16	1352	2.61%	10.06%	20.3
+
 Tests of Russian ASR models were performed on a *test* subset of the [Russian LibriSpeech](https://huggingface.co/datasets/istupakov/russian_librispeech) dataset.
 
 | Model                     | Package / decoding   | CER    | WER    | RTFx (CPU) | RTFx (GPU)   |
 |---------------------------|----------------------|--------|--------|------------|--------------|
 |       GigaAM v2 CTC       |        default       | 1.06%  | 5.23%  |        7.2 | 44.2         |
-|       GigaAM v2 CTC       |       onnx-asr       | 1.06%  | 5.23%  |       11.6 | 64.3         |
+|       GigaAM v2 CTC       |       onnx-asr       | 1.06%  | 5.23%  |       11.6 | 194.1        |
 |      GigaAM v2 RNN-T      |        default       | 1.10%  | 5.22%  |        5.5 | 23.3         |
-|      GigaAM v2 RNN-T      |       onnx-asr       | 1.10%  | 5.22%  |       10.7 | 38.7         |
+|      GigaAM v2 RNN-T      |       onnx-asr       | 1.10%  | 5.22%  |       10.7 | 85.6         |
 |       GigaAM v3 CTC       |        default       | 0.98%  | 4.72%  |       12.2 | 73.3         |
-|       GigaAM v3 CTC       |       onnx-asr       | 0.98%  | 4.72%  |       14.5 | 68.3         |
+|       GigaAM v3 CTC       |       onnx-asr       | 0.98%  | 4.72%  |       14.5 | 216.4        |
 |      GigaAM v3 RNN-T      |        default       | 0.93%  | 4.39%  |        8.2 | 41.6         |
-|      GigaAM v3 RNN-T      |       onnx-asr       | 0.93%  | 4.39%  |       13.3 | 39.9         |
+|      GigaAM v3 RNN-T      |       onnx-asr       | 0.93%  | 4.39%  |       13.3 | 94.9         |
 |     GigaAM v3 E2E CTC     |        default       | 1.50%  | 7.10%  |        N/A | 178.0        |
-|     GigaAM v3 E2E CTC     |       onnx-asr       | 1.56%  | 7.80%  |        N/A | 65.6         |
+|     GigaAM v3 E2E CTC     |       onnx-asr       | 1.56%  | 7.80%  |        N/A | 218.3        |
 |    GigaAM v3 E2E RNN-T    |        default       | 1.61%  | 6.94%  |        N/A | 47.6         |
-|    GigaAM v3 E2E RNN-T    |       onnx-asr       | 1.67%  | 7.60%  |        N/A | 42.8         |
+|    GigaAM v3 E2E RNN-T    |       onnx-asr       | 1.67%  | 7.60%  |        N/A | 107.3        |
 |  Nemo FastConformer CTC   |        default       | 3.11%  | 13.12% |       29.1 | 143.0        |
-|  Nemo FastConformer CTC   |       onnx-asr       | 3.11%  | 13.12% |       45.8 | 103.3        |
+|  Nemo FastConformer CTC   |       onnx-asr       | 3.13%  | 13.10% |       45.8 | 470.6        |
 | Nemo FastConformer RNN-T  |        default       | 2.63%  | 11.62% |       17.4 | 111.6        |
-| Nemo FastConformer RNN-T  |       onnx-asr       | 2.63%  | 11.62% |       27.2 | 53.4         |
+| Nemo FastConformer RNN-T  |       onnx-asr       | 2.62%  | 11.57% |       27.2 | 125.1        |
 | Nemo Parakeet TDT 0.6B V3 |        default       | 2.34%  | 10.95% |        5.6 | 75.4         |
-| Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 2.38%  | 10.95% |        9.7 | 59.7         |
+| Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 2.38%  | 10.95% |        9.7 | 61.9         |
 |     Nemo Canary 1B V2     |        default       | 4.89%  | 20.00% |        N/A | 14.0         |
-|     Nemo Canary 1B V2     |       onnx-asr       | 5.00%  | 20.03% |        N/A | 17.4         |
+|     Nemo Canary 1B V2     |       onnx-asr       | 5.00%  | 20.03% |        N/A | 17.4         | xx
 |       T-Tech T-one        |        default       | 1.28%  | 6.56%  |       11.9 | N/A          |
-|       T-Tech T-one        |       onnx-asr       | 1.28%  | 6.57%  |       11.7 | 16.5         |
+|       T-Tech T-one        |       onnx-asr       | 1.28%  | 6.57%  |       11.7 | 42.2         |
 |      Vosk 0.52 small      |     greedy_search    | 3.64%  | 14.53% |       48.2 | 71.4         |
 |      Vosk 0.52 small      | modified_beam_search | 3.50%  | 14.25% |       29.0 | 24.7         |
-|      Vosk 0.52 small      |       onnx-asr       | 3.64%  | 14.53% |       45.5 | 75.2         |
+|      Vosk 0.52 small      |       onnx-asr       | 3.64%  | 14.53% |       45.5 | 113.8        |
 |         Vosk 0.54         |     greedy_search    | 2.21%  | 9.89%  |       34.8 | 64.2         |
 |         Vosk 0.54         | modified_beam_search | 2.21%  | 9.85%  |       23.9 | 24           |
-|         Vosk 0.54         |       onnx-asr       | 2.21%  | 9.89%  |       33.6 | 69.6         |
+|         Vosk 0.54         |       onnx-asr       | 2.21%  | 9.89%  |       33.6 | 101.6        |
 |       Whisper base        |        default       | 10.61% | 38.89% |        5.4 | 17.3         |
-|       Whisper base        |       onnx-asr*      | 10.64% | 38.33% |        6.6 | 20.1         |
+|       Whisper base        |       onnx-asr*      | 10.64% | 38.33% |        6.6 | 56.3         |
 |  Whisper large-v3-turbo   |        default       | 2.96%  | 10.27% |        N/A | 13.6         |
-|  Whisper large-v3-turbo   |       onnx-asr**     | 2.63%  | 10.13% |        N/A | 12.4         |
+|  Whisper large-v3-turbo   |       onnx-asr**     | 2.63%  | 10.13% |        N/A | 20.3         |
 
 Tests of English ASR models were performed on a *test* subset of the [Voxpopuli](https://huggingface.co/datasets/facebook/voxpopuli) dataset.
 
