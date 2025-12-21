@@ -28,11 +28,11 @@ models = [
 def model(request: pytest.FixtureRequest) -> TextResultsAsrAdapter:
     match request.param:
         case "t-tech/t-one":
-            return onnx_asr.load_model(request.param, providers=["CPUExecutionProvider"])
+            return onnx_asr.load_model(request.param, asr_config={"providers": ["CPUExecutionProvider"]})
         case "onnx-community/whisper-tiny":
             return onnx_asr.load_model(request.param, quantization="uint8")
         case "istupakov/canary-180m-flash-onnx":
-            return onnx_asr.load_model(request.param, quantization="int8", providers=["CPUExecutionProvider"])
+            return onnx_asr.load_model(request.param, quantization="int8", asr_config={"providers": ["CPUExecutionProvider"]})
         case _:
             return onnx_asr.load_model(request.param, quantization="int8")
 
