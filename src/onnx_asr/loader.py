@@ -1,6 +1,7 @@
 """Loader for ASR models."""
 
 import json
+import warnings
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal, get_args
@@ -25,7 +26,7 @@ from onnx_asr.models import (
     WhisperHf,
     WhisperOrt,
 )
-from onnx_asr.onnx import OnnxSessionOptions
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions, exclude_onnx_providers
 from onnx_asr.preprocessors import PreprocessorRuntimeConfig, Resampler
 from onnx_asr.vad import Vad
 
@@ -186,7 +187,8 @@ def load_model(  # noqa: C901
     sess_options: rt.SessionOptions | None = None,
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
-    cpu_preprocessing: bool = True,
+    cpu_preprocessing: bool | None = None,
+    asr_config: OnnxSessionOptions | None = None,
     preprocessor_config: PreprocessorRuntimeConfig | None = None,
     resampler_config: OnnxSessionOptions | None = None,
 ) -> TextResultsAsrAdapter:
@@ -208,10 +210,11 @@ def load_model(  # noqa: C901
                 Whisper from onnx-community (`whisper` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
         path: Path to directory with model files.
         quantization: Model quantization (`None` | `int8` | ... ).
-        sess_options: Optional SessionOptions for onnxruntime.
-        providers: Optional providers for onnxruntime.
-        provider_options: Optional provider_options for onnxruntime.
-        cpu_preprocessing: Run preprocessors on CPU.
+        sess_options: Default SessionOptions for onnxruntime.
+        providers: Default providers for onnxruntime.
+        provider_options: Default provider_options for onnxruntime.
+        cpu_preprocessing: Deprecated and ignored, use preprocessor_config and resampler_config instead.
+        asr_config: ASR ONNX config.
         preprocessor_config: Preprocessor ONNX and concurrency config.
         resampler_config: Resampler ONNX config.
 
@@ -219,6 +222,12 @@ def load_model(  # noqa: C901
         ASR model class.
 
     """
+    if cpu_preprocessing is not None:
+        warnings.warn(
+            "The cpu_preprocessing argument is deprecated and ignored (use preprocessor_config and resampler_config instead).",
+            stacklevel=2,
+        )
+
     if "/" in model and not model.startswith(("alphacep/", "t-tech/")):
         repo_id = model
         model = _find_model_type(repo_id, path)
@@ -303,23 +312,25 @@ def load_model(  # noqa: C901
         case _:
             raise ModelNotSupportedError(model)
 
-    onnx_options: PreprocessorRuntimeConfig = {
+    default_onnx_config: OnnxSessionOptions = {
         "sess_options": sess_options,
         "providers": providers or rt.get_available_providers(),
         "provider_options": provider_options,
     }
 
-    if resampler_config is None:
-        resampler_config = {"sess_options": sess_options} if cpu_preprocessing else onnx_options
+    if asr_config is None:
+        asr_config = default_onnx_config
 
     if preprocessor_config is None:
-        preprocessor_config = {"sess_options": sess_options} if cpu_preprocessing else onnx_options
-        preprocessor_config |= {"max_concurrent_workers": 1}
+        preprocessor_config = {**default_onnx_config, "max_concurrent_workers": 1}
+
+    if resampler_config is None:
+        resampler_config = exclude_onnx_providers(default_onnx_config, TensorRtOptions.get_provider_names())
 
     return TextResultsAsrAdapter(
         model_type(
             _download_files(repo_id or default_repo_id, path, model_type._get_model_files(quantization)),
-            AsrRuntimeConfig(onnx_options, preprocessor_config),
+            AsrRuntimeConfig(asr_config, preprocessor_config),
         ),
         Resampler(model_type._get_sample_rate(), resampler_config),
     )
@@ -359,9 +370,9 @@ def load_vad(
         case _:
             raise ModelNotSupportedError(model)
 
-    onnx_options: OnnxSessionOptions = {
+    onnx_options = exclude_onnx_providers({"providers": rt.get_available_providers()}, TensorRtOptions.get_provider_names()) | {
         "sess_options": sess_options,
-        "providers": providers or rt.get_available_providers(),
+        "providers": providers,
         "provider_options": provider_options,
     }
 
