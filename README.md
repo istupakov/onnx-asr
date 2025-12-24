@@ -63,9 +63,10 @@ pip install onnx-asr[gpu,hub]
 ```shell
 pip install onnx-asr
 ```
-4. To build onnx-asr from source, you need to install [pdm](https://pdm-project.org/en/latest/#installation). Then you can build onnx-asr with command:
+
+To install latest version `onnx-asr` from **GitHub**, use `pip` (or `uv pip`):
 ```shell
-pdm build
+pip install git+https://github.com/istupakov/onnx-asr
 ```
 
 ## Usage examples
