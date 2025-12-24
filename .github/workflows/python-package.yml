@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-    - uses: pdm-project/setup-pdm@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
       with:
-        cache: true
-        python-version: "3.13"
+        enable-cache: true
     - name: Cache HF models
       uses: actions/cache@v5
       with:
@@ -32,18 +32,18 @@ jobs:
         key: cache-hf-models-${{ hashFiles('tests/onnx_asr/*.py') }}
 
     - name: Install dependencies
-      run: pdm sync
+      run: uv sync --frozen
     - name: Lint code with Ruff
-      run: pdm run ruff check --output-format=github
+      run: uv run --frozen ruff check --output-format=github
     - name: Check code formatting with Ruff
-      run: pdm run ruff format --diff
+      run: uv run --frozen ruff format --diff
     - name: Check types with MyPy
-      run: pdm run mypy .
+      run: uv run --frozen mypy .
     - name: Test with pytest
-      run: pdm run pytest --cov=onnx_asr
+      run: uv run --frozen pytest --cov=onnx_asr
     - name: Build package dist
-      run: pdm build
-    
+      run: uv build --wheel
+
     - uses: actions/upload-artifact@v6
       with:
         name: wheels
