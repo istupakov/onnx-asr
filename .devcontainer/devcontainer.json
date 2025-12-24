@@ -17,5 +17,5 @@
 			]
 		}
 	},
-	"postCreateCommand": "pipx install pdm && pip install --no-cache-dir --user ipykernel ipywidgets"
+	"postCreateCommand": "pipx install uv && pip install --no-cache-dir --user ipykernel ipywidgets"
 }

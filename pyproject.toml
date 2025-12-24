@@ -36,8 +36,8 @@ Issues = "https://github.com/istupakov/onnx-asr/issues"
 Source = "https://github.com/istupakov/onnx-asr"
 
 [build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 cpu = ["onnxruntime>=1.18.1"]
@@ -49,48 +49,50 @@ onnx-asr = "onnx_asr.cli:run"
 
 [dependency-groups]
 build = [
-    "onnx>=1.17.0",
-    "onnxscript>=0.2.5",
-    "torch>=2.6.0",
-    "torchaudio>=2.6.0",
+    "onnx>=1.20.0",
+    "onnxscript>=0.5.7",
+    "torch>=2.9.1",
+    "torchaudio>=2.9.1",
 ]
 asrs = [
-    "kaldi-native-fbank>=1.21.1",
-    "nemo-toolkit[asr]>=2.2.1",
-    "openai-whisper>=20240930",
+    "kaldi-native-fbank>=1.22.3",
+    "nemo-toolkit[asr]>=2.6.0",
+    "openai-whisper>=v20250625",
 ]
-test = [
-    "pytest>=8.3.5",
-    "pytest-cov>=6.1.1",
-    "onnxruntime>=1.21.1",
+dev = [
+    "ruff>=0.14.10",
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "hatchling>=1.28.0",
+    "onnxruntime>=1.23.2",
     { include-group = "build" },
     { include-group = "asrs" },
 ]
-lint = ["ruff>=0.11.6", "mypy>=1.16.1"]
 
-[tool.pdm]
-distribution = true
+[tool.uv]
+override-dependencies = ["numpy<2.4"]
 
-[tool.pdm.version]
-source = "scm"
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchaudio = { index = "pytorch" }
 
-[tool.pdm.build]
-source-includes = ["preprocessors", "tests"]
-
-[tool.pdm.scripts]
-build_preprocessors = { call = "preprocessors.build:build" }
-post_install = { composite = ["build_preprocessors"] }
-pre_build = { composite = ["pdm sync --no-self --group build"] }
-lint = { composite = ["ruff format --diff", "ruff check", "mypy ."] }
-
-[[tool.pdm.source]]
-name = "torch-cpu"
+[[tool.uv.index]]
+name = "pytorch"
 url = "https://download.pytorch.org/whl/cpu"
-include_packages = ["torch", "torchaudio"]
-exclude_packages = ["*"]
+explicit = true
 
-[tool.pdm.resolution.overrides]
-numpy = "~=2.1"
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build]
+only-packages = true
+
+[tool.hatch.build.targets.wheel]
+dependencies = ["uv"]
+artifacts = ["/src/onnx_asr/preprocessors/*.onnx"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
 
 [tool.mypy]
 python_version = "3.10"

@@ -39,3 +39,7 @@ def build():
                     preprocessors_dir.joinpath(f"resample_{orig_freq // 1000}_{new_freq // 1000}.onnx"),
                     100,
                 )
+
+
+if __name__ == "__main__":
+    build()
