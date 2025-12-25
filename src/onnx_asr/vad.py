@@ -47,7 +47,7 @@ class Vad(ABC):
         waveforms: npt.NDArray[np.float32],
         waveforms_len: npt.NDArray[np.int64],
         sample_rate: Literal[8_000, 16_000],
-        language: str | None,
+        asr_kwargs: dict[str, str | None],
         batch_size: float = 8,
         **kwargs: float,
     ) -> Iterator[Iterator[TimestampedSegmentResult]]:
@@ -60,7 +60,7 @@ class Vad(ABC):
                 yield from (
                     TimestampedSegmentResult(start / sample_rate, end / sample_rate, res.text, res.timestamps, res.tokens)
                     for res, (start, end) in zip(
-                        asr.recognize_batch(*pad_list([waveform[start:end] for start, end in batch]), language),
+                        asr.recognize_batch(*pad_list([waveform[start:end] for start, end in batch]), **asr_kwargs),
                         batch,
                         strict=True,
                     )
