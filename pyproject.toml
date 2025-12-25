@@ -59,15 +59,20 @@ asrs = [
     "nemo-toolkit[asr]>=2.6.0",
     "openai-whisper>=v20250625",
 ]
-dev = [
-    "ruff>=0.14.10",
-    "mypy>=1.19.1",
+tests = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "hatchling>=1.28.0",
     "onnxruntime>=1.23.2",
     { include-group = "build" },
     { include-group = "asrs" },
+]
+dev = [
+    "ruff>=0.14.10",
+    "mypy>=1.19.1",
+    "hatchling>=1.28.0",
+    "ipykernel>=7.1.0",
+    "ipywidgets>=8.1.8",
+    { include-group = "tests" },
 ]
 
 [tool.uv]
