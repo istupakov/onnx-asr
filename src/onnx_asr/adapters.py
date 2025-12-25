@@ -71,7 +71,9 @@ class AsrAdapter(ABC, Generic[R]):
                       or Numpy array with PCM waveform.
                       A list of file paths or numpy arrays for batch recognition are also supported.
             sample_rate: Sample rate for Numpy arrays in waveform.
-            language: Speech language (only for Whisper models).
+            language: Speech language (only for Whisper and Canary models).
+            target_language: Output language (only for Canary models).
+            pnc: Output punctuation and capitalization (only for Canary models, "pnc" | "nopnc").
 
         Returns:
             Speech recognition results (single or list for batch recognition).
@@ -84,6 +86,9 @@ class AsrAdapter(ABC, Generic[R]):
         result = self._recognize_batch(
             *self.resampler(*read_wav_files(waveform_batch, sample_rate)),
             language=language,
+            target_language=target_language,
+            pnc=pnc,
+        )
 
         if isinstance(waveform, list):
             return list(result)

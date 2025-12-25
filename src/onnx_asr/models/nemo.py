@@ -234,7 +234,14 @@ class NemoConformerAED(_NemoConformer):
         language = kwargs.get("language")
         if language:
             tokens[:, 3] = self._tokens[f"<|{language}|>"]
-            tokens[:, 4] = self._tokens[f"<|{language}|>"]
+
+        target_language = kwargs.get("target_language", language)
+        if target_language:
+            tokens[:, 4] = self._tokens[f"<|{target_language}|>"]
+
+        pnc = kwargs.get("pnc")
+        if pnc:
+            tokens[:, 5] = self._tokens[f"<|{pnc}|>"]
 
         shapes = {x.name: x.shape for x in self._decoder.get_inputs()}
         decoder_mems = np.empty((shapes["decoder_mems"][0], batch_size, 0, shapes["decoder_mems"][3]), dtype=np.float32)
