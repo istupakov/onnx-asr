@@ -66,6 +66,15 @@ def test_recognize(model: TextResultsAsrAdapter) -> None:
     assert isinstance(result, str)
 
 
+def test_recognize_batch(model: TextResultsAsrAdapter) -> None:
+    rng = np.random.default_rng(0)
+    waveform1 = rng.random((2 * 16_000), dtype=np.float32)
+    waveform2 = rng.random((1 * 16_000), dtype=np.float32)
+
+    result = model.recognize([waveform1, waveform2])
+    assert isinstance(result, list)
+
+
 def test_recognize_with_vad(model: TextResultsAsrAdapter, vad: Vad) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)

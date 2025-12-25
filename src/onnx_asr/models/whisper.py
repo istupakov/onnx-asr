@@ -78,11 +78,12 @@ class _Whisper(Asr):
         )
 
     def recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], language: str | None
+        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: str | None
     ) -> Iterator[TimestampedResult]:
         input_encoding = self._encode(waveforms, waveforms_len)
         input_tokens = np.repeat(self._transcribe_input, len(waveforms), axis=0)
 
+        language = kwargs.get("language")
         if language:
             input_tokens[:, 1] = self._tokens[f"<|{language}|>"]
         else:

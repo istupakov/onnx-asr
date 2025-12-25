@@ -222,11 +222,16 @@ class NemoConformerAED(_NemoConformer):
         return logits, decoder_hidden_states
 
     def _decoding(
-        self, encoder_embeddings: npt.NDArray[np.float32], encoder_mask: npt.NDArray[np.int64], language: str | None
+        self,
+        encoder_embeddings: npt.NDArray[np.float32],
+        encoder_mask: npt.NDArray[np.int64],
+        /,
+        **kwargs: str | None,
     ) -> Iterator[tuple[Iterable[int], Iterable[int]]]:
         batch_size = encoder_embeddings.shape[0]
         tokens = np.repeat(self._transcribe_input, batch_size, axis=0)
 
+        language = kwargs.get("language")
         if language:
             tokens[:, 3] = self._tokens[f"<|{language}|>"]
             tokens[:, 4] = self._tokens[f"<|{language}|>"]
