@@ -12,7 +12,7 @@ import onnxruntime as rt
 from onnxruntime import OrtValue
 
 from onnx_asr.asr import Asr, AsrRuntimeConfig, TimestampedResult
-from onnx_asr.onnx import get_onnx_device
+from onnx_asr.onnx import TensorRtOptions, get_onnx_device
 from onnx_asr.utils import is_float32_array, is_int32_array
 
 
@@ -57,6 +57,10 @@ class _Whisper(Asr):
             dtype=np.int64,
         )
         self._detect_lang_input = np.array([[self._bos_token_id]], dtype=np.int64)
+
+    @staticmethod
+    def _get_excluded_providers() -> list[str]:
+        return TensorRtOptions.get_provider_names()
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:

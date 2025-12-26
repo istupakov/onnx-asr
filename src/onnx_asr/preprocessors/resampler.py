@@ -32,6 +32,10 @@ class Resampler:
                 **TensorRtOptions.add_profile(onnx_options, self._preprocessor_shapes),
             )
 
+    @staticmethod
+    def _get_excluded_providers() -> list[str]:
+        return TensorRtOptions.get_provider_names()
+
     def _preprocessor_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
         return "waveforms:{batch}x{len},waveforms_lens:{batch}".format(
             len=kwargs.get("resampler_waveform_len_ms", waveform_len_ms) * 48, **kwargs

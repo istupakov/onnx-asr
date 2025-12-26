@@ -57,7 +57,12 @@ class Asr(ABC):
         else:
             self.config = {}
 
+        self.runtime_config = runtime_config
         self._preprocessor = Preprocessor(self._preprocessor_name, runtime_config.preprocessor_config)
+
+    @staticmethod
+    def _get_excluded_providers() -> list[str]:
+        return []
 
     @staticmethod
     def _get_sample_rate() -> Literal[8_000, 16_000]:

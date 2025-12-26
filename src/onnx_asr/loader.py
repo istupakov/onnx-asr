@@ -26,8 +26,9 @@ from onnx_asr.models import (
     WhisperHf,
     WhisperOrt,
 )
-from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions, exclude_onnx_providers
+from onnx_asr.onnx import OnnxSessionOptions, exclude_onnx_providers
 from onnx_asr.preprocessors import PreprocessorRuntimeConfig, Resampler
+from onnx_asr.preprocessors.preprocessor import Preprocessor
 from onnx_asr.vad import Vad
 
 ModelNames = Literal[
@@ -319,13 +320,16 @@ def load_model(  # noqa: C901
     }
 
     if asr_config is None:
-        asr_config = default_onnx_config
+        asr_config = exclude_onnx_providers(default_onnx_config, model_type._get_excluded_providers())
 
     if preprocessor_config is None:
-        preprocessor_config = {**default_onnx_config, "max_concurrent_workers": 1}
+        preprocessor_config = {
+            **exclude_onnx_providers(default_onnx_config, Preprocessor._get_excluded_providers()),
+            "max_concurrent_workers": 1,
+        }
 
     if resampler_config is None:
-        resampler_config = exclude_onnx_providers(default_onnx_config, TensorRtOptions.get_provider_names())
+        resampler_config = exclude_onnx_providers(default_onnx_config, Resampler._get_excluded_providers())
 
     return TextResultsAsrAdapter(
         model_type(
@@ -370,7 +374,7 @@ def load_vad(
         case _:
             raise ModelNotSupportedError(model)
 
-    onnx_options = exclude_onnx_providers({"providers": rt.get_available_providers()}, TensorRtOptions.get_provider_names()) | {
+    onnx_options = exclude_onnx_providers({"providers": rt.get_available_providers()}, model_type._get_excluded_providers()) | {
         "sess_options": sess_options,
         "providers": providers,
         "provider_options": provider_options,
