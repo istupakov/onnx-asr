@@ -239,7 +239,7 @@ class NemoConformerAED(_NemoConformer):
         if language:
             batch_tokens[:, 3] = self._tokens[f"<|{language}|>"]
 
-        target_language = kwargs.get("target_language", language)
+        target_language = kwargs.get("target_language") or language
         if target_language:
             batch_tokens[:, 4] = self._tokens[f"<|{target_language}|>"]
 
