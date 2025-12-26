@@ -5,6 +5,7 @@ import pytest
 import onnx_asr
 import onnx_asr.utils
 from onnx_asr.adapters import TextResultsAsrAdapter
+from onnx_asr.asr import TimestampedResult
 from onnx_asr.vad import Vad
 
 models = [
@@ -64,6 +65,14 @@ def test_recognize(model: TextResultsAsrAdapter) -> None:
 
     result = model.recognize(waveform)
     assert isinstance(result, str)
+
+
+def test_recognize_with_timestamps(model: TextResultsAsrAdapter) -> None:
+    rng = np.random.default_rng(0)
+    waveform = rng.random((1 * 16_000), dtype=np.float32)
+
+    result = model.with_timestamps().recognize(waveform)
+    assert isinstance(result, TimestampedResult)
 
 
 def test_recognize_batch(model: TextResultsAsrAdapter) -> None:

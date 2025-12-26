@@ -227,31 +227,36 @@ class NemoConformerAED(_NemoConformer):
         encoder_mask: npt.NDArray[np.int64],
         /,
         **kwargs: str | None,
-    ) -> Iterator[tuple[Iterable[int], Iterable[int]]]:
+    ) -> Iterator[tuple[Iterable[int], None, Iterable[float]]]:
         batch_size = encoder_embeddings.shape[0]
-        tokens = np.repeat(self._transcribe_input, batch_size, axis=0)
+        batch_tokens = np.repeat(self._transcribe_input, batch_size, axis=0)
 
         language = kwargs.get("language")
         if language:
-            tokens[:, 3] = self._tokens[f"<|{language}|>"]
+            batch_tokens[:, 3] = self._tokens[f"<|{language}|>"]
 
         target_language = kwargs.get("target_language", language)
         if target_language:
-            tokens[:, 4] = self._tokens[f"<|{target_language}|>"]
+            batch_tokens[:, 4] = self._tokens[f"<|{target_language}|>"]
 
         pnc = kwargs.get("pnc")
         if pnc:
-            tokens[:, 5] = self._tokens[f"<|{pnc}|>"]
+            batch_tokens[:, 5] = self._tokens[f"<|{pnc}|>"]
 
+        prefix_len = batch_tokens.shape[1]
         shapes = {x.name: x.shape for x in self._decoder.get_inputs()}
         decoder_mems = np.empty((shapes["decoder_mems"][0], batch_size, 0, shapes["decoder_mems"][3]), dtype=np.float32)
-        while tokens.shape[1] < self._max_sequence_length:
-            logits, decoder_mems = self._decode(tokens, encoder_embeddings, encoder_mask, decoder_mems)
+        batch_logprobs = np.zeros((batch_size, 0), dtype=np.float32)
+        while batch_tokens.shape[1] < self._max_sequence_length:
+            logits, decoder_mems = self._decode(batch_tokens, encoder_embeddings, encoder_mask, decoder_mems)
 
             next_tokens = np.argmax(logits[:, -1], axis=-1)
             if (next_tokens == self._eos_token_id).all():
                 break
 
-            tokens = np.concatenate((tokens, next_tokens[:, None]), axis=-1)
+            next_logprobs = np.take_along_axis(logits[:, -1], next_tokens[:, None], axis=-1).squeeze(axis=-1)
+            batch_tokens = np.concatenate((batch_tokens, next_tokens[:, None]), axis=-1)
+            batch_logprobs = np.concatenate((batch_logprobs, next_logprobs[:, None]), axis=-1)
 
-        return (([id for id in tok if not self._vocab[id].startswith("<|")], []) for tok in tokens)
+        for tokens, logprobs in zip(batch_tokens[:, prefix_len:], batch_logprobs, strict=True):
+            yield ([id for id in tokens if not self._vocab[id].startswith("<|")], None, logprobs[tokens != self._eos_token_id])
