@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.onnx import OnnxSessionOptions
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
 from onnx_asr.utils import is_float32_array
 from onnx_asr.vad import Vad
 
@@ -28,6 +28,10 @@ class SileroVad(Vad):
 
         """
         self._model = rt.InferenceSession(model_files["model"], **onnx_options)
+
+    @staticmethod
+    def _get_excluded_providers() -> list[str]:
+        return TensorRtOptions.get_provider_names()
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:

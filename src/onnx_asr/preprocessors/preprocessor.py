@@ -43,6 +43,10 @@ class Preprocessor:
                 **TensorRtOptions.add_profile(runtime_config, self._preprocessor_shapes),
             )
 
+    @staticmethod
+    def _get_excluded_providers() -> list[str]:
+        return ["CUDAExecutionProvider"]
+
     def _preprocessor_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
         return "waveforms:{batch}x{len},waveforms_lens:{batch}".format(len=waveform_len_ms * 16, **kwargs)
 

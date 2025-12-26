@@ -37,6 +37,10 @@ class TOneCtc(_AsrWithCtcDecoding):
         self._blank_idx = int(self.config["pad_token_id"])  # type: ignore[typeddict-item]
 
     @staticmethod
+    def _get_excluded_providers() -> list[str]:
+        return ["CoreMLExecutionProvider"]
+
+    @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         suffix = "?" + quantization if quantization else ""
         return {"model": f"model{suffix}.onnx"}
