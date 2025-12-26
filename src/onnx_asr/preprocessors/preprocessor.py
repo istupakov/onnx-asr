@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions, contains_onnx_providers
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions, get_onnx_providers
 from onnx_asr.utils import is_float32_array, is_int64_array
 
 
@@ -30,17 +30,19 @@ class Preprocessor:
             runtime_config: Runtime configuration.
 
         """
-        self._max_concurrent_workers = runtime_config.pop("max_concurrent_workers", 1)
+        onnx_options = runtime_config.copy()
+        self._max_concurrent_workers = onnx_options.pop("max_concurrent_workers", 1)
         if name == "identity":
             self._preprocessor = None
         else:
-            if name == "kaldi" and contains_onnx_providers(runtime_config, TensorRtOptions.get_provider_names()):
+            providers = get_onnx_providers(onnx_options)
+            if name == "kaldi" and providers and providers != ["CPUExecutionProvider"]:
                 name = "kaldi_fast"
 
             filename = str(Path(name).with_suffix(".onnx"))
             self._preprocessor = rt.InferenceSession(
                 files(__package__).joinpath(filename).read_bytes(),
-                **TensorRtOptions.add_profile(runtime_config, self._preprocessor_shapes),
+                **TensorRtOptions.add_profile(onnx_options, self._preprocessor_shapes),
             )
 
     @staticmethod

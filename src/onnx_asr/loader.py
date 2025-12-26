@@ -26,7 +26,7 @@ from onnx_asr.models import (
     WhisperHf,
     WhisperOrt,
 )
-from onnx_asr.onnx import OnnxSessionOptions, exclude_onnx_providers
+from onnx_asr.onnx import OnnxSessionOptions, update_onnx_providers
 from onnx_asr.preprocessors import PreprocessorRuntimeConfig, Resampler
 from onnx_asr.preprocessors.preprocessor import Preprocessor
 from onnx_asr.vad import Vad
@@ -320,16 +320,20 @@ def load_model(  # noqa: C901
     }
 
     if asr_config is None:
-        asr_config = exclude_onnx_providers(default_onnx_config, model_type._get_excluded_providers())
+        asr_config = update_onnx_providers(default_onnx_config, excluded_providers=model_type._get_excluded_providers())
 
     if preprocessor_config is None:
         preprocessor_config = {
-            **exclude_onnx_providers(default_onnx_config, Preprocessor._get_excluded_providers()),
+            **update_onnx_providers(
+                default_onnx_config,
+                new_options={"TensorrtExecutionProvider": {"trt_fp16_enable": False, "trt_int8_enable": False}},
+                excluded_providers=Preprocessor._get_excluded_providers(),
+            ),
             "max_concurrent_workers": 1,
         }
 
     if resampler_config is None:
-        resampler_config = exclude_onnx_providers(default_onnx_config, Resampler._get_excluded_providers())
+        resampler_config = update_onnx_providers(default_onnx_config, excluded_providers=Resampler._get_excluded_providers())
 
     return TextResultsAsrAdapter(
         model_type(
@@ -374,7 +378,9 @@ def load_vad(
         case _:
             raise ModelNotSupportedError(model)
 
-    onnx_options = exclude_onnx_providers({"providers": rt.get_available_providers()}, model_type._get_excluded_providers()) | {
+    onnx_options = update_onnx_providers(
+        {"providers": rt.get_available_providers()}, excluded_providers=model_type._get_excluded_providers()
+    ) | {
         "sess_options": sess_options,
         "providers": providers,
         "provider_options": provider_options,
