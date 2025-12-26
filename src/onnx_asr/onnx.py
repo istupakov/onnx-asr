@@ -40,9 +40,9 @@ class TensorRtOptions:
     @classmethod
     def add_profile(cls, onnx_options: OnnxSessionOptions, transform_shapes: Callable[..., str]) -> OnnxSessionOptions:
         """Add TensorRT trt_profile options."""
-        return add_onnx_provider_options(
+        return update_onnx_providers(
             onnx_options,
-            {
+            default_options={
                 "TensorrtExecutionProvider": cls._generate_trt_profile(transform_shapes),
                 "NvTensorRtRtxExecutionProvider": cls._generate_nv_profile(transform_shapes),
             },
@@ -75,33 +75,32 @@ def _merge_onnx_provider_options(onnx_options: OnnxSessionOptions) -> dict[str, 
     return merged_providers
 
 
-def add_onnx_provider_options(onnx_options: OnnxSessionOptions, default_options: dict[str, dict[Any, Any]]) -> OnnxSessionOptions:
-    """Add default onnxruntime providers options."""
+def update_onnx_providers(
+    onnx_options: OnnxSessionOptions,
+    *,
+    default_options: dict[str, dict[Any, Any]] | None = None,
+    new_options: dict[str, dict[Any, Any]] | None = None,
+    excluded_providers: list[str] | None = None,
+) -> OnnxSessionOptions:
+    """Update onnxruntime providers."""
     providers_dict = _merge_onnx_provider_options(onnx_options)
     if not providers_dict:
         return onnx_options
+    default_options = default_options or {}
+    new_options = new_options or {}
+    excluded_providers = excluded_providers or []
 
-    providers_dict = {name: default_options.get(name, {}) | options for name, options in providers_dict.items()}
+    providers_dict = {
+        name: default_options.get(name, {}) | options | new_options.get(name, {})
+        for name, options in providers_dict.items()
+        if name not in excluded_providers
+    }
     return {**onnx_options, "providers": list(providers_dict.keys()), "provider_options": list(providers_dict.values())}
 
 
-def exclude_onnx_providers(onnx_options: OnnxSessionOptions, providers: list[str]) -> OnnxSessionOptions:
-    """Exclude providers from onnxruntime options."""
-    providers_dict = _merge_onnx_provider_options(onnx_options)
-    if not providers_dict:
-        return onnx_options
-
-    providers_dict = {name: options for name, options in providers_dict.items() if name not in providers}
-    return {**onnx_options, "providers": list(providers_dict.keys()), "provider_options": list(providers_dict.values())}
-
-
-def contains_onnx_providers(onnx_options: OnnxSessionOptions, providers: list[str]) -> bool:
-    """Check if onnxruntime options contains providers."""
-    providers_dict = _merge_onnx_provider_options(onnx_options)
-    if not providers_dict:
-        return False
-
-    return any(set(providers) & providers_dict.keys())
+def get_onnx_providers(onnx_options: OnnxSessionOptions) -> list[str]:
+    """Get providers list from onnxruntime options."""
+    return list(_merge_onnx_provider_options(onnx_options).keys())
 
 
 def get_onnx_device(session: rt.InferenceSession) -> tuple[str, int]:
