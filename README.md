@@ -10,7 +10,7 @@
 
 [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
 
-**onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. It's written in pure Python with minimal dependencies (no PyTorch, Transformers, or FFmpeg required):
+**onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. It's a simple and fast pure Python package with minimal dependencies (PyTorch, Transformers, and FFmpeg are not required):
 
 [![numpy](https://img.shields.io/badge/numpy-required-blue?logo=numpy)](https://pypi.org/project/numpy/)
 [![onnxruntime](https://img.shields.io/badge/onnxruntime-required-blue?logo=onnx)](https://pypi.org/project/onnxruntime/)
@@ -20,12 +20,15 @@
 > Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
 
 The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
- * Runs on Windows, Linux, and MacOS on a variety of devices, from IoT devices with Arm CPUs to servers with Nvidia GPUs ([benchmarks](#benchmarks))
- * Loading models from hugging face or local folders (including quantized versions)
- * Accepts wav files or NumPy arrays (built-in support for file reading and resampling)
+ * Works on a wide range of devices, from small IoT devices to servers with powerful GPUs ([benchmarks](#benchmarks))
+ * Runs on Windows, Linux, and macOS on x86 or Arm CPUs and can use CUDA, TensorRT, CoreML, ROCm, and DirectML
+ * NumPy versions from 1.21.6 to 2.4+ and Python versions from 3.10 to 3.14 are supported
+ * Loading models from Hugging Face or local folders (including quantized versions)
+ * Accepts WAV files or NumPy arrays (built-in support for reading and resampling files)
+ * Custom models (if their architecture is supported)
  * Batch processing
- * (experimental) Longform recognition with VAD (Voice Activity Detection)
- * (experimental) Returns token timestamps
+ * (experimental) Longform recognition using VAD (Voice Activity Detection)
+ * (experimental) Returns token timestamps and logprobs
  * Simple CLI
  * Online demo in [HF Spaces](https://istupakov-onnx-asr.hf.space/)
 
@@ -38,7 +41,7 @@ The package supports the following modern ASR model architectures ([comparison](
 * T-Tech T-one (with CTC decoder, no streaming support yet)
 * OpenAI Whisper
 
-When saving these models in onnx format, usually only the encoder and decoder are saved. To run them, the corresponding preprocessor and decoding must be implemented. Therefore, the package contains these implementations for all supported models:
+When saving these models in ONNX format, usually only the encoder and decoder are saved. To run them, the corresponding preprocessor and decoding must be implemented. Therefore, the package contains these implementations for all supported models:
 * Log-mel spectrogram preprocessors
 * Greedy search decoding
 
@@ -46,20 +49,25 @@ When saving these models in onnx format, usually only the encoder and decoder ar
 
 The package can be installed from [PyPI](https://pypi.org/project/onnx-asr/):
 
-1. With CPU `onnxruntime` and `huggingface-hub`
+1. With CPU `onnxruntime` and `huggingface-hub`:
 ```shell
 pip install onnx-asr[cpu,hub]
 ```
-2. With GPU `onnxruntime` and `huggingface-hub`
 
-> [!IMPORTANT]
-> First, you need to install the [required](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements) version of CUDA.
-
+2. With `onnxruntime` for NVIDIA GPUs and `huggingface-hub`:
 ```shell
 pip install onnx-asr[gpu,hub]
 ```
 
-3. Without `onnxruntime` and `huggingface-hub` (if you already have some version of `onnxruntime` installed and prefer to download the models yourself)
+> [!IMPORTANT]
+> First, you need to install the [required](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements) version of CUDA / TensorRT.
+
+You can alse install `onnxruntime` dependencies and TensorRT via Pip:
+```shell
+pip install onnxruntime-gpu[cuda,cudnn] tensorrt-cu12-libs
+```
+
+3. Without `onnxruntime` and `huggingface-hub` (if you already have some version of `onnxruntime` installed and prefer to download the models yourself):
 ```shell
 pip install onnx-asr
 ```
@@ -106,9 +114,6 @@ print(model.recognize("test.wav"))
 > [!IMPORTANT]
 > Some long-ago converted `onnx-community` models have a broken `fp16` precision version.
 
-> [!IMPORTANT]
-> Canary models do not work with the CoreML provider.
-
 Example with `soundfile`:
 ```py
 import onnx_asr
@@ -134,11 +139,31 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", quantization="int8")
 print(model.recognize("test.wav"))
 ```
 
-Return tokens and timestamps:
+Return tokens, timestamps and logprobs:
 ```py
 import onnx_asr
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3").with_timestamps()
 print(model.recognize("test1.wav"))
+```
+
+### TensorRT
+
+Running ONNX model on the TensorRT provider and fp16 precision:
+```py
+import onnx_asr
+import tensorrt_libs
+
+providers = [
+    (
+        "TensorrtExecutionProvider",
+        {
+            "trt_max_workspace_size": 6 * 1024**3,
+            "trt_fp16_enable": True,
+        },
+    )
+]
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", providers=providers)
+print(model.recognize("test.wav"))
 ```
 
 ### VAD
@@ -152,7 +177,7 @@ for res in model.recognize("test.wav"):
     print(res)
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > You will most likely need to adjust VAD parameters to get the correct results.
 
 #### Supported VAD names:
@@ -202,8 +227,17 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", "models/parakeet-v3")
 print(model.recognize("test.wav"))
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > If the directory does not exist, it will be created and the model will be loaded into it.
+
+### Load a custom ONNX model from Hugging Face
+
+Load the Canary 180M Flash model from Hugging Face [repo](https://huggingface.co/istupakov/canary-180m-flash-onnx) and recognize the wav file:
+```py
+import onnx_asr
+model = onnx_asr.load_model("istupakov/canary-180m-flash-onnx")
+print(model.recognize("test.wav"))
+```
 
 #### Supported model types:
 * All models from [supported model names](#supported-model-names)
