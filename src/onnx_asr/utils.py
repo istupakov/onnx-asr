@@ -1,7 +1,7 @@
 """Utils for ASR."""
 
 import wave
-from typing import Literal, TypeGuard, get_args
+from typing import Literal, TypeGuard, cast, get_args
 
 import numpy as np
 import numpy.typing as npt
@@ -113,3 +113,10 @@ def pad_list(arrays: list[npt.NDArray[np.float32]]) -> tuple[npt.NDArray[np.floa
         result[i, : x.shape[0]] = x[: min(x.shape[0], result.shape[1])]
 
     return result, lens
+
+
+def log_softmax(logits: npt.NDArray[np.float32], axis: int | None = None) -> npt.NDArray[np.float32]:
+    """Calculate logarithm of softmax."""
+    tmp = logits - np.max(logits, axis=axis)
+    tmp -= np.log(np.sum(np.exp(tmp), axis=axis))
+    return cast(npt.NDArray[np.float32], tmp)

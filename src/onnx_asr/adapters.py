@@ -101,7 +101,7 @@ class TimestampedResultsAsrAdapter(AsrAdapter[TimestampedResult]):
     def _recognize_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: str | None
     ) -> Iterator[TimestampedResult]:
-        return self.asr.recognize_batch(waveforms, waveforms_len, **kwargs)
+        return self.asr.recognize_batch(waveforms, waveforms_len, need_logprobs="yes", **kwargs)
 
 
 class TextResultsAsrAdapter(AsrAdapter[str]):
@@ -131,7 +131,9 @@ class TimestampedSegmentResultsAsrAdapter(AsrAdapter[Iterator[TimestampedSegment
     def _recognize_batch(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: str | None
     ) -> Iterator[Iterator[TimestampedSegmentResult]]:
-        return self.vad.recognize_batch(self.asr, waveforms, waveforms_len, self.asr._get_sample_rate(), kwargs, **self._vadargs)
+        return self.vad.recognize_batch(
+            self.asr, waveforms, waveforms_len, self.asr._get_sample_rate(), kwargs | {"need_logprobs": "yes"}, **self._vadargs
+        )
 
 
 class SegmentResultsAsrAdapter(AsrAdapter[Iterator[SegmentResult]]):
