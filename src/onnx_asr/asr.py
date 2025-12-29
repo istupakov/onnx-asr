@@ -11,7 +11,7 @@ from typing import Generic, Literal, TypedDict, TypeVar
 import numpy as np
 import numpy.typing as npt
 
-from onnx_asr.onnx import OnnxSessionOptions
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
 from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig
 from onnx_asr.utils import log_softmax
 
@@ -44,6 +44,11 @@ class AsrRuntimeConfig:
 
     onnx_options: OnnxSessionOptions = field(default_factory=OnnxSessionOptions)
     preprocessor_config: PreprocessorRuntimeConfig = field(default_factory=PreprocessorRuntimeConfig)
+    use_tensorrt_fp16: bool = False
+
+    def __post_init__(self) -> None:
+        """Set use_tensorrt_fp16 field."""
+        self.use_tensorrt_fp16 = TensorRtOptions.is_fp16_enabled(self.onnx_options)
 
 
 class Asr(ABC):
@@ -159,6 +164,9 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: str | None
     ) -> Iterator[tuple[Iterable[int], Iterable[int], Iterable[float] | None]]:
         need_logprobs = kwargs.get("need_logprobs")
+        if self.runtime_config.use_tensorrt_fp16:  # TensorRT fp16 models may return incorrect encoder_out_lens
+            encoder_out_lens = np.minimum(encoder_out_lens, encoder_out.shape[1])
+
         for encodings, encodings_len in zip(encoder_out, encoder_out_lens, strict=True):
             assert encodings_len <= encodings.shape[0]
             prev_state = self._create_state()

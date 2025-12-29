@@ -22,19 +22,11 @@ class TensorRtOptions:
     profile_opt_shapes: ClassVar[dict[str, int]] = {"batch": 1, "waveform_len_ms": 20_000}
 
     @classmethod
-    def _generate_trt_profile(cls, transform_shapes: Callable[..., str]) -> dict[str, str]:
+    def _generate_profile(cls, prefix: str, transform_shapes: Callable[..., str]) -> dict[str, str]:
         return {
-            "trt_profile_min_shapes": transform_shapes(**cls.profile_min_shapes),
-            "trt_profile_max_shapes": transform_shapes(**cls.profile_max_shapes),
-            "trt_profile_opt_shapes": transform_shapes(**cls.profile_opt_shapes),
-        }
-
-    @classmethod
-    def _generate_nv_profile(cls, transform_shapes: Callable[..., str]) -> dict[str, str]:
-        return {
-            "nv_profile_min_shapes": transform_shapes(**cls.profile_min_shapes),
-            "nv_profile_max_shapes": transform_shapes(**cls.profile_max_shapes),
-            "nv_profile_opt_shapes": transform_shapes(**cls.profile_opt_shapes),
+            f"{prefix}_min_shapes": transform_shapes(**cls.profile_min_shapes),
+            f"{prefix}_max_shapes": transform_shapes(**cls.profile_max_shapes),
+            f"{prefix}_opt_shapes": transform_shapes(**cls.profile_opt_shapes),
         }
 
     @classmethod
@@ -43,8 +35,8 @@ class TensorRtOptions:
         return update_onnx_providers(
             onnx_options,
             default_options={
-                "TensorrtExecutionProvider": cls._generate_trt_profile(transform_shapes),
-                "NvTensorRtRtxExecutionProvider": cls._generate_nv_profile(transform_shapes),
+                "TensorrtExecutionProvider": cls._generate_profile("trt_profile", transform_shapes),
+                "NvTensorRtRtxExecutionProvider": cls._generate_profile("nv_profile", transform_shapes),
             },
         )
 
@@ -52,6 +44,11 @@ class TensorRtOptions:
     def get_provider_names() -> list[str]:
         """Get TensorRT provider names."""
         return ["TensorrtExecutionProvider", "NvTensorRtRtxExecutionProvider"]
+
+    @staticmethod
+    def is_fp16_enabled(onnx_options: OnnxSessionOptions) -> bool:
+        """Check if TensorRT provider use fp16 precision."""
+        return bool(_merge_onnx_provider_options(onnx_options).get("TensorrtExecutionProvider", {}).get("trt_fp16_enable", False))
 
 
 def _merge_onnx_provider_options(onnx_options: OnnxSessionOptions) -> dict[str, dict[Any, Any]]:
