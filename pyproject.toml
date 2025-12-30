@@ -148,3 +148,6 @@ filterwarnings = [
     "ignore::DeprecationWarning:onnxscript.*",
     "ignore::DeprecationWarning:sys.*",
 ]
+
+[tool.coverage.run]
+omit = ["src/onnx_asr/cli.py"]
