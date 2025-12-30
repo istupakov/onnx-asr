@@ -1,7 +1,7 @@
 [project]
 name = "onnx-asr"
 dynamic = ["version"]
-description = "Automatic Speech Recognition in Python using ONNX models"
+description = "A lightweight Python package for Automatic Speech Recognition using ONNX models"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
 keywords = ["asr", "speech recognition", "onnx", "stt"]
 dependencies = [

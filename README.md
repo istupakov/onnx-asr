@@ -4,40 +4,80 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/onnx-asr)](https://pypi.org/project/onnx-asr)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/onnx-asr)](https://pypi.org/project/onnx-asr)
 [![PyPI - Types](https://img.shields.io/pypi/types/onnx-asr)](https://pypi.org/project/onnx-asr)
-[![GitHub - License](https://img.shields.io/github/license/istupakov/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)
+[![PyPI - License](https://img.shields.io/pypi/l/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![mypy](https://img.shields.io/badge/mypy-checked-blue)](https://mypy-lang.org/)
 [![GitHub - CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
-[![GitHub - Release Date](https://img.shields.io/github/release-date/istupakov/onnx-asr)](https://github.com/istupakov/onnx-asr/releases/latest)
 
-[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
-
-**onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. It's a simple and fast pure Python package with minimal dependencies (PyTorch, Transformers, and FFmpeg are not required):
+**onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. It's a lightweight, fast, and easy-to-use pure Python package with minimal dependencies (no need for PyTorch, Transformers, or FFmpeg):
 
 [![numpy](https://img.shields.io/badge/numpy-required-blue?logo=numpy)](https://pypi.org/project/numpy/)
 [![onnxruntime](https://img.shields.io/badge/onnxruntime-required-blue?logo=onnx)](https://pypi.org/project/onnxruntime/)
 [![huggingface-hub](https://img.shields.io/badge/huggingface--hub-optional-blue?logo=huggingface)](https://pypi.org/project/huggingface-hub/)
 
-> [!TIP]
-> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
-
-The **onnx-asr** package supports many modern ASR [models](#supported-models-architectures) and the following features:
+Key **onnx-asr** features include:
+ * Supports many modern ASR [models](#supported-model-architectures)
  * Works on a wide range of devices, from small IoT devices to servers with powerful GPUs ([benchmarks](#benchmarks))
  * Runs on Windows, Linux, and macOS on x86 or Arm CPUs and can use CUDA, TensorRT, CoreML, ROCm, and DirectML
- * NumPy versions from 1.21.6 to 2.4+ and Python versions from 3.10 to 3.14 are supported
- * Loading models from Hugging Face or local folders (including quantized versions)
- * Accepts WAV files or NumPy arrays (built-in support for reading and resampling files)
- * Custom models (if their architecture is supported)
- * Batch processing
- * (experimental) Longform recognition using VAD (Voice Activity Detection)
- * (experimental) Returns token timestamps and logprobs
- * Simple CLI
- * Online demo in [HF Spaces](https://istupakov-onnx-asr.hf.space/)
+ * Supports NumPy versions from 1.21.6 to 2.4+ and Python versions from 3.10 to 3.14
+ * Supports loading models from Hugging Face or local folders (including quantized versions)
+ * Accepts WAV files or NumPy arrays with built-in support for reading and resampling
+ * Supports custom models (if their architecture is supported)
+ * Supports batch processing
+ * Supports longform recognition using VAD (Voice Activity Detection)
+ * Supports returning token timestamps and logprobs
+ * Provides a simple CLI
+ * Includes an online demo in [HF Spaces](https://istupakov-onnx-asr.hf.space/)
 
-## Supported models architectures
+> [!NOTE]
+> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
+
+## Table of Contents
+
+- [Quickstart](#quickstart)
+- [Supported Model Architectures](#supported-model-architectures)
+- [Installation](#installation)
+- [Usage Examples](#usage-examples)
+- [Troubleshooting / FAQ](#troubleshooting--faq)
+- [Comparison with Original Implementations](#comparison-with-original-implementations)
+- [Benchmarks](#benchmarks)
+- [Convert Model to ONNX](#convert-model-to-onnx)
+- [License](#license)
+
+## Quickstart
+
+Install onnx-asr:
+```sh
+pip install onnx-asr[cpu,hub]
+```
+
+Load model and recognize WAV file:
+```py
+import onnx_asr
+
+# Load the Parakeet TDT v3 model from Hugging Face (may take a few minutes)
+model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
+
+# Recognize speech and print result
+result = model.recognize("test.wav")
+print(result)
+```
+
+> [!IMPORTANT]
+> The maximum audio length for most models is 20-30 seconds. For longer audio, [VAD](#vad) can be used.
+
+For more examples, see [usage examples](#usage-examples).
+You can also check the demo on HF Spaces:
+
+[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
+
+## Supported Model Architectures
 
 The package supports the following modern ASR model architectures ([comparison](#comparison-with-original-implementations) with original implementations):
 * Nvidia NeMo Conformer/FastConformer/Parakeet/Canary (with CTC, RNN-T, TDT and Transformer decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
-* Sber GigaAM v2/v3 (with CTC and RNN-T decoders, including E2E versions)
+* GigaChat GigaAM v2/v3 (with CTC and RNN-T decoders, including E2E versions)
 * T-Tech T-one (with CTC decoder, no streaming support yet)
 * OpenAI Whisper
 
@@ -50,38 +90,38 @@ When saving these models in ONNX format, usually only the encoder and decoder ar
 The package can be installed from [PyPI](https://pypi.org/project/onnx-asr/):
 
 1. With CPU `onnxruntime` and `huggingface-hub`:
-```shell
+```sh
 pip install onnx-asr[cpu,hub]
 ```
 
 2. With `onnxruntime` for NVIDIA GPUs and `huggingface-hub`:
-```shell
+```sh
 pip install onnx-asr[gpu,hub]
 ```
 
 > [!IMPORTANT]
 > First, you need to install the [required](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements) version of CUDA / TensorRT.
 
-You can alse install `onnxruntime` dependencies and TensorRT via Pip:
-```shell
+You can also install `onnxruntime` dependencies and TensorRT via Pip:
+```sh
 pip install onnxruntime-gpu[cuda,cudnn] tensorrt-cu12-libs
 ```
 
 3. Without `onnxruntime` and `huggingface-hub` (if you already have some version of `onnxruntime` installed and prefer to download the models yourself):
-```shell
+```sh
 pip install onnx-asr
 ```
 
-To install latest version `onnx-asr` from **GitHub**, use `pip` (or `uv pip`):
-```shell
+To install the latest version of `onnx-asr` from sources, use `pip` (or `uv pip`):
+```sh
 pip install git+https://github.com/istupakov/onnx-asr
 ```
 
-## Usage examples
+## Usage Examples
 
 ### Load ONNX model from Hugging Face
 
-Load ONNX model from Hugging Face and recognize wav file:
+Load ONNX model from Hugging Face and recognize WAV file:
 ```py
 import onnx_asr
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
@@ -89,15 +129,15 @@ print(model.recognize("test.wav"))
 ```
 
 > [!IMPORTANT]
-> Supported wav file formats: PCM_U8, PCM_16, PCM_24 and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a numpy array.
+> Supported WAV file formats: PCM_U8, PCM_16, PCM_24, and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a NumPy array.
 
 #### Supported model names:
-* `gigaam-v2-ctc` for Sber GigaAM v2 CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
-* `gigaam-v2-rnnt` for Sber GigaAM v2 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
-* `gigaam-v3-ctc` for Sber GigaAM v3 CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
-* `gigaam-v3-rnnt` for Sber GigaAM v3 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
-* `gigaam-v3-e2e-ctc` for Sber GigaAM v3 E2E CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
-* `gigaam-v3-e2e-rnnt` for Sber GigaAM v3 E2E RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
+* `gigaam-v2-ctc` for GigaChat GigaAM v2 CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
+* `gigaam-v2-rnnt` for GigaChat GigaAM v2 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v2-onnx))
+* `gigaam-v3-ctc` for GigaChat GigaAM v3 CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
+* `gigaam-v3-rnnt` for GigaChat GigaAM v3 RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
+* `gigaam-v3-e2e-ctc` for GigaChat GigaAM v3 E2E CTC ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
+* `gigaam-v3-e2e-rnnt` for GigaChat GigaAM v3 E2E RNN-T ([origin](https://github.com/salute-developers/GigaAM), [onnx](https://huggingface.co/istupakov/gigaam-v3-onnx))
 * `nemo-fastconformer-ru-ctc` for Nvidia FastConformer-Hybrid Large (ru) with CTC decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `nemo-fastconformer-ru-rnnt` for Nvidia FastConformer-Hybrid Large (ru) with RNN-T decoder ([origin](https://huggingface.co/nvidia/stt_ru_fastconformer_hybrid_large_pc), [onnx](https://huggingface.co/istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx))
 * `nemo-parakeet-ctc-0.6b` for Nvidia Parakeet CTC 0.6B (en) ([origin](https://huggingface.co/nvidia/parakeet-ctc-0.6b), [onnx](https://huggingface.co/istupakov/parakeet-ctc-0.6b-onnx))
@@ -132,7 +172,7 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 print(model.recognize(["test1.wav", "test2.wav", "test3.wav", "test4.wav"]))
 ```
 
-Most models have a quantized versions:
+Most models have quantized versions:
 ```py
 import onnx_asr
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", quantization="int8")
@@ -148,7 +188,7 @@ print(model.recognize("test1.wav"))
 
 ### TensorRT
 
-Running ONNX model on the TensorRT provider and fp16 precision:
+Running an ONNX model on the TensorRT provider with fp16 precision:
 ```py
 import onnx_asr
 import tensorrt_libs
@@ -168,7 +208,7 @@ print(model.recognize("test.wav"))
 
 ### VAD
 
-Load VAD ONNX model from Hugging Face and recognize wav file:
+Load a VAD ONNX model from Hugging Face and recognize a WAV file:
 ```py
 import onnx_asr
 vad = onnx_asr.load_vad("silero")
@@ -185,13 +225,13 @@ for res in model.recognize("test.wav"):
 
 ### CLI
 
-Package has simple CLI interface
-```shell
+The package has a simple CLI interface
+```sh
 onnx-asr nemo-parakeet-tdt-0.6b-v3 test.wav
 ```
 
 For full usage parameters, see help:
-```shell
+```sh
 onnx-asr -h
 ```
 
@@ -220,7 +260,7 @@ demo.launch()
 
 ### Load ONNX model from local directory
 
-Load ONNX model from local directory and recognize wav file:
+Load ONNX model from local directory and recognize WAV file:
 ```py
 import onnx_asr
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", "models/parakeet-v3")
@@ -232,7 +272,7 @@ print(model.recognize("test.wav"))
 
 ### Load a custom ONNX model from Hugging Face
 
-Load the Canary 180M Flash model from Hugging Face [repo](https://huggingface.co/istupakov/canary-180m-flash-onnx) and recognize the wav file:
+Load the Canary 180M Flash model from Hugging Face [repo](https://huggingface.co/istupakov/canary-180m-flash-onnx) and recognize the WAV file:
 ```py
 import onnx_asr
 model = onnx_asr.load_model("istupakov/canary-180m-flash-onnx")
@@ -249,7 +289,18 @@ print(model.recognize("test.wav"))
 * `whisper-ort` for Whisper (exported with [onnxruntime](#openai-whisper-with-onnxruntime-export))
 * `whisper` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))
 
-## Comparison with original implementations
+## Troubleshooting / FAQ
+
+- **Model download fails**: Ensure Hugging Face is accessible. To improve download speed set the `HF_TOKEN` environment variable.
+- **Model loading fails**: Ensure you have the latest `onnxruntime` version compatible with your setup. For GPU, verify CUDA / TensorRT installation. Try a different provider (not all models compatible with all providers).
+- **Audio loading issues**: Check that your WAV file is in a supported format (PCM_U8, PCM_16, PCM_24, PCM_32). Use `soundfile` for other formats.
+- **Audio recognition fails**: Most models support up to 20-30 seconds of audio. For longer files, use [VAD](#vad) for segmentation.
+- **Slow performance**: Try quantized models (e.g., `quantization="int8"`) on CPU or TensorRT for GPU acceleration.
+- **Incorrect segmentation with VAD**: Adjust VAD parameters like `threshold` or `min_speech_duration_ms` for your audio.
+
+For more help, check the [GitHub Issues](https://github.com/istupakov/onnx-asr/issues) or open a new one.
+
+## Comparison with Original Implementations
 
 Packages with original implementations:
 * `gigaam` for GigaAM models ([github](https://github.com/salute-developers/GigaAM))
@@ -372,7 +423,7 @@ Notebook with benchmark code - [benchmark-en](examples/benchmark-en.ipynb)
 | Whisper base              | 1.2        | 9.2        | 92.2            | N/A                | N/A                      |
 | Whisper large-v3-turbo    | N/A        | N/A        | 29.2            | N/A                | N/A                      |
 
-## Convert model to ONNX
+## Convert Model to ONNX
 
 Save the model according to the instructions below and add config.json:
 
@@ -388,7 +439,7 @@ Then you can upload the model into Hugging Face and use `load_model` to download
 
 ### Nvidia NeMo Conformer/FastConformer/Parakeet
 Install **NeMo Toolkit**
-```shell
+```sh
 pip install nemo_toolkit['asr']
 ```
 
@@ -399,7 +450,7 @@ from pathlib import Path
 
 model = nemo_asr.models.ASRModel.from_pretrained("nvidia/stt_ru_fastconformer_hybrid_large_pc")
 
-# For export Hybrid models with CTC decoder
+# To export Hybrid models with CTC decoder
 # model.set_export_config({"decoder_type": "ctc"})
 
 onnx_dir = Path("nemo-onnx")
@@ -411,9 +462,9 @@ with Path(onnx_dir, "vocab.txt").open("wt") as f:
         f.write(f"{token} {i}\n")
 ```
 
-### Sber GigaAM v2/v3
+### GigaChat GigaAM v2/v3
 Install **GigaAM**
-```shell
+```sh
 git clone https://github.com/salute-developers/GigaAM.git
 pip install ./GigaAM --extra-index-url https://download.pytorch.org/whl/cpu
 ```
@@ -440,14 +491,14 @@ with Path(onnx_dir, "v2_vocab.txt").open("wt") as f:
 
 ### OpenAI Whisper (with `onnxruntime` export)
 
-Read onnxruntime [instruction](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/python/tools/transformers/models/whisper/README.md) for convert Whisper to ONNX.
+Read the onnxruntime [instruction](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/python/tools/transformers/models/whisper/README.md) to convert Whisper to ONNX.
 
 Download model and export with *Beam Search* and *Forced Decoder Input Ids*:
-```shell
+```sh
 python3 -m onnxruntime.transformers.models.whisper.convert_to_onnx -m openai/whisper-base --output ./whisper-onnx --use_forced_decoder_ids --optimize_onnx --precision fp32
 ```
 
-Save tokenizer config
+Save the tokenizer config
 ```py
 from transformers import WhisperTokenizer
 
@@ -458,6 +509,10 @@ processor.save_pretrained("whisper-onnx")
 ### OpenAI Whisper (with `optimum` export)
 
 Export model to ONNX with Hugging Face `optimum-cli`
-```shell
+```sh
 optimum-cli export onnx --model openai/whisper-base ./whisper-onnx
 ```
+
+## License
+
+[MIT License](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)
