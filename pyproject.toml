@@ -4,7 +4,10 @@ dynamic = ["version"]
 description = "Automatic Speech Recognition in Python using ONNX models"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
 keywords = ["asr", "speech recognition", "onnx", "stt"]
-dependencies = ["numpy>=1.21.6"]
+dependencies = [
+    "numpy>=1.21.6",
+    "typing-extensions>=4.15.0; python_version < '3.11'",
+]
 requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
