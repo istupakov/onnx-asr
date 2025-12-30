@@ -79,7 +79,7 @@ class Asr(ABC):
 
     @abstractmethod
     def recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: str | None
+        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: object | None
     ) -> Iterator[TimestampedResult]:
         """Recognize waveforms batch."""
         ...
@@ -110,7 +110,7 @@ class _AsrWithDecoding(Asr):
 
     @abstractmethod
     def _decoding(
-        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: str | None
+        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: object | None
     ) -> Iterator[tuple[Iterable[int], Iterable[int] | None, Iterable[float] | None]]: ...
 
     def _decode_tokens(
@@ -122,7 +122,7 @@ class _AsrWithDecoding(Asr):
         return TimestampedResult(text, timestamps, tokens, None if logprobs is None else np.asarray(logprobs).tolist())
 
     def recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: str | None
+        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: object | None
     ) -> Iterator[TimestampedResult]:
         encoder_out, encoder_out_lens = self._encode(*self._preprocessor(waveforms, waveforms_len))
         return map(self._decode_tokens, *zip(*self._decoding(encoder_out, encoder_out_lens, **kwargs), strict=False))
@@ -130,7 +130,7 @@ class _AsrWithDecoding(Asr):
 
 class _AsrWithCtcDecoding(_AsrWithDecoding):
     def _decoding(
-        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: str | None
+        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: object | None
     ) -> Iterator[tuple[Iterable[int], Iterable[int], Iterable[float]]]:
         assert encoder_out.shape[-1] <= self._vocab_size
         assert encoder_out.shape[1] >= max(encoder_out_lens)
@@ -161,7 +161,7 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
     ) -> tuple[npt.NDArray[np.float32], int, S]: ...
 
     def _decoding(
-        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: str | None
+        self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: object | None
     ) -> Iterator[tuple[Iterable[int], Iterable[int], Iterable[float] | None]]:
         need_logprobs = kwargs.get("need_logprobs")
         if self.runtime_config.use_tensorrt_fp16:  # TensorRT fp16 models may return incorrect encoder_out_lens

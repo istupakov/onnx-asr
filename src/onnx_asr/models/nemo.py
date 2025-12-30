@@ -229,7 +229,7 @@ class NemoConformerAED(_NemoConformer):
         encoder_embeddings: npt.NDArray[np.float32],
         encoder_mask: npt.NDArray[np.int64],
         /,
-        **kwargs: str | None,
+        **kwargs: object | None,
     ) -> Iterator[tuple[Iterable[int], None, Iterable[float]]]:
         batch_size = encoder_embeddings.shape[0]
         batch_tokens = np.repeat(self._transcribe_input, batch_size, axis=0)
@@ -243,7 +243,9 @@ class NemoConformerAED(_NemoConformer):
             batch_tokens[:, 4] = self._tokens[f"<|{target_language}|>"]
 
         pnc = kwargs.get("pnc")
-        if pnc:
+        if pnc is not None:
+            if isinstance(pnc, bool):
+                pnc = "pnc" if pnc else "nopnc"
             batch_tokens[:, 5] = self._tokens[f"<|{pnc}|>"]
 
         prefix_len = batch_tokens.shape[1]

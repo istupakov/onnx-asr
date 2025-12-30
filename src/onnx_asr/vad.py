@@ -9,8 +9,8 @@ from typing import Literal
 import numpy as np
 import numpy.typing as npt
 
-from .asr import Asr, TimestampedResult
-from .utils import pad_list
+from onnx_asr.asr import Asr, TimestampedResult
+from onnx_asr.utils import pad_list
 
 
 @dataclass
@@ -47,8 +47,8 @@ class Vad(ABC):
         waveforms: npt.NDArray[np.float32],
         waveforms_len: npt.NDArray[np.int64],
         sample_rate: Literal[8_000, 16_000],
-        asr_kwargs: dict[str, str | None],
-        batch_size: float = 8,
+        asr_kwargs: dict[str, object | None],
+        batch_size: int = 8,
         **kwargs: float,
     ) -> Iterator[Iterator[TimestampedSegmentResult]]:
         """Segment and recognize waveforms batch."""
