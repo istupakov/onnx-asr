@@ -4,11 +4,12 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/onnx-asr)](https://pypi.org/project/onnx-asr)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/onnx-asr)](https://pypi.org/project/onnx-asr)
 [![PyPI - Types](https://img.shields.io/pypi/types/onnx-asr)](https://pypi.org/project/onnx-asr)
-[![PyPI - License](https://img.shields.io/pypi/l/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)
+[![PyPI - License](https://img.shields.io/pypi/l/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)\
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![mypy](https://img.shields.io/badge/mypy-checked-blue)](https://mypy-lang.org/)
 [![GitHub - CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
+[![Coverage Status](https://coveralls.io/repos/github/istupakov/onnx-asr/badge.svg)](https://coveralls.io/github/istupakov/onnx-asr)
 
 **onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. It's a lightweight, fast, and easy-to-use pure Python package with minimal dependencies (no need for PyTorch, Transformers, or FFmpeg):
 
