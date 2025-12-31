@@ -40,7 +40,7 @@ jobs:
     - name: Check types with MyPy
       run: uv run --frozen mypy .
     - name: Test with pytest
-      run: uv run --frozen pytest --cov=onnx_asr --cov-report term --cov-report xml
+      run: uv run --frozen pytest --cov=onnx_asr --cov preprocessors --cov-report term --cov-report xml
     - name: Coveralls
       uses: coverallsapp/github-action@v2
     - name: Build package dist
