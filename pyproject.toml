@@ -150,4 +150,4 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-omit = ["src/onnx_asr/cli.py"]
+omit = ["preprocessors/build.py", "src/onnx_asr/cli.py"]
