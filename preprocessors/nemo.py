@@ -1,3 +1,5 @@
+"""LogMelSpectrogram feature extractor for Nemo models."""
+
 import torchaudio
 from onnxscript import DOUBLE, FLOAT, INT64, script
 from onnxscript import opset17 as op

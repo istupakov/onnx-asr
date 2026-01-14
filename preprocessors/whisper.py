@@ -1,3 +1,5 @@
+"""LogMelSpectrogram feature extractor for Whisper models."""
+
 import numpy as np
 import torchaudio
 from onnxscript import DOUBLE, FLOAT, INT64, script

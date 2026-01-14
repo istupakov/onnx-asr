@@ -1,3 +1,5 @@
+"""LogMelSpectrogram feature extractor for GigaAM models."""
+
 import torch
 import torchaudio
 from onnxscript import DOUBLE, FLOAT, INT64, script
