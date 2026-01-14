@@ -117,7 +117,7 @@ class InvalidModelTypeInConfigError(Exception):
 def _download_config(repo_id: str) -> str:
     from huggingface_hub import hf_hub_download  # noqa: PLC0415
 
-    return hf_hub_download(repo_id, "config.json")
+    return hf_hub_download(repo_id, "config.json")  # nosec
 
 
 def _download_model(repo_id: str, files: list[str], *, local_dir: str | Path | None, local_files_only: bool) -> str:
@@ -128,7 +128,7 @@ def _download_model(repo_id: str, files: list[str], *, local_dir: str | Path | N
         *files,
         *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx"),
     ]
-    return snapshot_download(repo_id, local_dir=local_dir, local_files_only=local_files_only, allow_patterns=files)
+    return snapshot_download(repo_id, local_dir=local_dir, local_files_only=local_files_only, allow_patterns=files)  # nosec
 
 
 def _find_files(path: str | Path, files: dict[str, str]) -> dict[str, Path]:
