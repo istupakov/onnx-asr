@@ -96,10 +96,6 @@ source = "vcs"
 [tool.hatch.build]
 only-packages = true
 
-[tool.hatch.build.targets.wheel]
-dependencies = ["uv"]
-artifacts = ["/src/onnx_asr/preprocessors/*.onnx"]
-
 [tool.hatch.build.targets.wheel.hooks.custom]
 
 [tool.mypy]
@@ -107,12 +103,16 @@ python_version = "3.10"
 strict = true
 pretty = true
 untyped_calls_exclude = "onnxruntime"
-exclude = ['^preprocessors.', '^tests.preprocessors.']
+exclude = ["^preprocessors.", "^tests.preprocessors."]
 
 [[tool.mypy.overrides]]
 module = ["onnxruntime.*"]
 follow_untyped_imports = true
 implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = ["preprocessors.*"]
+follow_imports = "silent"
 
 [tool.ruff]
 line-length = 130
@@ -140,7 +140,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "D", "PGH003", "PLR0911", "PLR2004"]
-"preprocessors/*" = ["ANN", "D", "F821", "N802", "N806"]
+"preprocessors/*" = ["ANN", "D103", "F821", "N802", "N806"]
 "*.ipynb" = ["ANN", "D", "ERA", "RUF001", "T"]
 
 [tool.pytest]

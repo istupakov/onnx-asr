@@ -1,3 +1,5 @@
+"""Resampling preprocessors."""
+
 import math
 
 from onnxscript import FLOAT, INT64, script

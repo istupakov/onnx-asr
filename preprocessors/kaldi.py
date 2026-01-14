@@ -1,3 +1,5 @@
+"""LogMelSpectrogram feature extractor for Kaldi models."""
+
 import numpy as np
 import torch
 import torchaudio
