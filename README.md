@@ -9,6 +9,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![mypy](https://img.shields.io/badge/mypy-checked-blue)](https://mypy-lang.org/)
 [![GitHub - CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
+[![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/istupakov/onnx-asr)](https://www.codefactor.io/repository/github/istupakov/onnx-asr/overview/main)
 [![Coverage Status](https://coveralls.io/repos/github/istupakov/onnx-asr/badge.svg)](https://coveralls.io/github/istupakov/onnx-asr)
 
 **onnx-asr** is a Python package for Automatic Speech Recognition using ONNX models. It's a lightweight, fast, and easy-to-use pure Python package with minimal dependencies (no need for PyTorch, Transformers, or FFmpeg):
