@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 import numpy as np
 import onnxruntime
 import pytest
@@ -6,7 +8,7 @@ import onnx_asr
 import onnx_asr.utils
 from onnx_asr.adapters import TextResultsAsrAdapter
 from onnx_asr.asr import TimestampedResult
-from onnx_asr.vad import Vad
+from onnx_asr.vad import SegmentResult, TimestampedSegmentResult, Vad
 
 models = [
     "gigaam-v2-ctc",
@@ -41,6 +43,11 @@ def vad() -> Vad:
     return onnx_asr.load_vad("silero")
 
 
+def test_file_not_found_error(model: TextResultsAsrAdapter) -> None:
+    with pytest.raises(FileNotFoundError):
+        model.recognize("test.wav")
+
+
 def test_supported_only_mono_audio_error(model: TextResultsAsrAdapter) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000, 2), dtype=np.float32)
@@ -65,6 +72,11 @@ def test_recognize(model: TextResultsAsrAdapter) -> None:
     assert isinstance(result, str)
 
 
+def test_empty_recognize(model: TextResultsAsrAdapter) -> None:
+    result = model.recognize([])
+    assert result == []
+
+
 def test_recognize_with_timestamps(model: TextResultsAsrAdapter) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
@@ -80,14 +92,25 @@ def test_recognize_batch(model: TextResultsAsrAdapter) -> None:
 
     result = model.recognize([waveform1, waveform2])
     assert isinstance(result, list)
+    assert all(isinstance(item, str) for item in result)
 
 
 def test_recognize_with_vad(model: TextResultsAsrAdapter, vad: Vad) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 
-    result = list(model.with_vad(vad).recognize(waveform))
-    assert isinstance(result, list)
+    result = model.with_vad(vad).recognize(waveform)
+    assert isinstance(result, Iterator)
+    assert all(isinstance(item, SegmentResult) for item in result)
+
+
+def test_recognize_with_vad_and_timestamps(model: TextResultsAsrAdapter, vad: Vad) -> None:
+    rng = np.random.default_rng(0)
+    waveform = rng.random((1 * 16_000), dtype=np.float32)
+
+    result = model.with_vad(vad).with_timestamps().recognize(waveform)
+    assert isinstance(result, Iterator)
+    assert all(isinstance(item, TimestampedSegmentResult) for item in result)
 
 
 def test_concurrent_preprocessor() -> None:
@@ -99,3 +122,4 @@ def test_concurrent_preprocessor() -> None:
 
     result = model.recognize([waveform] * 2)
     assert isinstance(result, list)
+    assert all(isinstance(item, str) for item in result)

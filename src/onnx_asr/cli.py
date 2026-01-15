@@ -2,6 +2,7 @@
 
 import argparse
 import pathlib
+from collections.abc import Sequence
 from importlib.metadata import metadata, version
 from typing import get_args
 
@@ -9,22 +10,28 @@ import onnx_asr
 from onnx_asr.loader import ModelNames, ModelTypes, VadNames
 
 
-def run() -> None:
-    """Run CLI for ASR models."""
+def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
+    """Parse CLI args."""
     parser = argparse.ArgumentParser(prog="onnx_asr", description=metadata(__package__)["Summary"])
     parser.add_argument(
         "model", help=f"Model name or type {(*get_args(ModelNames), *get_args(ModelTypes), 'onnx-community/whisper-...')}"
     )
     parser.add_argument(
-        "filename", help="Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats are supported).", nargs="+"
+        "filename",
+        help="Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats are supported).",
+        type=pathlib.Path,
+        nargs="+",
     )
     parser.add_argument("-p", "--model_path", type=pathlib.Path, help="Path to directory with model files")
     parser.add_argument("-q", "--quantization", help="Model quantization ('int8' for example)")
     parser.add_argument("--lang", help="Language for multilingual models (Whisper and Canary)", default=None)
     parser.add_argument("--vad", help="Use VAD model", choices=get_args(VadNames))
     parser.add_argument("--version", action="version", version=f"%(prog)s {version(__package__)}")
-    args = parser.parse_args()
+    return parser.parse_args(args)
 
+
+def run(args: argparse.Namespace) -> None:
+    """Run CLI with args."""
     model = onnx_asr.load_model(args.model, args.model_path, quantization=args.quantization)
     if args.vad:
         vad = onnx_asr.load_vad(args.vad)
@@ -35,3 +42,8 @@ def run() -> None:
     else:
         for text in model.recognize(args.filename, language=args.lang):
             print(text)  # noqa: T201
+
+
+def main() -> None:
+    """CLI scripts entrypoint."""
+    run(parse_args(None))
