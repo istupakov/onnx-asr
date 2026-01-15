@@ -1,6 +1,7 @@
 """Utils for ASR."""
 
 import wave
+from pathlib import Path
 from typing import Literal, TypeGuard, cast, get_args
 
 import numpy as np
@@ -78,19 +79,20 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
 
 
 def read_wav_files(
-    waveforms: list[npt.NDArray[np.float32] | str], numpy_sample_rate: SampleRates
+    waveforms: list[npt.NDArray[np.float32] | str | Path], numpy_sample_rate: SampleRates
 ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64], SampleRates]:
     """Convert list of waveform or filenames to Numpy array with common length."""
     results = []
     sample_rates = []
     for x in waveforms:
-        if isinstance(x, str):
-            waveform, sample_rate = read_wav(x)
+        if isinstance(x, (str, Path)):
+            waveform, sample_rate = read_wav(str(x))
             if waveform.shape[1] != 1:
                 raise SupportedOnlyMonoAudioError
             results.append(waveform[:, 0])
             sample_rates.append(sample_rate)
         else:
+            x = x.squeeze()
             if x.ndim != 1:
                 raise SupportedOnlyMonoAudioError
             results.append(x)
