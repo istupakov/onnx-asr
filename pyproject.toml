@@ -3,7 +3,7 @@ name = "onnx-asr"
 dynamic = ["version"]
 description = "A lightweight Python package for Automatic Speech Recognition using ONNX models"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
-keywords = ["asr", "speech recognition", "onnx", "stt"]
+keywords = ["asr", "speech-recognition", "speech-to-text", "onnx", "stt"]
 dependencies = [
     "numpy>=1.21.6",
     "typing-extensions>=4.15.0; python_version < '3.11'",
@@ -45,41 +45,43 @@ build-backend = "hatchling.build"
 [project.optional-dependencies]
 cpu = ["onnxruntime>=1.18.1"]
 gpu = ["onnxruntime-gpu>=1.18.1"]
-hub = ["huggingface-hub"]
+hub = ["huggingface-hub>=0.30.2"]
 
 [project.scripts]
 onnx-asr = "onnx_asr.cli:main"
 
 [dependency-groups]
 build = [
-    "onnx>=1.20.0",
+    "hatch-vcs>=0.5.0",
+    "hatchling>=1.28.0",
+    "numpy>=2.2.6",
+    "onnx>=1.20.1",
     "onnxscript>=0.5.7",
     "torch>=2.9.1",
     "torchaudio>=2.9.1",
 ]
-asrs = [
-    "kaldi-native-fbank>=1.22.3",
-    "nemo-toolkit[asr]>=2.6.0",
-    "openai-whisper>=v20250625",
-]
-tests = [
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "onnxruntime>=1.23.2",
-    { include-group = "build" },
-    { include-group = "asrs" },
-]
 dev = [
-    "ruff>=0.14.10",
-    "mypy>=1.19.1",
-    "hatchling>=1.28.0",
     "ipykernel>=7.1.0",
     "ipywidgets>=8.1.8",
-    { include-group = "tests" },
+    "mypy>=1.19.1",
+    "ruff>=0.14.11",
+    "soundfile>=0.13.1",
+    { include-group = "test-preprocessors" },
 ]
-
-[tool.uv]
-override-dependencies = ["numpy<2.4"]
+test = [
+    "huggingface-hub>=0.30.2",
+    "numpy>=1.21.6",
+    "onnxruntime>=1.18.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
+test-preprocessors = [
+    "kaldi-native-fbank>=1.22.3",
+    "nemo-toolkit[asr]>=2.6.1",
+    "openai-whisper>=20250625",
+    { include-group = "build" },
+    { include-group = "test" },
+]
 
 [tool.uv.sources]
 torch = { index = "pytorch" }
@@ -150,4 +152,4 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-omit = ["preprocessors/build.py", "src/onnx_asr/cli.py"]
+omit = ["tests/*", "hatch_build.py"]
