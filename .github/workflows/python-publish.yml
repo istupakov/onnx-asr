@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
+      url: https://pypi.org/p/onnx-asr/
     permissions:
       contents: read
       id-token: write
@@ -25,6 +26,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Build package dist
-        run: uv build --sdist --wheel
+        run: |
+          uv pip compile --group build --generate-hashes -o build-constraints.txt
+          uv build -b build-constraints.txt --require-hashes
       - name: Publish package distributions to PyPI
         run: uv publish
