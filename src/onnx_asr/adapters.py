@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Generic, Literal, TypedDict, TypeVar, overload
 
 import numpy as np
@@ -80,13 +81,17 @@ class AsrAdapter(ABC, Generic[R]):
 
     @overload
     def recognize(
-        self, waveform: str | npt.NDArray[np.float32], *, sample_rate: SampleRates = 16_000, **kwargs: Unpack[RecognizeOptions]
+        self,
+        waveform: str | Path | npt.NDArray[np.float32],
+        *,
+        sample_rate: SampleRates = 16_000,
+        **kwargs: Unpack[RecognizeOptions],
     ) -> R: ...
 
     @overload
     def recognize(
         self,
-        waveform: list[str | npt.NDArray[np.float32]],
+        waveform: list[str | Path | npt.NDArray[np.float32]],
         *,
         sample_rate: SampleRates = 16_000,
         **kwargs: Unpack[RecognizeOptions],
@@ -94,7 +99,7 @@ class AsrAdapter(ABC, Generic[R]):
 
     def recognize(
         self,
-        waveform: str | npt.NDArray[np.float32] | list[str | npt.NDArray[np.float32]],
+        waveform: str | Path | npt.NDArray[np.float32] | list[str | Path | npt.NDArray[np.float32]],
         *,
         sample_rate: SampleRates = 16_000,
         **kwargs: Unpack[RecognizeOptions],
