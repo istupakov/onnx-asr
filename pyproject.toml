@@ -48,7 +48,7 @@ gpu = ["onnxruntime-gpu>=1.18.1"]
 hub = ["huggingface-hub"]
 
 [project.scripts]
-onnx-asr = "onnx_asr.cli:run"
+onnx-asr = "onnx_asr.cli:main"
 
 [dependency-groups]
 build = [

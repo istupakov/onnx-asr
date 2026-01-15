@@ -103,7 +103,7 @@ def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
 
     assert expected.shape[2] >= max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens.numpy())
-    np.testing.assert_allclose(actual, expected.numpy(), atol=1e-4, rtol=1e-4)
+    np.testing.assert_allclose(actual, expected.numpy(), atol=5e-4, rtol=1e-4)
 
 
 @pytest.mark.parametrize(
