@@ -12,6 +12,10 @@ wheels/
 # Unit test / coverage reports
 .coverage
 
+# Docs
+site/
+.cache/
+
 # ML models
 *.onnx
 
