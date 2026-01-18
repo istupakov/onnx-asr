@@ -4,10 +4,11 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/onnx-asr)](https://pypi.org/project/onnx-asr)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/onnx-asr)](https://pypi.org/project/onnx-asr)
 [![PyPI - Types](https://img.shields.io/pypi/types/onnx-asr)](https://pypi.org/project/onnx-asr)
-[![PyPI - License](https://img.shields.io/pypi/l/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)\
+[![PyPI - License](https://img.shields.io/pypi/l/onnx-asr)](https://github.com/istupakov/onnx-asr/blob/main/LICENSE)<br>
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![mypy](https://img.shields.io/badge/mypy-checked-blue)](https://mypy-lang.org/)
+[![Material for MkDocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
 [![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/istupakov/onnx-asr)](https://www.codefactor.io/repository/github/istupakov/onnx-asr/overview/main)
 [![Codecov](https://img.shields.io/codecov/c/github/istupakov/onnx-asr)](https://codecov.io/github/istupakov/onnx-asr)
 [![GitHub - CI](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml/badge.svg)](https://github.com/istupakov/onnx-asr/actions/workflows/python-package.yml)
@@ -18,22 +19,29 @@
 [![onnxruntime](https://img.shields.io/badge/onnxruntime-required-blue?logo=onnx)](https://pypi.org/project/onnxruntime/)
 [![huggingface-hub](https://img.shields.io/badge/huggingface--hub-optional-blue?logo=huggingface)](https://pypi.org/project/huggingface-hub/)
 
-Key **onnx-asr** features include:
- * Supports many modern ASR [models](#supported-model-architectures)
- * Works on a wide range of devices, from small IoT devices to servers with powerful GPUs ([benchmarks](#benchmarks))
- * Runs on Windows, Linux, and macOS on x86 or Arm CPUs and can use CUDA, TensorRT, CoreML, ROCm, and DirectML
- * Supports NumPy versions from 1.21.6 to 2.4+ and Python versions from 3.10 to 3.14
- * Supports loading models from Hugging Face or local folders (including quantized versions)
- * Accepts WAV files or NumPy arrays with built-in support for reading and resampling
- * Supports custom models (if their architecture is supported)
- * Supports batch processing
- * Supports longform recognition using VAD (Voice Activity Detection)
- * Supports returning token timestamps and logprobs
- * Provides a simple CLI
- * Includes an online demo in [HF Spaces](https://istupakov-onnx-asr.hf.space/)
+Key features of **onnx-asr** include:
+
+* Supports many modern ASR [models](#supported-model-architectures)
+* Runs on a wide range of devices, from small IoT / edge devices to servers with powerful GPUs ([benchmarks](#benchmarks))
+* Works on Windows, Linux, and macOS on x86 and Arm CPUs, with support for CUDA, TensorRT, CoreML, ROCm, and DirectML
+* Supports NumPy versions from 1.21.6 to 2.4+ and Python versions from 3.10 to 3.14
+* Loads models from Hugging Face or local directories, including quantized versions
+* Accepts WAV files or NumPy arrays, with built-in file reading and resampling
+* Supports custom models (if their architecture is supported)
+* Supports batch processing
+* Supports long-form recognition using [VAD](#vad) (Voice Activity Detection)
+* Can return token-level timestamps and log probabilities
+* Provides a fully typed and well-documented [Python API](https://istupakov.github.io/onnx-asr/reference/)
+* Provides a simple command-line interface ([CLI](#cli))
 
 > [!NOTE]
 > Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
+
+> [!TIP]
+> You can check onnx-asr demo on HF Spaces:
+> 
+> [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
+
 
 ## Table of Contents
 
@@ -66,17 +74,15 @@ result = model.recognize("test.wav")
 print(result)
 ```
 
-> [!IMPORTANT]
+> [!WARNING]
 > The maximum audio length for most models is 20-30 seconds. For longer audio, [VAD](#vad) can be used.
 
 For more examples, see [usage examples](#usage-examples).
-You can also check the demo on HF Spaces:
-
-[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
 
 ## Supported Model Architectures
 
 The package supports the following modern ASR model architectures ([comparison](#comparison-with-original-implementations) with original implementations):
+
 * Nvidia NeMo Conformer/FastConformer/Parakeet/Canary (with CTC, RNN-T, TDT and Transformer decoders)
 * Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
 * GigaChat GigaAM v2/v3 (with CTC and RNN-T decoders, including E2E versions)
@@ -84,6 +90,7 @@ The package supports the following modern ASR model architectures ([comparison](
 * OpenAI Whisper
 
 When saving these models in ONNX format, usually only the encoder and decoder are saved. To run them, the corresponding preprocessor and decoding must be implemented. Therefore, the package contains these implementations for all supported models:
+
 * Log-mel spectrogram preprocessors
 * Greedy search decoding
 
@@ -101,7 +108,7 @@ pip install onnx-asr[cpu,hub]
 pip install onnx-asr[gpu,hub]
 ```
 
-> [!IMPORTANT]
+> [!WARNING]
 > First, you need to install the [required](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements) version of CUDA / TensorRT.
 
 You can also install `onnxruntime` dependencies and TensorRT via Pip:
@@ -130,7 +137,7 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 print(model.recognize("test.wav"))
 ```
 
-> [!IMPORTANT]
+> [!WARNING]
 > Supported WAV file formats: PCM_U8, PCM_16, PCM_24, and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a NumPy array.
 
 #### Supported model names:
@@ -153,7 +160,7 @@ print(model.recognize("test.wav"))
 * `t-tech/t-one` for T-Tech T-one ([origin](https://huggingface.co/t-tech/T-one))
 * `onnx-community/whisper-tiny`, `onnx-community/whisper-base`, `onnx-community/whisper-small`, `onnx-community/whisper-large-v3-turbo`, etc. for OpenAI Whisper exported with Hugging Face optimum ([onnx-community](https://huggingface.co/onnx-community?search_models=whisper))
 
-> [!IMPORTANT]
+> [!WARNING]
 > Some long-ago converted `onnx-community` models have a broken `fp16` precision version.
 
 Example with `soundfile`:
@@ -219,7 +226,7 @@ for res in model.recognize("test.wav"):
     print(res)
 ```
 
-> [!NOTE]
+> [!TIP]
 > You will most likely need to adjust VAD parameters to get the correct results.
 
 #### Supported VAD names:
@@ -305,6 +312,7 @@ For more help, check the [GitHub Issues](https://github.com/istupakov/onnx-asr/i
 ## Comparison with Original Implementations
 
 Packages with original implementations:
+
 * `gigaam` for GigaAM models ([github](https://github.com/salute-developers/GigaAM))
 * `nemo-toolkit` for NeMo models ([github](https://github.com/nvidia/nemo))
 * `openai-whisper` for Whisper models ([github](https://github.com/openai/whisper))
@@ -387,7 +395,7 @@ Hardware:
 > In T4 tests, preprocessors are always run using the TensorRT provider.
 
 ### Russian ASR models
-Notebook with benchmark code - [benchmark-ru](examples/benchmark-ru.ipynb)
+Notebook with benchmark code - [benchmark-ru](https://github.com/istupakov/onnx-asr/blob/main/examples/benchmark-ru.ipynb)
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/istupakov/onnx-asr/blob/main/examples/benchmark-ru.ipynb)
 
@@ -411,7 +419,7 @@ Notebook with benchmark code - [benchmark-ru](examples/benchmark-ru.ipynb)
 
 ### English ASR models
 
-Notebook with benchmark code - [benchmark-en](examples/benchmark-en.ipynb)
+Notebook with benchmark code - [benchmark-en](https://github.com/istupakov/onnx-asr/blob/main/examples/benchmark-en.ipynb)
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/istupakov/onnx-asr/blob/main/examples/benchmark-en.ipynb)
 
