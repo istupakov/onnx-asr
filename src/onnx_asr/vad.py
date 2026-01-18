@@ -18,8 +18,11 @@ class SegmentResult:
     """Segment recognition result."""
 
     start: float
+    """Segment start time."""
     end: float
+    """Segment end time."""
     text: str
+    """Segment recognized text."""
 
 
 @dataclass

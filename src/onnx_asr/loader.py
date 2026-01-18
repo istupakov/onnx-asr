@@ -49,6 +49,8 @@ ModelNames = Literal[
     "t-tech/t-one",
     "whisper-base",
 ]
+"""Supported ASR model names (can be automatically downloaded from the Hugging Face)."""
+
 ModelTypes = Literal[
     "gigaam-v2-ctc",
     "gigaam-v2-rnnt",
@@ -63,7 +65,10 @@ ModelTypes = Literal[
     "whisper-ort",
     "whisper",
 ]
+"""Supported ASR model types."""
+
 VadNames = Literal["silero"]
+"""Supported VAD model names (can be automatically downloaded from the Hugging Face)."""
 
 
 class ModelNotSupportedError(ValueError):
@@ -196,6 +201,7 @@ def load_model(  # noqa: C901
 
     Args:
         model: Model name or type (download from Hugging Face supported if full model name is provided):
+
                 GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`)
                 GigaAM v3 (`gigaam-v3-ctc` | `gigaam-v3-rnnt` | `gigaam-v3-e2e-ctc` | `gigaam-v3-e2e-rnnt`)
                 Kaldi Transducer (`kaldi-rnnt`)
@@ -213,13 +219,21 @@ def load_model(  # noqa: C901
         sess_options: Default SessionOptions for onnxruntime.
         providers: Default providers for onnxruntime.
         provider_options: Default provider_options for onnxruntime.
-        cpu_preprocessing: Deprecated and ignored, use preprocessor_config and resampler_config instead.
+        cpu_preprocessing: Deprecated and ignored, use `preprocessor_config` and `resampler_config` instead.
         asr_config: ASR ONNX config.
         preprocessor_config: Preprocessor ONNX and concurrency config.
         resampler_config: Resampler ONNX config.
 
     Returns:
         ASR model class.
+
+    Raises:
+        ModelNotSupportedError: Model not supported.
+        ModelPathNotDirectoryError: Model path not a directory.
+        ModelFileNotFoundError: Model file not found.
+        MoreThanOneModelFileFoundError: More than one file found.
+        NoModelNameOrPathSpecifiedError: No model name or path specified.
+        InvalidModelTypeInConfigError: Invalid model type in config.
 
     """
     if cpu_preprocessing is not None:
@@ -364,6 +378,14 @@ def load_vad(
 
     Returns:
         VAD model class.
+
+    Raises:
+        ModelNotSupportedError: Model not supported.
+        ModelPathNotDirectoryError: Model path not a directory.
+        ModelFileNotFoundError: Model file not found.
+        MoreThanOneModelFileFoundError: More than one file found.
+        NoModelNameOrPathSpecifiedError: No model name or path specified.
+        InvalidModelTypeInConfigError: Invalid model type in config.
 
     """
     model_type: type[SileroVad | PyAnnoteVad]

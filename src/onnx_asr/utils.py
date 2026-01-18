@@ -8,6 +8,7 @@ import numpy as np
 import numpy.typing as npt
 
 SampleRates = Literal[8_000, 11_025, 16_000, 22_050, 24_000, 32_000, 44_100, 48_000]
+"""Supported sample rates."""
 
 
 def is_supported_sample_rate(sample_rate: int) -> TypeGuard[SampleRates]:
@@ -16,7 +17,7 @@ def is_supported_sample_rate(sample_rate: int) -> TypeGuard[SampleRates]:
 
 
 def is_float16_array(x: object) -> TypeGuard[npt.NDArray[np.float16]]:
-    """Numpy array is float32."""
+    """Numpy array is float16."""
     return isinstance(x, np.ndarray) and x.dtype == np.float16
 
 
