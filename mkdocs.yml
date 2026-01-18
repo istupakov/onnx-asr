@@ -1,0 +1,103 @@
+site_name: onnx-asr
+site_url: https://istupakov.github.io/onnx-asr
+site_description: onnx-asr - a lightweight Python package for Automatic Speech Recognition using ONNX models
+site_author: Ilya Stupakov
+copyright: Copyright &copy; 2026 Ilya Stupakov
+repo_name: istupakov/onnx-asr
+repo_url: https://github.com/istupakov/onnx-asr/
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/istupakov
+    - icon: simple/huggingface
+      link: https://huggingface.co/istupakov
+
+theme:
+  name: material
+  logo: assets/icon.svg
+  favicon: assets/favicon.svg
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - toc.integrate
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+watch:
+  - README.md
+
+nav:
+  - Readme: index.md
+  - Reference: reference.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - github-callouts
+  - pymdownx.details
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+
+plugins:
+  - search
+  - social:
+      enabled: !ENV [CI, false]
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          inventories:
+            - https://docs.python.org/3/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
+            - https://onnxruntime.ai/docs/api/python/objects.inv
+          options:
+            relative_crossrefs: true
+            scoped_crossrefs: true
+            signature_crossrefs: true
+            unwrap_annotated: true
+            inherited_members: true
+            summary: true
+            parameter_headings: true
+            type_parameter_headings: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            line_length: 88
+            separate_signature: true
+            show_signature_annotations: true
+            show_signature_type_parameters: true
+            backlinks: tree
+            merge_init_into_class: true
+            extensions:
+              - unpack_typeddict

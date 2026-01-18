@@ -33,7 +33,7 @@ classifiers = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/istupakov/onnx-asr#readme"
+Documentation = "https://istupakov.github.io/onnx-asr"
 "Release notes" = "https://github.com/istupakov/onnx-asr/releases"
 Issues = "https://github.com/istupakov/onnx-asr/issues"
 Source = "https://github.com/istupakov/onnx-asr"
@@ -66,7 +66,14 @@ dev = [
     "mypy>=1.19.1",
     "ruff>=0.14.11",
     "soundfile>=0.13.1",
+    { include-group = "docs" },
     { include-group = "test-preprocessors" },
+]
+docs = [
+    "click<8.3",
+    "markdown-callouts>=0.4.0",
+    "mkdocs-material[imaging]>=9.7.1",
+    "mkdocstrings[python]>=1.0.0",
 ]
 test = [
     "huggingface-hub>=0.30.2",
@@ -77,6 +84,7 @@ test = [
 ]
 test-preprocessors = [
     "kaldi-native-fbank>=1.22.3",
+    "lilcom<1.8.2",
     "nemo-toolkit[asr]>=2.6.1",
     "openai-whisper>=20250625",
     { include-group = "build" },
