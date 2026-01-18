@@ -23,9 +23,13 @@ class TimestampedResult:
     """Timestamped recognition result."""
 
     text: str
+    """Recognized text."""
     timestamps: list[float] | None = None
+    """Tokens timestamp list."""
     tokens: list[str] | None = None
+    """Tokens list."""
     logprobs: list[float] | None = None
+    """Tokens logporob list."""
 
 
 class AsrConfig(TypedDict, total=False):

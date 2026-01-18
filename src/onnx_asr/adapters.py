@@ -28,20 +28,30 @@ class VadOptions(TypedDict, total=False):
     """Options for VAD."""
 
     batch_size: int
+    """Number of parallel processed segments."""
     threshold: float
+    """Speech detection threshold."""
     neg_threshold: float
+    """Non-speech detection threshold."""
     min_speech_duration_ms: float
+    """Minimum speech segment duration in milliseconds."""
     max_speech_duration_s: float
+    """Maximum speech segment duration in seconds."""
     min_silence_duration_ms: float
+    """Minimum silence duration in milliseconds to split speech segments."""
     speech_pad_ms: float
+    """Padding for speech segments in milliseconds."""
 
 
 class RecognizeOptions(TypedDict, total=False):
     """Options for ASR recognition."""
 
     language: str | None
+    """Speech language (only for Whisper and Canary models)."""
     target_language: str | None
+    """Output language (only for Canary models)."""
     pnc: Literal["pnc", "nopnc"] | bool
+    """Output punctuation and capitalization (only for Canary models)."""
 
 
 class AsrAdapter(ABC, Generic[R]):
@@ -60,13 +70,7 @@ class AsrAdapter(ABC, Generic[R]):
 
         Args:
             vad: VAD model.
-            batch_size: Number of parallel processed segments.
-            threshold: Speech detection threshold.
-            neg_threshold: Non-speech detection threshold.
-            min_speech_duration_ms: Minimum speech segment duration in milliseconds.
-            max_speech_duration_s: Maximum speech segment duration in seconds.
-            min_silence_duration_ms: Minimum silence duration in milliseconds to split speech segments.
-            speech_pad_ms: Padding for speech segments in milliseconds.
+            **kwargs: VAD options.
 
         Returns:
             ASR with VAD adapter (text results).
@@ -111,12 +115,15 @@ class AsrAdapter(ABC, Generic[R]):
                       or Numpy array with PCM waveform.
                       A list of file paths or numpy arrays for batch recognition are also supported.
             sample_rate: Sample rate for Numpy arrays in waveform.
-            language: Speech language (only for Whisper and Canary models).
-            target_language: Output language (only for Canary models).
-            pnc: Output punctuation and capitalization (only for Canary models).
+            **kwargs: ASR options.
 
         Returns:
             Speech recognition results (single or list for batch recognition).
+
+        Raises:
+            SupportedOnlyMonoAudioError: Supported only mono audio.
+            WrongSampleRateError: Wrong sample rate.
+            DifferentSampleRatesError: Different sample rates.
 
         """
         if isinstance(waveform, list) and not waveform:

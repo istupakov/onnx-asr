@@ -10,16 +10,22 @@ class OnnxSessionOptions(TypedDict, total=False):
     """Options for onnxruntime InferenceSession."""
 
     sess_options: rt.SessionOptions | None
+    """ONNX Session options."""
     providers: Sequence[str | tuple[str, dict[Any, Any]]] | None
+    """ONNX providers."""
     provider_options: Sequence[dict[Any, Any]] | None
+    """ONNX provider options."""
 
 
 class TensorRtOptions:
     """Options for onnxruntime TensorRT providers."""
 
     profile_min_shapes: ClassVar[dict[str, int]] = {"batch": 1, "waveform_len_ms": 50}
+    """Minimal value for model input shapes."""
     profile_max_shapes: ClassVar[dict[str, int]] = {"batch": 16, "waveform_len_ms": 30_000}
+    """Maximal value for model input shapes."""
     profile_opt_shapes: ClassVar[dict[str, int]] = {"batch": 1, "waveform_len_ms": 20_000}
+    """Optimal value for model input shapes."""
 
     @classmethod
     def _generate_profile(cls, prefix: str, transform_shapes: Callable[..., str]) -> dict[str, str]:
