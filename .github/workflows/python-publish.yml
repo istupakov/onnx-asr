@@ -12,15 +12,12 @@ permissions:
 
 jobs:
   pypi-publish:
-    name: Upload release to PyPI
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/onnx-asr/
     permissions:
-      contents: read
       id-token: write
-
     steps:
       - uses: actions/checkout@v6
       - name: Install uv
