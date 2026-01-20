@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  HF_HUB_CACHE: hub_cache
+  HF_HOME: ${{ github.workspace }}/.cache/huggingface
   ONNXRUNTIME_NIGHTLY_URL: https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/ORT-Nightly/pypi/simple/
 
 jobs:
@@ -21,26 +21,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # Until actions/checkout update
+          fetch-tags: true
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           activate-environment: true
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint code with Ruff
+        run: ruff check --output-format=github
+      - name: Check code formatting with Ruff
+        run: ruff format --diff
+      - name: Check types with MyPy
+        run: mypy .
+
       - name: Cache HF models
         uses: actions/cache@v5
         with:
-          path: ${{ env.HF_HUB_CACHE }}
-          key: cache-hf-models-${{ hashFiles('tests/onnx_asr/*.py') }}
-
-      - name: Install dependencies
-        run: uv sync --frozen
-      - name: Lint code with Ruff
-        run: uv run --frozen ruff check --output-format=github
-      - name: Check code formatting with Ruff
-        run: uv run --frozen ruff format --diff
-      - name: Check types with MyPy
-        run: uv run --frozen mypy .
+          path: ${{ env.HF_HOME }}
+          key: ${{ runner.os }}-hf-models
       - name: Test with pytest
-        run: uv run --frozen pytest --cov . --cov-report term --cov-report xml --junitxml junit.xml -o junit_family=legacy
+        run: pytest --cov . --cov-report term --cov-report xml --junitxml junit.xml -o junit_family=legacy
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
       - name: Upload test results to Codecov
@@ -50,7 +54,7 @@ jobs:
           report_type: test_results
 
       - name: Build docs site
-        run: uv run --frozen mkdocs build -s
+        run: mkdocs build --strict
       - name: Build package dist
         run: |
           uv pip compile --group build --generate-hashes -o build-constraints.txt
@@ -102,33 +106,33 @@ jobs:
             os: macos-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - name: Install uv with Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v7
         with:
+          activate-environment: true
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
       - uses: actions/download-artifact@v7
         with:
           name: wheels
           path: ./dist
-      - name: Cache HF models
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.HF_HUB_CACHE }}
-          key: cache-hf-models-${{ hashFiles('tests/onnx_asr/*.py') }}
 
-      - name: Install dependencies (${{ matrix.numpy-version }}, ${{ matrix.onnxruntime-version }}, ${{ matrix.hf-hub-version }})
+      - name: Install package with (${{ matrix.numpy-version }}, ${{ matrix.onnxruntime-version }}, ${{ matrix.hf-hub-version }})
+        shell: bash
         env:
-          PIP_EXTRA_INDEX_URL: ${{ matrix.onnxruntime-version == 'onnxruntime~=1.24.0.dev' && env.ONNXRUNTIME_NIGHTLY_URL || '' }}
+          UV_INDEX: ${{ matrix.onnxruntime-version == 'onnxruntime~=1.24.0.dev' && env.ONNXRUNTIME_NIGHTLY_URL || '' }}
+          UV_INDEX_STRATEGY: unsafe-best-match
         run: >-
-          pip install --group test
+          uv pip install --group test ./dist/onnx_asr-*.whl
           ${{ matrix.numpy-version }}
           ${{ matrix.onnxruntime-version }}
           ${{ matrix.hf-hub-version }}
           ${{ matrix.soundfile-version }}
-      - name: Install package
-        shell: bash
-        run: pip install ./dist/onnx_asr-*.whl
+
+      - name: Cache HF models
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.HF_HOME }}
+          key: ${{ runner.os }}-hf-models
       - name: Test with pytest
         run: pytest ./tests/onnx_asr --junitxml junit.xml -o junit_family=legacy
       - name: Upload test results to Codecov
