@@ -22,8 +22,20 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           activate-environment: true
+      - name: Download Release Notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tags=$(gh release list --json tagName --jq '.[].tagName')
+          for tag in $tags; do
+            gh release view "$tag" --json name,publishedAt,url --template \
+              '## [{{.name}}]({{.url}}){{"\n"}}*Released on {{timefmt "2006-01-02" .publishedAt}}*{{"\n\n"}}' \
+              >> docs/release-notes.md
+            gh release view "$tag" --json body --template '{{.body}}{{"\n\n---\n\n"}}' | sed 's/^#/##/' | \
+              gh api /markdown -F text=@- -f mode=gfm -f context=istupakov/onnx-asr >> docs/release-notes.md
+          done
       - name: Build docs site
-        run: uv run --frozen --only-group docs mkdocs build -s
+        run: uv run --frozen --only-group docs mkdocs build --strict
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
