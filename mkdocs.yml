@@ -53,6 +53,7 @@ watch:
 nav:
   - Readme: index.md
   - Reference: reference.md
+  - Release Notes: release-notes.md
 
 markdown_extensions:
   - admonition
