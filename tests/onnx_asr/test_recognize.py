@@ -22,7 +22,7 @@ models = [
     "onnx-community/whisper-tiny",
     pytest.param(
         "istupakov/canary-180m-flash-onnx",
-        marks=pytest.mark.skipif(onnxruntime.__version__ == "1.18.1", reason="Missed Trilu ONNX operator"),
+        marks=pytest.mark.xfail(onnxruntime.__version__ == "1.18.1", reason="Missed Trilu ONNX operator"),
     ),
 ]
 
