@@ -48,11 +48,6 @@ class AsrRuntimeConfig:
 
     onnx_options: OnnxSessionOptions = field(default_factory=OnnxSessionOptions)
     preprocessor_config: PreprocessorRuntimeConfig = field(default_factory=PreprocessorRuntimeConfig)
-    use_tensorrt_fp16: bool = False
-
-    def __post_init__(self) -> None:
-        """Set use_tensorrt_fp16 field."""
-        self.use_tensorrt_fp16 = TensorRtOptions.is_fp16_enabled(self.onnx_options)
 
 
 class Asr(ABC):
@@ -67,11 +62,16 @@ class Asr(ABC):
             self.config = {}
 
         self.runtime_config = runtime_config
+        self.use_tensorrt_fp16 = TensorRtOptions.is_fp16_enabled(runtime_config.onnx_options)
         self._preprocessor = Preprocessor(self._preprocessor_name, runtime_config.preprocessor_config)
 
     @staticmethod
     def _get_excluded_providers() -> list[str]:
         return []
+
+    @staticmethod
+    @abstractmethod
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]: ...
 
     @staticmethod
     def _get_sample_rate() -> Literal[8_000, 16_000]:
@@ -168,7 +168,7 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: object | None
     ) -> Iterator[tuple[Iterable[int], Iterable[int], Iterable[float] | None]]:
         need_logprobs = kwargs.get("need_logprobs")
-        if self.runtime_config.use_tensorrt_fp16:  # TensorRT fp16 models may return incorrect encoder_out_lens
+        if self.use_tensorrt_fp16:  # TensorRT fp16 models may return incorrect encoder_out_lens
             encoder_out_lens = np.minimum(encoder_out_lens, encoder_out.shape[1])
 
         for encodings, encodings_len in zip(encoder_out, encoder_out_lens, strict=True):
