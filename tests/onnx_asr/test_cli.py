@@ -45,9 +45,10 @@ def test_cli_run(args_list: list[str]) -> None:
     except ImportError:
         pytest.skip("soundfile not available")
     args = parse_args(args_list)
+    args.model_path = None
 
     rng = np.random.default_rng(0)
     for file in args.filename:
         sf.write(file, rng.random((16_000), dtype=np.float32), 16_000)
 
-    run(parse_args(args_list))
+    run(args)
