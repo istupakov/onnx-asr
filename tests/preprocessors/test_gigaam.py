@@ -17,7 +17,9 @@ def preprocessor_origin_v2(waveforms, lens):
         n_mels=gigaam.n_mels,
     )
     features_lens = torch.from_numpy(lens).div(gigaam.hop_length, rounding_mode="floor").add(1).long().numpy()
-    return torch.log(transform(torch.from_numpy(waveforms)).clamp_(gigaam.clamp_min, gigaam.clamp_max)).numpy(), features_lens
+    return torch.log(
+        transform(torch.from_numpy(waveforms)).clamp_(gigaam.clamp_min, gigaam.clamp_max)
+    ).numpy(), features_lens
 
 
 def preprocessor_origin_v3(waveforms, lens):
@@ -34,9 +36,15 @@ def preprocessor_origin_v3(waveforms, lens):
         .float()
     )
     features_lens = (
-        torch.from_numpy(lens - gigaam.win_length_v3).div(gigaam.hop_length, rounding_mode="floor").add(1).long().numpy()
+        torch.from_numpy(lens - gigaam.win_length_v3)
+        .div(gigaam.hop_length, rounding_mode="floor")
+        .add(1)
+        .long()
+        .numpy()
     )
-    return torch.log(transform(torch.from_numpy(waveforms)).clamp_(gigaam.clamp_min, gigaam.clamp_max)).numpy(), features_lens
+    return torch.log(
+        transform(torch.from_numpy(waveforms)).clamp_(gigaam.clamp_min, gigaam.clamp_max)
+    ).numpy(), features_lens
 
 
 def preprocessor_torch_v2(waveforms, lens):
@@ -51,7 +59,9 @@ def preprocessor_torch_v2(waveforms, lens):
         power=2,
         normalized=False,
     )
-    mel_spectrogram = torch.matmul(spectrogram.transpose(-1, -2), torch.from_numpy(gigaam.melscale_fbanks_v2)).transpose(-1, -2)
+    mel_spectrogram = torch.matmul(
+        spectrogram.transpose(-1, -2), torch.from_numpy(gigaam.melscale_fbanks_v2)
+    ).transpose(-1, -2)
     return torch.log(mel_spectrogram.clamp_(gigaam.clamp_min, gigaam.clamp_max)).numpy(), lens // gigaam.hop_length + 1
 
 
@@ -68,7 +78,9 @@ def preprocessor_torch_v3(waveforms, lens):
         normalized=False,
         center=False,
     )
-    mel_spectrogram = torch.matmul(spectrogram.transpose(-1, -2), torch.from_numpy(gigaam.melscale_fbanks_v3)).transpose(-1, -2)
+    mel_spectrogram = torch.matmul(
+        spectrogram.transpose(-1, -2), torch.from_numpy(gigaam.melscale_fbanks_v3)
+    ).transpose(-1, -2)
     return torch.log(mel_spectrogram.clamp_(gigaam.clamp_min, gigaam.clamp_max)).numpy(), (
         lens - gigaam.win_length_v3
     ) // gigaam.hop_length + 1

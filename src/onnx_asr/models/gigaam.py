@@ -120,7 +120,11 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
         if len(prev_state) == 2:
             decoder_out, state1, state2 = self._decoder.run(
                 ["dec", "h", "c"],
-                {"x": [[prev_tokens[-1] if prev_tokens else self._blank_idx]], "h.1": prev_state[0], "c.1": prev_state[1]},
+                {
+                    "x": [[prev_tokens[-1] if prev_tokens else self._blank_idx]],
+                    "h.1": prev_state[0],
+                    "c.1": prev_state[1],
+                },
             )
             assert is_float32_array(decoder_out)
             assert is_float32_array(state1)
@@ -129,7 +133,9 @@ class GigaamV2Rnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _GigaamV2):
         else:
             decoder_out, state1, state2 = prev_state
 
-        (joint,) = self._joiner.run(["joint"], {"enc": encoder_out[None, :, None], "dec": decoder_out.transpose(0, 2, 1)})
+        (joint,) = self._joiner.run(
+            ["joint"], {"enc": encoder_out[None, :, None], "dec": decoder_out.transpose(0, 2, 1)}
+        )
         assert is_float32_array(joint)
         return np.squeeze(joint), -1, [state1, state2]
 

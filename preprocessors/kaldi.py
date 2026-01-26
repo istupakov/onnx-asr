@@ -80,9 +80,9 @@ def calc_features(image: FLOAT["batch_size", "T", n_fft // 2 + 1, 2], waveforms_
     else:
         features_lens = 1 + (waveforms_lens - win_length) / hop_length
 
-    mask = op.Unsqueeze(op.Range(0, op.Squeeze(op.Shape(log_mel_spectrogram, start=1, end=2)), 1), axes=[0, 2]) < op.Unsqueeze(
-        features_lens, axes=[1, 2]
-    )
+    mask = op.Unsqueeze(
+        op.Range(0, op.Squeeze(op.Shape(log_mel_spectrogram, start=1, end=2)), 1), axes=[0, 2]
+    ) < op.Unsqueeze(features_lens, axes=[1, 2])
     return op.Where(mask, log_mel_spectrogram, 0.0), features_lens
 
 

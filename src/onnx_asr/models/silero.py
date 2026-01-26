@@ -49,7 +49,9 @@ class SileroVad(Vad):
 
         def process(frame: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
             nonlocal state
-            output, new_state = self._model.run(["output", "stateN"], {"input": frame, "state": state, "sr": [sample_rate]})
+            output, new_state = self._model.run(
+                ["output", "stateN"], {"input": frame, "state": state, "sr": [sample_rate]}
+            )
             assert is_float32_array(output)
             assert is_float32_array(new_state)
             state = new_state
@@ -126,7 +128,9 @@ class SileroVad(Vad):
         context_size = 64 if sample_rate == 16_000 else 32
 
         def segment(probs: Iterable[np.float32], waveform_len: np.int64, **kwargs: float) -> Iterator[tuple[int, int]]:
-            return self._merge_segments(self._find_segments(probs, hop_size, **kwargs), int(waveform_len), sample_rate, **kwargs)
+            return self._merge_segments(
+                self._find_segments(probs, hop_size, **kwargs), int(waveform_len), sample_rate, **kwargs
+            )
 
         encoding = self._encode(waveforms, sample_rate, hop_size, context_size)
         if len(waveforms) == 1:

@@ -120,7 +120,9 @@ class WhisperOrt(_Whisper):
     def _preprocessor_name(self) -> str:
         return f"whisper{self.config.get('features_size', 80)}"
 
-    def _decoding(self, input_features: OrtValue, tokens: npt.NDArray[np.int64], max_length: int = 448) -> npt.NDArray[np.int64]:
+    def _decoding(
+        self, input_features: OrtValue, tokens: npt.NDArray[np.int64], max_length: int = 448
+    ) -> npt.NDArray[np.int64]:
         (sequences,) = self._model.run(
             ["sequences"],
             {
@@ -209,7 +211,9 @@ class WhisperHf(_Whisper):
             for (key, prev_value), next_value in zip(prev_state.items(), outputs[1:], strict=True)
         }
 
-    def _decoding(self, input_features: OrtValue, tokens: npt.NDArray[np.int64], max_length: int = 448) -> npt.NDArray[np.int64]:
+    def _decoding(
+        self, input_features: OrtValue, tokens: npt.NDArray[np.int64], max_length: int = 448
+    ) -> npt.NDArray[np.int64]:
         state = self._create_state()
         for _ in range(tokens.shape[-1], max_length):
             logits, state = self._decode(tokens, state, input_features)

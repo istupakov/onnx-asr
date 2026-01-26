@@ -64,7 +64,8 @@ class TOneCtc(_AsrWithCtcDecoding):
         self, waveforms: npt.NDArray[np.float32], state: npt.NDArray[np.float16]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float16]]:
         (logprobs, new_state) = self._model.run(
-            ["logprobs", "state_next"], {"signal": (waveforms[..., None] * (2**15 - 1)).astype(np.int32), "state": state}
+            ["logprobs", "state_next"],
+            {"signal": (waveforms[..., None] * (2**15 - 1)).astype(np.int32), "state": state},
         )
         assert is_float32_array(logprobs)
         assert is_float16_array(new_state)
@@ -73,7 +74,9 @@ class TOneCtc(_AsrWithCtcDecoding):
     def _encode(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
-        waveforms = np.pad(waveforms, ((0, 0), (self._chunk_size, self._chunk_size + (-waveforms.shape[1]) % self._chunk_size)))
+        waveforms = np.pad(
+            waveforms, ((0, 0), (self._chunk_size, self._chunk_size + (-waveforms.shape[1]) % self._chunk_size))
+        )
 
         res = []
         state = np.zeros((waveforms.shape[0], self._state_size), dtype=np.float16)

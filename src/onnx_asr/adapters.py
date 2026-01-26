@@ -80,7 +80,11 @@ class AsrAdapter(ABC, Generic[R]):
 
     @abstractmethod
     def _recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: Unpack[RecognizeOptions]
+        self,
+        waveforms: npt.NDArray[np.float32],
+        waveforms_len: npt.NDArray[np.int64],
+        /,
+        **kwargs: Unpack[RecognizeOptions],
     ) -> Iterator[R]: ...
 
     @overload
@@ -141,7 +145,11 @@ class TimestampedResultsAsrAdapter(AsrAdapter[TimestampedResult]):
     """ASR adapter (timestamped results)."""
 
     def _recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: Unpack[RecognizeOptions]
+        self,
+        waveforms: npt.NDArray[np.float32],
+        waveforms_len: npt.NDArray[np.int64],
+        /,
+        **kwargs: Unpack[RecognizeOptions],
     ) -> Iterator[TimestampedResult]:
         return self.asr.recognize_batch(waveforms, waveforms_len, need_logprobs="yes", **kwargs)
 
@@ -154,7 +162,11 @@ class TextResultsAsrAdapter(AsrAdapter[str]):
         return TimestampedResultsAsrAdapter(self.asr, self.resampler)
 
     def _recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: Unpack[RecognizeOptions]
+        self,
+        waveforms: npt.NDArray[np.float32],
+        waveforms_len: npt.NDArray[np.int64],
+        /,
+        **kwargs: Unpack[RecognizeOptions],
     ) -> Iterator[str]:
         return (res.text for res in self.asr.recognize_batch(waveforms, waveforms_len, **kwargs))
 
@@ -171,10 +183,19 @@ class TimestampedSegmentResultsAsrAdapter(AsrAdapter[Iterator[TimestampedSegment
         self._vadargs = kwargs
 
     def _recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: Unpack[RecognizeOptions]
+        self,
+        waveforms: npt.NDArray[np.float32],
+        waveforms_len: npt.NDArray[np.int64],
+        /,
+        **kwargs: Unpack[RecognizeOptions],
     ) -> Iterator[Iterator[TimestampedSegmentResult]]:
         return self.vad.recognize_batch(
-            self.asr, waveforms, waveforms_len, self.asr._get_sample_rate(), {**kwargs, "need_logprobs": True}, **self._vadargs
+            self.asr,
+            waveforms,
+            waveforms_len,
+            self.asr._get_sample_rate(),
+            {**kwargs, "need_logprobs": True},
+            **self._vadargs,
         )
 
 
@@ -194,7 +215,11 @@ class SegmentResultsAsrAdapter(AsrAdapter[Iterator[SegmentResult]]):
         return TimestampedSegmentResultsAsrAdapter(self.asr, self.vad, self.resampler, **self._vadargs)
 
     def _recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: Unpack[RecognizeOptions]
+        self,
+        waveforms: npt.NDArray[np.float32],
+        waveforms_len: npt.NDArray[np.int64],
+        /,
+        **kwargs: Unpack[RecognizeOptions],
     ) -> Iterator[Iterator[SegmentResult]]:
         return (
             (SegmentResult(res.start, res.end, res.text) for res in results)
