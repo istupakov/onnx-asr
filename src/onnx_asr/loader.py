@@ -170,7 +170,9 @@ class _Loader(ABC, Generic[T]):
         from huggingface_hub import hf_hub_download  # noqa: PLC0415
 
         assert self.repo_id is not None
-        return Path(hf_hub_download(self.repo_id, "config.json", local_dir=self.local_dir, local_files_only=local_files_only))  # nosec
+        return Path(
+            hf_hub_download(self.repo_id, "config.json", local_dir=self.local_dir, local_files_only=local_files_only)
+        )  # nosec
 
     def _download_model(self, quantization: str | None, *, local_files_only: bool) -> Path:
         from huggingface_hub import snapshot_download  # noqa: PLC0415
@@ -183,7 +185,9 @@ class _Loader(ABC, Generic[T]):
         ]
         assert self.repo_id is not None
         return Path(
-            snapshot_download(self.repo_id, local_dir=self.local_dir, local_files_only=local_files_only, allow_patterns=files)  # nosec
+            snapshot_download(
+                self.repo_id, local_dir=self.local_dir, local_files_only=local_files_only, allow_patterns=files
+            )  # nosec
         )
 
     def _resolve_model_files(self, path: Path, quantization: str | None) -> dict[str, Path]:
@@ -329,17 +333,22 @@ def load_model(
         model: Model name or type (download from Hugging Face supported if full model name is provided):
 
                 GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`)
-                GigaAM v3 (`gigaam-v3-ctc` | `gigaam-v3-rnnt` | `gigaam-v3-e2e-ctc` | `gigaam-v3-e2e-rnnt`)
+                GigaAM v3 (`gigaam-v3-ctc` | `gigaam-v3-rnnt` |
+                           `gigaam-v3-e2e-ctc` | `gigaam-v3-e2e-rnnt`)
                 Kaldi Transducer (`kaldi-rnnt`)
-                NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt` | `nemo-conformer-aed`)
-                NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` | `nemo-fastconformer-ru-rnnt`)
-                NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b` | `nemo-parakeet-tdt-0.6b-v2`)
+                NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt` |
+                                `nemo-conformer-aed`)
+                NeMo FastConformer Hybrid Large Ru P&C (`nemo-fastconformer-ru-ctc` |
+                                                        `nemo-fastconformer-ru-rnnt`)
+                NeMo Parakeet 0.6B En (`nemo-parakeet-ctc-0.6b` | `nemo-parakeet-rnnt-0.6b` |
+                                       `nemo-parakeet-tdt-0.6b-v2`)
                 NeMo Parakeet 0.6B Multilingual (`nemo-parakeet-tdt-0.6b-v3`)
                 NeMo Canary (`nemo-canary-1b-v2`)
                 T-One (`t-one-ctc` | `t-tech/t-one`)
                 Vosk (`vosk` | `alphacep/vosk-model-ru` | `alphacep/vosk-model-small-ru`)
                 Whisper Base exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
-                Whisper from onnx-community (`whisper` | `onnx-community/whisper-large-v3-turbo` | `onnx-community/*whisper*`)
+                Whisper from onnx-community (`whisper` | `onnx-community/whisper-large-v3-turbo` |
+                                             `onnx-community/*whisper*`)
         path: Path to directory with model files.
         quantization: Model quantization (`None` | `int8` | ... ).
         sess_options: Default SessionOptions for onnxruntime.
@@ -364,7 +373,7 @@ def load_model(
     """
     if cpu_preprocessing is not None:
         warnings.warn(
-            "The cpu_preprocessing argument is deprecated and ignored (use preprocessor_config and resampler_config instead).",
+            "The cpu_preprocessing argument is deprecated and ignored (use preprocessor_config and resampler_config).",
             stacklevel=2,
         )
 
@@ -377,7 +386,9 @@ def load_model(
     }
 
     if asr_config is None:
-        asr_config = update_onnx_providers(default_onnx_config, excluded_providers=loader.model_type._get_excluded_providers())
+        asr_config = update_onnx_providers(
+            default_onnx_config, excluded_providers=loader.model_type._get_excluded_providers()
+        )
 
     if preprocessor_config is None:
         preprocessor_config = {
@@ -390,7 +401,9 @@ def load_model(
         }
 
     if resampler_config is None:
-        resampler_config = update_onnx_providers(default_onnx_config, excluded_providers=Resampler._get_excluded_providers())
+        resampler_config = update_onnx_providers(
+            default_onnx_config, excluded_providers=Resampler._get_excluded_providers()
+        )
 
     return TextResultsAsrAdapter(
         loader.create_model(AsrRuntimeConfig(asr_config, preprocessor_config), quantization=quantization),

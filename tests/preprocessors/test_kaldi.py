@@ -71,7 +71,9 @@ def preprocessor(request):
             return Preprocessor("kaldi_fast", {"max_concurrent_workers": 2})
 
 
-@pytest.mark.parametrize("preprocessor", ["torch", "onnx_func", "onnx_model", "onnx_model_mt"], indirect=["preprocessor"])
+@pytest.mark.parametrize(
+    "preprocessor", ["torch", "onnx_func", "onnx_model", "onnx_model_mt"], indirect=["preprocessor"]
+)
 def test_kaldi_preprocessor(preprocessor, waveforms):
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin(waveforms, lens)
@@ -82,7 +84,9 @@ def test_kaldi_preprocessor(preprocessor, waveforms):
     np.testing.assert_allclose(actual, expected, atol=5e-4, rtol=1e-4)
 
 
-@pytest.mark.parametrize("preprocessor", ["onnx_func_fast", "onnx_model_fast", "onnx_model_fast_mt"], indirect=["preprocessor"])
+@pytest.mark.parametrize(
+    "preprocessor", ["onnx_func_fast", "onnx_model_fast", "onnx_model_fast_mt"], indirect=["preprocessor"]
+)
 def test_kaldi_preprocessor_fast(preprocessor, waveforms):
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin(

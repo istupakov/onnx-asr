@@ -41,14 +41,17 @@ def preprocessor_torch(waveforms, lens, n_mels):
         pad_mode="constant",
     )
     mel_spectrogram = torch.matmul(
-        spectrogram.transpose(-1, -2), torch.from_numpy(nemo.melscale_fbanks80 if n_mels == 80 else nemo.melscale_fbanks128)
+        spectrogram.transpose(-1, -2),
+        torch.from_numpy(nemo.melscale_fbanks80 if n_mels == 80 else nemo.melscale_fbanks128),
     ).transpose(-1, -2)
     log_mel_spectrogram = torch.log(mel_spectrogram + nemo.log_zero_guard_value)
 
     features_lens = torch.from_numpy(lens) // nemo.hop_length
     mask = torch.arange(log_mel_spectrogram.shape[-1]) < features_lens[:, None, None]
     mean = torch.where(mask, log_mel_spectrogram, 0).sum(dim=-1, keepdim=True) / features_lens[:, None, None]
-    var = torch.where(mask, (log_mel_spectrogram - mean) ** 2, 0).sum(dim=-1, keepdim=True) / (features_lens[:, None, None] - 1)
+    var = torch.where(mask, (log_mel_spectrogram - mean) ** 2, 0).sum(dim=-1, keepdim=True) / (
+        features_lens[:, None, None] - 1
+    )
     features = torch.where(mask, (log_mel_spectrogram - mean) / (var.sqrt() + 1e-5), 0).numpy()
     return features, features_lens.numpy()
 
@@ -98,7 +101,9 @@ def preprocessor(request):
 )
 def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
     waveforms, lens = pad_list(waveforms)
-    expected, expected_lens = preprocessor_origin(input_signal=torch.from_numpy(waveforms), length=torch.from_numpy(lens))
+    expected, expected_lens = preprocessor_origin(
+        input_signal=torch.from_numpy(waveforms), length=torch.from_numpy(lens)
+    )
     actual, actual_lens = preprocessor(waveforms, lens)
 
     assert expected.shape[2] >= max(expected_lens)

@@ -25,10 +25,13 @@ melscale_fbanks128 = torchaudio.functional.melscale_fbanks(
 
 @script()
 def whisper_preprocessor(
-    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"], melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"]
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+    melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"],
 ):
     waveforms = op.Pad(
-        waveforms, pads=(chunk_length * sample_rate - op.Shape(waveforms, start=1, end=2)) * op.Constant(value=[0, 0, 0, 1])
+        waveforms,
+        pads=(chunk_length * sample_rate - op.Shape(waveforms, start=1, end=2)) * op.Constant(value=[0, 0, 0, 1]),
     )
     waveforms = op.Pad(
         waveforms,
@@ -44,7 +47,9 @@ def whisper_preprocessor(
     log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, clamp_min)) / ln10
     log_mel_spectrogram = (op.Max(log_mel_spectrogram, op.ReduceMax(log_mel_spectrogram) - 8) + 4) / 4.0
 
-    return op.Transpose(log_mel_spectrogram, perm=[0, 2, 1]), op.ConstantOfShape(op.Shape(waveforms_lens), value=features_length)
+    return op.Transpose(log_mel_spectrogram, perm=[0, 2, 1]), op.ConstantOfShape(
+        op.Shape(waveforms_lens), value=features_length
+    )
 
 
 @script(doc_string="LogMelSpectrogram feature extractor for Whisper models", default_opset=op)

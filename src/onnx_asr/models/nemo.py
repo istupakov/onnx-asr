@@ -264,4 +264,8 @@ class NemoConformerAED(_NemoConformer):
             batch_logprobs = np.concatenate((batch_logprobs, next_logprobs[:, None]), axis=-1)
 
         for tokens, logprobs in zip(batch_tokens[:, prefix_len:], batch_logprobs, strict=True):
-            yield ([id for id in tokens if not self._vocab[id].startswith("<|")], None, logprobs[tokens != self._eos_token_id])
+            yield (
+                [id for id in tokens if not self._vocab[id].startswith("<|")],
+                None,
+                logprobs[tokens != self._eos_token_id],
+            )

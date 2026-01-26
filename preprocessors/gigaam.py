@@ -21,7 +21,10 @@ clamp_max = 1e9
 
 melscale_fbanks_v2 = torchaudio.functional.melscale_fbanks(n_fft_v2 // 2 + 1, f_min, f_max, n_mels, sample_rate).numpy()
 melscale_fbanks_v3 = (
-    torchaudio.functional.melscale_fbanks(n_fft_v3 // 2 + 1, f_min, f_max, n_mels, sample_rate).bfloat16().float().numpy()
+    torchaudio.functional.melscale_fbanks(n_fft_v3 // 2 + 1, f_min, f_max, n_mels, sample_rate)
+    .bfloat16()
+    .float()
+    .numpy()
 )
 hann_window_v3 = torch.hann_window(win_length_v3).bfloat16().double().numpy()
 

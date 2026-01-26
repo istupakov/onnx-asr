@@ -54,7 +54,11 @@ class TensorRtOptions:
     @staticmethod
     def is_fp16_enabled(onnx_options: OnnxSessionOptions) -> bool:
         """Check if TensorRT provider use fp16 precision."""
-        return bool(_merge_onnx_provider_options(onnx_options).get("TensorrtExecutionProvider", {}).get("trt_fp16_enable", False))
+        return bool(
+            _merge_onnx_provider_options(onnx_options)
+            .get("TensorrtExecutionProvider", {})
+            .get("trt_fp16_enable", False)
+        )
 
 
 def _merge_onnx_provider_options(onnx_options: OnnxSessionOptions) -> dict[str, dict[Any, Any]]:

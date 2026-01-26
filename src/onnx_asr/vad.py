@@ -61,7 +61,9 @@ class Vad(ABC):
         ) -> Iterator[TimestampedSegmentResult]:
             while batch := tuple(islice(segment, int(batch_size))):
                 yield from (
-                    TimestampedSegmentResult(start / sample_rate, end / sample_rate, res.text, res.timestamps, res.tokens)
+                    TimestampedSegmentResult(
+                        start / sample_rate, end / sample_rate, res.text, res.timestamps, res.tokens
+                    )
                     for res, (start, end) in zip(
                         asr.recognize_batch(*pad_list([waveform[start:end] for start, end in batch]), **asr_kwargs),
                         batch,

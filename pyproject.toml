@@ -125,7 +125,7 @@ module = ["preprocessors.*"]
 follow_imports = "silent"
 
 [tool.ruff]
-line-length = 130
+line-length = 120
 indent-width = 4
 target-version = "py310"
 

@@ -32,10 +32,14 @@ def normalize(x: FLOAT["batch_size", "M", "T"], lens: INT64["batch_size"]):
 
 @script()
 def nemo_preprocessor(
-    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"], melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"]
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+    melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"],
 ):
     if preemph != 0.0:
-        timemask = op.Range(0, op.Squeeze(op.Shape(waveforms, start=1, end=2)), 1) < op.Unsqueeze(waveforms_lens, axes=[1])
+        timemask = op.Range(0, op.Squeeze(op.Shape(waveforms, start=1, end=2)), 1) < op.Unsqueeze(
+            waveforms_lens, axes=[1]
+        )
         waveforms = op.Concat(waveforms[:, :1], waveforms[:, 1:] - preemph * waveforms[:, :-1], axis=-1)
         waveforms = op.Where(timemask, waveforms, 0.0)
 

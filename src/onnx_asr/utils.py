@@ -76,7 +76,9 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
             buffer = np.frombuffer(data, dtype=f"<i{f.getsampwidth()}")
 
         max_value = 2 ** (8 * buffer.itemsize - 1)
-        return buffer.reshape(f.getnframes(), f.getnchannels()).astype(np.float32) / max_value - zero_value, f.getframerate()
+        return buffer.reshape(f.getnframes(), f.getnchannels()).astype(
+            np.float32
+        ) / max_value - zero_value, f.getframerate()
 
 
 def read_wav_files(

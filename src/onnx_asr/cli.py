@@ -14,7 +14,8 @@ def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
     """Parse CLI args."""
     parser = argparse.ArgumentParser(prog="onnx_asr", description=metadata(__package__)["Summary"])
     parser.add_argument(
-        "model", help=f"Model name or type {(*get_args(ModelNames), *get_args(ModelTypes), 'onnx-community/whisper-...')}"
+        "model",
+        help=f"Model name or type {(*get_args(ModelNames), *get_args(ModelTypes), 'onnx-community/whisper-...')}",
     )
     parser.add_argument(
         "filename",
