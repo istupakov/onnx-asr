@@ -1,9 +1,8 @@
-"""CLI for ASR models."""
+"""CLI for speech recognition from WAV files."""
 
 import argparse
 import pathlib
 from collections.abc import Sequence
-from importlib.metadata import metadata, version
 from typing import get_args
 
 import onnx_asr
@@ -12,7 +11,7 @@ from onnx_asr.loader import ModelNames, ModelTypes, VadNames
 
 def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
     """Parse CLI args."""
-    parser = argparse.ArgumentParser(prog="onnx_asr", description=metadata(__package__)["Summary"])
+    parser = argparse.ArgumentParser(prog="onnx_asr", description=onnx_asr.__doc__)
     parser.add_argument(
         "model",
         help=f"Model name or type {(*get_args(ModelNames), *get_args(ModelTypes), 'onnx-community/whisper-...')}",
@@ -27,7 +26,7 @@ def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument("-q", "--quantization", help="Model quantization ('int8' for example)")
     parser.add_argument("--lang", help="Language for multilingual models (Whisper and Canary)", default=None)
     parser.add_argument("--vad", help="Use VAD model", choices=get_args(VadNames))
-    parser.add_argument("--version", action="version", version=f"%(prog)s {version(__package__)}")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {onnx_asr.__version__}")
     return parser.parse_args(args)
 
 

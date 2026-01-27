@@ -1,14 +1,14 @@
 """NeMo model implementations."""
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import AsrRuntimeConfig, _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
-from onnx_asr.onnx import TensorRtOptions
+from onnx_asr.asr import Preprocessor, _AsrWithCtcDecoding, _AsrWithDecoding, _AsrWithTransducerDecoding
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
 from onnx_asr.utils import is_float32_array, is_int64_array
 
 
@@ -38,17 +38,15 @@ class _NemoConformer(_AsrWithDecoding):
 class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
     """NeMo Conformer CTC model implementations."""
 
-    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
-        """Create NeMo Conformer CTC model.
-
-        Args:
-            model_files: Dict with paths to model files.
-            runtime_config: Runtime configuration.
-
-        """
-        super().__init__(model_files, runtime_config)
+    def __init__(  # noqa: D107
+        self,
+        model_files: dict[str, Path],
+        preprocessor_factory: Callable[[str], Preprocessor],
+        onnx_options: OnnxSessionOptions,
+    ):
+        super().__init__(model_files, preprocessor_factory, onnx_options)
         self._model = rt.InferenceSession(
-            model_files["model"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+            model_files["model"], **TensorRtOptions.add_profile(onnx_options, self._encoder_shapes)
         )
 
     @staticmethod
@@ -70,19 +68,17 @@ _STATE_TYPE = tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
 class NemoConformerRnnt(_AsrWithTransducerDecoding[_STATE_TYPE], _NemoConformer):
     """NeMo Conformer RNN-T model implementations."""
 
-    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
-        """Create NeMo Conformer RNN-T model.
-
-        Args:
-            model_files: Dict with paths to model files.
-            runtime_config: Runtime configuration.
-
-        """
-        super().__init__(model_files, runtime_config)
+    def __init__(  # noqa: D107
+        self,
+        model_files: dict[str, Path],
+        preprocessor_factory: Callable[[str], Preprocessor],
+        onnx_options: OnnxSessionOptions,
+    ):
+        super().__init__(model_files, preprocessor_factory, onnx_options)
         self._encoder = rt.InferenceSession(
-            model_files["encoder"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+            model_files["encoder"], **TensorRtOptions.add_profile(onnx_options, self._encoder_shapes)
         )
-        self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **runtime_config.onnx_options)
+        self._decoder_joint = rt.InferenceSession(model_files["decoder_joint"], **onnx_options)
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -145,19 +141,17 @@ class NemoConformerTdt(NemoConformerRnnt):
 class NemoConformerAED(_NemoConformer):
     """NeMo Conformer AED model implementations."""
 
-    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
-        """Create NeMo Conformer AED model.
-
-        Args:
-            model_files: Dict with paths to model files.
-            runtime_config: Runtime configuration.
-
-        """
-        super().__init__(model_files, runtime_config)
+    def __init__(  # noqa: D107
+        self,
+        model_files: dict[str, Path],
+        preprocessor_factory: Callable[[str], Preprocessor],
+        onnx_options: OnnxSessionOptions,
+    ):
+        super().__init__(model_files, preprocessor_factory, onnx_options)
         self._encoder = rt.InferenceSession(
-            model_files["encoder"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+            model_files["encoder"], **TensorRtOptions.add_profile(onnx_options, self._encoder_shapes)
         )
-        self._decoder = rt.InferenceSession(model_files["decoder"], **runtime_config.onnx_options)
+        self._decoder = rt.InferenceSession(model_files["decoder"], **onnx_options)
 
         self._tokens = {token: id for id, token in self._vocab.items()}
         self._eos_token_id = self._tokens["<|endoftext|>"]

@@ -4,7 +4,7 @@ import pytest
 import torch
 import torchaudio
 
-from onnx_asr.preprocessors import Preprocessor
+from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, OnnxPreprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import kaldi
 
@@ -62,13 +62,13 @@ def preprocessor(request):
         case "onnx_func_fast":
             return kaldi.KaldiPreprocessorFast
         case "onnx_model":
-            return Preprocessor("kaldi", {})
+            return OnnxPreprocessor("kaldi", {})
         case "onnx_model_mt":
-            return Preprocessor("kaldi", {"max_concurrent_workers": 2})
+            return ConcurrentPreprocessor(OnnxPreprocessor("kaldi", {}), 2)
         case "onnx_model_fast":
-            return Preprocessor("kaldi_fast", {})
+            return OnnxPreprocessor("kaldi_fast", {})
         case "onnx_model_fast_mt":
-            return Preprocessor("kaldi_fast", {"max_concurrent_workers": 2})
+            return ConcurrentPreprocessor(OnnxPreprocessor("kaldi_fast", {}), 2)
 
 
 @pytest.mark.parametrize(

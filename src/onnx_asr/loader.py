@@ -5,30 +5,30 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Generic, Literal, TypeAlias, TypeVar
+from typing import Any, Generic, Literal, Protocol, TypeAlias, TypeVar
 
 import onnxruntime as rt
 
 from onnx_asr.adapters import TextResultsAsrAdapter
-from onnx_asr.asr import Asr, AsrRuntimeConfig
-from onnx_asr.models import (
-    GigaamV2Ctc,
-    GigaamV2Rnnt,
-    GigaamV3E2eCtc,
-    GigaamV3E2eRnnt,
-    KaldiTransducer,
-    NemoConformerAED,
-    NemoConformerCtc,
-    NemoConformerRnnt,
-    NemoConformerTdt,
-    PyAnnoteVad,
-    SileroVad,
-    TOneCtc,
-    WhisperHf,
-    WhisperOrt,
+from onnx_asr.asr import Asr, Preprocessor
+from onnx_asr.models.gigaam import GigaamV2Ctc, GigaamV2Rnnt, GigaamV3E2eCtc, GigaamV3E2eRnnt
+from onnx_asr.models.kaldi import KaldiTransducer
+from onnx_asr.models.nemo import NemoConformerAED, NemoConformerCtc, NemoConformerRnnt, NemoConformerTdt
+from onnx_asr.models.pyannote import PyAnnoteVad
+from onnx_asr.models.silero import SileroVad
+from onnx_asr.models.tone import TOneCtc
+from onnx_asr.models.whisper import WhisperHf, WhisperOrt
+from onnx_asr.onnx import OnnxSessionOptions, get_onnx_providers, update_onnx_providers
+from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, IdentityPreprocessor, OnnxPreprocessor
+from onnx_asr.preprocessors.resampler import Resampler
+from onnx_asr.utils import (
+    InvalidModelTypeInConfigError,
+    ModelFileNotFoundError,
+    ModelNotSupportedError,
+    ModelPathNotDirectoryError,
+    MoreThanOneModelFileFoundError,
+    NoModelNameOrPathSpecifiedError,
 )
-from onnx_asr.onnx import OnnxSessionOptions, update_onnx_providers
-from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig, Resampler
 
 ModelNames = Literal[
     "gigaam-v2-ctc",
@@ -68,55 +68,22 @@ VadNames = Literal["silero"]
 """Supported VAD model names (can be automatically downloaded from the Hugging Face)."""
 
 
-class ModelNotSupportedError(ValueError):
-    """Model not supported error."""
+class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
+    """Preprocessor runtime config."""
 
-    def __init__(self, model: str):
-        """Create error."""
-        super().__init__(f"Model '{model}' not supported!")
-
-
-class ModelPathNotDirectoryError(NotADirectoryError):
-    """Model path not a directory error."""
-
-    def __init__(self, path: str | Path):
-        """Create error."""
-        super().__init__(f"The path '{path}' is not a directory.")
+    max_concurrent_workers: int | None
+    """Max parallel preprocessing threads (None - auto, 1 - without parallel processing)."""
 
 
-class ModelFileNotFoundError(FileNotFoundError):
-    """Model file not found error."""
+class _Model(Protocol):
+    @staticmethod
+    def _get_excluded_providers() -> list[str]: ...
 
-    def __init__(self, filename: str | Path, path: str | Path):
-        """Create error."""
-        super().__init__(f"File '{filename}' not found in path '{path}'.")
-
-
-class MoreThanOneModelFileFoundError(Exception):
-    """More than one model file found error."""
-
-    def __init__(self, filename: str | Path, path: str | Path):
-        """Create error."""
-        super().__init__(f"Found more than 1 file '{filename}' found in path '{path}'.")
+    @staticmethod
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]: ...
 
 
-class NoModelNameOrPathSpecifiedError(Exception):
-    """No model name or path specified error."""
-
-    def __init__(self) -> None:
-        """Create error."""
-        super().__init__("If the path is not specified, you must specify a specific model name.")
-
-
-class InvalidModelTypeInConfigError(Exception):
-    """Invalid model type in config error."""
-
-    def __init__(self, model_type: str) -> None:
-        """Create error."""
-        super().__init__(f"Invalid model type '{model_type}' in config.json.")
-
-
-T = TypeVar("T")
+T = TypeVar("T", bound=_Model)
 
 
 class _Loader(ABC, Generic[T]):
@@ -143,7 +110,7 @@ class _Loader(ABC, Generic[T]):
             raise NoModelNameOrPathSpecifiedError
 
         if model in self._model_types:
-            self.model_type = self._model_types[model]
+            self._model_type = self._model_types[model]
         elif "/" in model:
             with self.resolve_config().open("rt", encoding="utf-8") as f:
                 config = json.load(f)
@@ -151,12 +118,12 @@ class _Loader(ABC, Generic[T]):
             config_model_type: str = config.get("model_type")
             if "/" in config_model_type or config_model_type not in self._model_types:
                 raise InvalidModelTypeInConfigError(config_model_type)
-            self.model_type = self._model_types[config_model_type]
+            self._model_type = self._model_types[config_model_type]
         else:
             raise ModelNotSupportedError(model)
 
-    @abstractmethod
-    def _model_files(self, quantization: str | None) -> dict[str, str]: ...
+    def get_excluded_providers(self) -> list[str]:
+        return self._model_type._get_excluded_providers()
 
     @property
     @abstractmethod
@@ -177,7 +144,7 @@ class _Loader(ABC, Generic[T]):
     def _download_model(self, quantization: str | None, *, local_files_only: bool) -> Path:
         from huggingface_hub import snapshot_download  # noqa: PLC0415
 
-        files = list(self._model_files(quantization).values())
+        files = list(self._model_type._get_model_files(quantization).values())
         files = [
             "config.json",
             *files,
@@ -191,16 +158,16 @@ class _Loader(ABC, Generic[T]):
         )
 
     def _resolve_model_files(self, path: Path, quantization: str | None) -> dict[str, Path]:
-        files = self._model_files(quantization)
+        files = self._model_type._get_model_files(quantization)
         if Path(path, "config.json").exists():
             files |= {"config": "config.json"}
 
         def find(filename: str) -> Path:
             files = list(path.glob(filename))
-            if len(files) == 0:
-                raise ModelFileNotFoundError(filename, path)
             if len(files) > 1:
                 raise MoreThanOneModelFileFoundError(filename, path)
+            if len(files) == 0 or not files[0].is_file():
+                raise ModelFileNotFoundError(filename, path)
             return files[0]
 
         return {key: find(filename) for key, filename in files.items()}
@@ -233,9 +200,6 @@ class _Loader(ABC, Generic[T]):
 
 class AsrLoader(_Loader[Asr]):
     """Loader class for ASR models."""
-
-    def _model_files(self, quantization: str | None) -> dict[str, str]:
-        return self.model_type._get_model_files(quantization)
 
     @property
     def _model_repos(self) -> dict[str, str]:
@@ -287,9 +251,34 @@ class AsrLoader(_Loader[Asr]):
             "t-tech/t-one": TOneCtc,
         }
 
-    def create_model(self, config: AsrRuntimeConfig, *, quantization: str | None = None) -> Asr:
+    def create_model(
+        self,
+        asr_config: OnnxSessionOptions,
+        preprocessor_config: PreprocessorRuntimeConfig,
+        resampler_config: OnnxSessionOptions,
+        *,
+        quantization: str | None = None,
+    ) -> TextResultsAsrAdapter:
         """Create ASR model."""
-        return self.model_type(self.resolve_model(quantization=quantization), config)
+
+        def create_preprocessor(name: str) -> Preprocessor:
+            if name == "identity":
+                return IdentityPreprocessor()
+
+            providers = get_onnx_providers(preprocessor_config)
+            if name == "kaldi" and providers and providers != ["CPUExecutionProvider"]:
+                name = "kaldi_fast"
+
+            max_concurrent_workers = preprocessor_config.pop("max_concurrent_workers", 1)
+            preprocessor = OnnxPreprocessor(name, preprocessor_config)
+            if max_concurrent_workers == 1:
+                return preprocessor
+            return ConcurrentPreprocessor(preprocessor, max_concurrent_workers)
+
+        return TextResultsAsrAdapter(
+            self._model_type(self.resolve_model(quantization=quantization), create_preprocessor, asr_config),
+            Resampler(self._model_type._get_sample_rate(), resampler_config),
+        )
 
 
 Vad: TypeAlias = SileroVad | PyAnnoteVad
@@ -297,9 +286,6 @@ Vad: TypeAlias = SileroVad | PyAnnoteVad
 
 class VadLoader(_Loader[Vad]):
     """Loader class for VAD models."""
-
-    def _model_files(self, quantization: str | None) -> dict[str, str]:
-        return self.model_type._get_model_files(quantization)
 
     @property
     def _model_repos(self) -> dict[str, str]:
@@ -311,7 +297,7 @@ class VadLoader(_Loader[Vad]):
 
     def create_model(self, config: OnnxSessionOptions, *, quantization: str | None = None) -> Vad:
         """Create VAD model."""
-        return self.model_type(self.resolve_model(quantization=quantization), config)
+        return self._model_type(self.resolve_model(quantization=quantization), config)
 
 
 def load_model(
@@ -363,12 +349,7 @@ def load_model(
         ASR model class.
 
     Raises:
-        ModelNotSupportedError: Model not supported.
-        ModelPathNotDirectoryError: Model path not a directory.
-        ModelFileNotFoundError: Model file not found.
-        MoreThanOneModelFileFoundError: More than one file found.
-        NoModelNameOrPathSpecifiedError: No model name or path specified.
-        InvalidModelTypeInConfigError: Invalid model type in config.
+        utils.ModelLoadingError: Model loading error (onnx-asr specific).
 
     """
     if cpu_preprocessing is not None:
@@ -386,16 +367,14 @@ def load_model(
     }
 
     if asr_config is None:
-        asr_config = update_onnx_providers(
-            default_onnx_config, excluded_providers=loader.model_type._get_excluded_providers()
-        )
+        asr_config = update_onnx_providers(default_onnx_config, excluded_providers=loader.get_excluded_providers())
 
     if preprocessor_config is None:
         preprocessor_config = {
             **update_onnx_providers(
                 default_onnx_config,
                 new_options={"TensorrtExecutionProvider": {"trt_fp16_enable": False, "trt_int8_enable": False}},
-                excluded_providers=Preprocessor._get_excluded_providers(),
+                excluded_providers=OnnxPreprocessor._get_excluded_providers(),
             ),
             "max_concurrent_workers": 1,
         }
@@ -405,10 +384,7 @@ def load_model(
             default_onnx_config, excluded_providers=Resampler._get_excluded_providers()
         )
 
-    return TextResultsAsrAdapter(
-        loader.create_model(AsrRuntimeConfig(asr_config, preprocessor_config), quantization=quantization),
-        Resampler(loader.model_type._get_sample_rate(), resampler_config),
-    )
+    return loader.create_model(asr_config, preprocessor_config, resampler_config, quantization=quantization)
 
 
 def load_vad(
@@ -434,18 +410,13 @@ def load_vad(
         VAD model class.
 
     Raises:
-        ModelNotSupportedError: Model not supported.
-        ModelPathNotDirectoryError: Model path not a directory.
-        ModelFileNotFoundError: Model file not found.
-        MoreThanOneModelFileFoundError: More than one file found.
-        NoModelNameOrPathSpecifiedError: No model name or path specified.
-        InvalidModelTypeInConfigError: Invalid model type in config.
+        utils.ModelLoadingError: Model loading error (onnx-asr specific).
 
     """
     loader = VadLoader(model, path)
 
     onnx_options = update_onnx_providers(
-        {"providers": rt.get_available_providers()}, excluded_providers=loader.model_type._get_excluded_providers()
+        {"providers": rt.get_available_providers()}, excluded_providers=loader.get_excluded_providers()
     ) | {
         "sess_options": sess_options,
         "providers": providers,

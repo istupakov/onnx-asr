@@ -1,5 +1,6 @@
 """T-one model implementations."""
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
@@ -7,25 +8,23 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.asr import AsrRuntimeConfig, _AsrWithCtcDecoding
-from onnx_asr.onnx import TensorRtOptions
+from onnx_asr.asr import Preprocessor, _AsrWithCtcDecoding
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
 from onnx_asr.utils import is_float16_array, is_float32_array
 
 
 class TOneCtc(_AsrWithCtcDecoding):
     """T-one CTC model implementation."""
 
-    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
-        """Create T-one CTC model.
-
-        Args:
-            model_files: Dict with paths to model files.
-            runtime_config: Runtime configuration.
-
-        """
-        super().__init__(model_files, runtime_config)
+    def __init__(  # noqa: D107
+        self,
+        model_files: dict[str, Path],
+        preprocessor_factory: Callable[[str], Preprocessor],
+        onnx_options: OnnxSessionOptions,
+    ):
+        super().__init__(model_files, preprocessor_factory, onnx_options)
         self._model = rt.InferenceSession(
-            model_files["model"], **TensorRtOptions.add_profile(runtime_config.onnx_options, self._encoder_shapes)
+            model_files["model"], **TensorRtOptions.add_profile(onnx_options, self._encoder_shapes)
         )
 
         shapes = {x.name: x.shape for x in self._model.get_inputs()}

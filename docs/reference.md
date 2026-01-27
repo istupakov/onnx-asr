@@ -10,10 +10,13 @@
 
 ::: onnx_asr.onnx.OnnxSessionOptions
 
-::: onnx_asr.preprocessors.PreprocessorRuntimeConfig
+::: onnx_asr.loader.PreprocessorRuntimeConfig
 
 ::: onnx_asr.onnx.TensorRtOptions
 
+::: onnx_asr.utils.ModelLoadingError
+
+-----
 ::: onnx_asr.adapters
 
 ::: onnx_asr.asr.TimestampedResult
@@ -23,3 +26,5 @@
 ::: onnx_asr.vad.TimestampedSegmentResult
 
 ::: onnx_asr.utils.SampleRates
+
+::: onnx_asr.utils.AudioLoadingError

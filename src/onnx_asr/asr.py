@@ -3,16 +3,15 @@
 import json
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field
+from collections.abc import Callable, Iterable, Iterator
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Generic, Literal, TypedDict, TypeVar
+from typing import Generic, Literal, Protocol, TypedDict, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
 from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
-from onnx_asr.preprocessors import Preprocessor, PreprocessorRuntimeConfig
 from onnx_asr.utils import log_softmax
 
 S = TypeVar("S")
@@ -29,7 +28,7 @@ class TimestampedResult:
     tokens: list[str] | None = None
     """Tokens list."""
     logprobs: list[float] | None = None
-    """Tokens logporob list."""
+    """Tokens logprob list."""
 
 
 class AsrConfig(TypedDict, total=False):
@@ -42,28 +41,42 @@ class AsrConfig(TypedDict, total=False):
     max_sequence_length: int
 
 
-@dataclass()
-class AsrRuntimeConfig:
-    """ASR runtime config."""
+class Preprocessor(Protocol):
+    """ASR preprocessor protocol."""
 
-    onnx_options: OnnxSessionOptions = field(default_factory=OnnxSessionOptions)
-    preprocessor_config: PreprocessorRuntimeConfig = field(default_factory=PreprocessorRuntimeConfig)
+    def __call__(
+        self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
+        """Convert waveforms to model features."""
+        ...
 
 
 class Asr(ABC):
     """Base ASR class."""
 
-    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
-        """Init base ASR class."""
+    def __init__(
+        self,
+        model_files: dict[str, Path],
+        preprocessor_factory: Callable[[str], Preprocessor],
+        onnx_options: OnnxSessionOptions,
+    ):
+        """Create ASR.
+
+        Args:
+            model_files: Dict with paths to model files.
+            preprocessor_factory: Factory for preprocessor creation.
+            onnx_options: Options for onnxruntime InferenceSession.
+
+        """
         if "config" in model_files:
             with model_files["config"].open("rt", encoding="utf-8") as f:
                 self.config: AsrConfig = json.load(f)
         else:
             self.config = {}
 
-        self.runtime_config = runtime_config
-        self.use_tensorrt_fp16 = TensorRtOptions.is_fp16_enabled(runtime_config.onnx_options)
-        self._preprocessor = Preprocessor(self._preprocessor_name, runtime_config.preprocessor_config)
+        self.runtime_config = onnx_options
+        self.use_tensorrt_fp16 = TensorRtOptions.is_fp16_enabled(onnx_options)
+        self._preprocessor = preprocessor_factory(self._preprocessor_name)
 
     @staticmethod
     def _get_excluded_providers() -> list[str]:
@@ -93,8 +106,13 @@ class _AsrWithDecoding(Asr):
     DECODE_SPACE_PATTERN = re.compile(r"\A\s|\s\B|(\s)\b")
     window_step = 0.01
 
-    def __init__(self, model_files: dict[str, Path], runtime_config: AsrRuntimeConfig):
-        super().__init__(model_files, runtime_config)
+    def __init__(
+        self,
+        model_files: dict[str, Path],
+        preprocessor_factory: Callable[[str], Preprocessor],
+        onnx_options: OnnxSessionOptions,
+    ):
+        super().__init__(model_files, preprocessor_factory, onnx_options)
 
         if "vocab" in model_files:
             with Path(model_files["vocab"]).open("rt", encoding="utf-8") as f:
