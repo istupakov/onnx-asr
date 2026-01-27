@@ -1,17 +1,21 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
 [project]
 name = "onnx-asr"
 dynamic = ["version"]
-description = "A lightweight Python package for Automatic Speech Recognition using ONNX models"
-authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
-keywords = ["asr", "speech-recognition", "speech-to-text", "onnx", "stt"]
 dependencies = [
     "numpy>=1.21.6",
     "typing-extensions>=4.15.0; python_version < '3.11'",
 ]
 requires-python = ">=3.10"
+authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
+description = "A lightweight Python package for Automatic Speech Recognition using ONNX models"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
+keywords = ["asr", "speech-recognition", "speech-to-text", "onnx", "stt"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -29,23 +33,22 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
-
-[project.urls]
-Documentation = "https://istupakov.github.io/onnx-asr"
-"Release notes" = "https://github.com/istupakov/onnx-asr/releases"
-Issues = "https://github.com/istupakov/onnx-asr/issues"
-Source = "https://github.com/istupakov/onnx-asr"
-
-[build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 cpu = ["onnxruntime>=1.18.1"]
 gpu = ["onnxruntime-gpu>=1.18.1"]
 hub = ["huggingface-hub>=0.30.2"]
+
+[project.urls]
+Homepage = "https://github.com/istupakov/onnx-asr"
+Documentation = "https://istupakov.github.io/onnx-asr/"
+Repository = "https://github.com/istupakov/onnx-asr"
+Issues = "https://github.com/istupakov/onnx-asr/issues"
+Changelog = "https://github.com/istupakov/onnx-asr/releases"
 
 [project.scripts]
 onnx-asr = "onnx_asr.cli:main"
@@ -65,12 +68,11 @@ dev = [
     "ipywidgets>=8.1.8",
     "mypy>=1.19.1",
     "ruff>=0.14.11",
-    "soundfile>=0.13.1",
     { include-group = "docs" },
     { include-group = "test-preprocessors" },
 ]
 docs = [
-    "click<8.3",
+    "click<8.3",                       # Until 8.3.2
     "markdown-callouts>=0.4.0",
     "mkdocs-material[imaging]>=9.7.1",
     "mkdocstrings[python]>=1.0.0",
@@ -81,10 +83,10 @@ test = [
     "onnxruntime>=1.18.1",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
+    "soundfile>=0.13.1 ; python_full_version != '3.13.*'", # Don't exist for 3.13t
 ]
 test-preprocessors = [
     "kaldi-native-fbank>=1.22.3",
-    "lilcom<1.8.2",
     "nemo-toolkit[asr]>=2.6.1",
     "openai-whisper>=20250625",
     { include-group = "build" },
@@ -160,4 +162,4 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-omit = ["tests/*", "hatch_build.py"]
+source = ["src", "preprocessors"]
