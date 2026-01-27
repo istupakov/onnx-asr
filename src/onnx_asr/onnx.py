@@ -37,7 +37,7 @@ class TensorRtOptions:
 
     @classmethod
     def add_profile(cls, onnx_options: OnnxSessionOptions, transform_shapes: Callable[..., str]) -> OnnxSessionOptions:
-        """Add TensorRT trt_profile options."""
+        """Add TensorRT profile options."""
         return update_onnx_providers(
             onnx_options,
             default_options={

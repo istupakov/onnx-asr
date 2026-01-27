@@ -8,42 +8,38 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions, get_onnx_providers
+import onnx_asr.preprocessors
+from onnx_asr.asr import Preprocessor
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
 from onnx_asr.utils import is_float32_array, is_int64_array
 
 
-class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
-    """Preprocessor runtime config."""
+class IdentityPreprocessor:
+    """Identity preprocessor implementation."""
 
-    max_concurrent_workers: int | None
-    """Max parallel preprocessing threads (None - auto, 1 - without parallel processing)."""
+    def __call__(
+        self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
+        """Convert waveforms to model features."""
+        return waveforms, waveforms_lens
 
 
-class Preprocessor:
+class OnnxPreprocessor:
     """ASR preprocessor implementation."""
 
-    def __init__(self, name: str, runtime_config: PreprocessorRuntimeConfig):
+    def __init__(self, name: str, onnx_options: OnnxSessionOptions):
         """Create ASR preprocessor.
 
         Args:
             name: Preprocessor name.
-            runtime_config: Runtime configuration.
+            onnx_options: Options for onnxruntime InferenceSession.
 
         """
-        onnx_options = runtime_config.copy()
-        self._max_concurrent_workers = onnx_options.pop("max_concurrent_workers", 1)
-        if name == "identity":
-            self._preprocessor = None
-        else:
-            providers = get_onnx_providers(onnx_options)
-            if name == "kaldi" and providers and providers != ["CPUExecutionProvider"]:
-                name = "kaldi_fast"
-
-            filename = str(Path(name).with_suffix(".onnx"))
-            self._preprocessor = rt.InferenceSession(
-                files(__package__).joinpath(filename).read_bytes(),
-                **TensorRtOptions.add_profile(onnx_options, self._preprocessor_shapes),
-            )
+        filename = str(Path(name).with_suffix(".onnx"))
+        self._preprocessor = rt.InferenceSession(
+            files(onnx_asr.preprocessors).joinpath("data").joinpath(filename).read_bytes(),
+            **TensorRtOptions.add_profile(onnx_options, self._preprocessor_shapes),
+        )
 
     @staticmethod
     def _get_excluded_providers() -> list[str]:
@@ -52,12 +48,10 @@ class Preprocessor:
     def _preprocessor_shapes(self, waveform_len_ms: int, **kwargs: int) -> str:
         return "waveforms:{batch}x{len},waveforms_lens:{batch}".format(len=waveform_len_ms * 16, **kwargs)
 
-    def _preprocess(
+    def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
-        if not self._preprocessor:
-            return waveforms, waveforms_lens
-
+        """Convert waveforms to model features."""
         features, features_lens = self._preprocessor.run(
             ["features", "features_lens"], {"waveforms": waveforms, "waveforms_lens": waveforms_lens}
         )
@@ -65,15 +59,30 @@ class Preprocessor:
         assert is_int64_array(features_lens)
         return features, features_lens
 
+
+class ConcurrentPreprocessor:
+    """Concurrent ASR preprocessor implementation."""
+
+    def __init__(self, preprocessor: Preprocessor, max_concurrent_workers: int | None = None):
+        """Create preprocessor.
+
+        Args:
+            preprocessor: sequential preprocessor.
+            max_concurrent_workers: Max concurrent workers for batch processing.
+
+        """
+        self.preprocessor = preprocessor
+        self._max_concurrent_workers = max_concurrent_workers
+
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
         """Convert waveforms to model features."""
-        if self._preprocessor is None or waveforms.shape[0] == 1 or self._max_concurrent_workers == 1:
-            return self._preprocess(waveforms, waveforms_lens)
+        if waveforms.shape[0] == 1 or self._max_concurrent_workers == 1:
+            return self.preprocessor(waveforms, waveforms_lens)
 
         with ThreadPoolExecutor(max_workers=self._max_concurrent_workers) as executor:
             features, features_lens = zip(
-                *executor.map(self._preprocess, waveforms[:, None], waveforms_lens[:, None]), strict=True
+                *executor.map(self.preprocessor, waveforms[:, None], waveforms_lens[:, None]), strict=True
             )
         return np.concatenate(features, axis=0), np.concatenate(features_lens, axis=0)

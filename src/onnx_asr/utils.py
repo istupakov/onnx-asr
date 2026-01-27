@@ -36,7 +36,63 @@ def is_int64_array(x: object) -> TypeGuard[npt.NDArray[np.int64]]:
     return isinstance(x, np.ndarray) and x.dtype == np.int64
 
 
-class SupportedOnlyMonoAudioError(ValueError):
+class ModelLoadingError(Exception):
+    """Model loading error."""
+
+
+class ModelNotSupportedError(ModelLoadingError, ValueError):
+    """Model not supported error."""
+
+    def __init__(self, model: str):
+        """Create error."""
+        super().__init__(f"Model '{model}' not supported!")
+
+
+class ModelPathNotDirectoryError(ModelLoadingError, NotADirectoryError):
+    """Model path not a directory error."""
+
+    def __init__(self, path: str | Path):
+        """Create error."""
+        super().__init__(f"The path '{path}' is not a directory.")
+
+
+class ModelFileNotFoundError(ModelLoadingError, FileNotFoundError):
+    """Model file not found error."""
+
+    def __init__(self, filename: str | Path, path: str | Path):
+        """Create error."""
+        super().__init__(f"File '{filename}' not found in path '{path}'.")
+
+
+class MoreThanOneModelFileFoundError(ModelLoadingError, OSError):
+    """More than one model file found error."""
+
+    def __init__(self, filename: str | Path, path: str | Path):
+        """Create error."""
+        super().__init__(f"Found more than 1 file '{filename}' found in path '{path}'.")
+
+
+class NoModelNameOrPathSpecifiedError(ModelLoadingError, ValueError):
+    """No model name or path specified error."""
+
+    def __init__(self) -> None:
+        """Create error."""
+        super().__init__("If the path is not specified, you must specify a specific model name.")
+
+
+class InvalidModelTypeInConfigError(ModelLoadingError, ValueError):
+    """Invalid model type in config error."""
+
+    def __init__(self, model_type: str) -> None:
+        """Create error."""
+        super().__init__(f"Invalid model type '{model_type}' in config.json.")
+
+
+class AudioLoadingError(ValueError):
+    """Audio loading error."""
+
+
+class SupportedOnlyMonoAudioError(AudioLoadingError):
     """Supported only mono audio error."""
 
     def __init__(self) -> None:
@@ -44,7 +100,7 @@ class SupportedOnlyMonoAudioError(ValueError):
         super().__init__("Supported only mono audio.")
 
 
-class WrongSampleRateError(ValueError):
+class WrongSampleRateError(AudioLoadingError):
     """Wrong sample rate error."""
 
     def __init__(self) -> None:
@@ -52,7 +108,7 @@ class WrongSampleRateError(ValueError):
         super().__init__(f"Supported only {get_args(SampleRates)} sample rates.")
 
 
-class DifferentSampleRatesError(ValueError):
+class DifferentSampleRatesError(AudioLoadingError):
     """Different sample rates error."""
 
     def __init__(self) -> None:

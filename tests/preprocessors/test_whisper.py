@@ -4,7 +4,7 @@ import torch
 import torchaudio
 from whisper.audio import N_FRAMES, N_SAMPLES, log_mel_spectrogram, mel_filters, pad_or_trim
 
-from onnx_asr.preprocessors import Preprocessor
+from onnx_asr.preprocessors.preprocessor import OnnxPreprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import whisper
 
@@ -59,9 +59,9 @@ def preprocessor(request):
         case "onnx_func 128":
             return whisper.WhisperPreprocessor128
         case "onnx_model 80":
-            return Preprocessor("whisper80", {})
+            return OnnxPreprocessor("whisper80", {})
         case "onnx_model 128":
-            return Preprocessor("whisper128", {})
+            return OnnxPreprocessor("whisper128", {})
 
 
 @pytest.mark.parametrize(

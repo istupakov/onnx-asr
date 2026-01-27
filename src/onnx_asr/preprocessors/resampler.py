@@ -7,6 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
+import onnx_asr.preprocessors
 from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
 from onnx_asr.utils import SampleRates, is_float32_array, is_int64_array
 
@@ -28,7 +29,10 @@ class Resampler:
             if orig_freq == sample_rate:
                 continue
             self._preprocessors[orig_freq] = rt.InferenceSession(
-                files(__package__).joinpath(f"resample_{orig_freq // 1000}_{sample_rate // 1000}.onnx").read_bytes(),
+                files(onnx_asr.preprocessors)
+                .joinpath("data")
+                .joinpath(f"resample_{orig_freq // 1000}_{sample_rate // 1000}.onnx")
+                .read_bytes(),
                 **TensorRtOptions.add_profile(onnx_options, self._preprocessor_shapes),
             )
 

@@ -12,7 +12,7 @@ import numpy as np
 import numpy.typing as npt
 
 from onnx_asr.asr import Asr, TimestampedResult
-from onnx_asr.preprocessors import Resampler
+from onnx_asr.preprocessors.resampler import Resampler
 from onnx_asr.utils import SampleRates, read_wav_files
 from onnx_asr.vad import SegmentResult, TimestampedSegmentResult, Vad
 
@@ -125,9 +125,10 @@ class AsrAdapter(ABC, Generic[R]):
             Speech recognition results (single or list for batch recognition).
 
         Raises:
-            SupportedOnlyMonoAudioError: Supported only mono audio.
-            WrongSampleRateError: Wrong sample rate.
-            DifferentSampleRatesError: Different sample rates.
+            utils.AudioLoadingError: Audio loading error (onnx-asr specific).
+            FileNotFoundError: File not found error.
+            wave.Error: WAV file reading error.
+            OSError: Other IO errors.
 
         """
         if isinstance(waveform, list) and not waveform:

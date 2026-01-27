@@ -3,7 +3,7 @@ import pytest
 import torch
 import torchaudio
 
-from onnx_asr.preprocessors import Preprocessor
+from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, OnnxPreprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import gigaam
 
@@ -94,17 +94,17 @@ def preprocessor(request):
         case "onnx_func_v2":
             return gigaam.GigaamPreprocessorV2
         case "onnx_model_v2":
-            return Preprocessor("gigaam_v2", {})
+            return OnnxPreprocessor("gigaam_v2", {})
         case "onnx_model_v2_mt":
-            return Preprocessor("gigaam_v2", {"max_concurrent_workers": 2})
+            return ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v2", {}), 2)
         case "torch_v3":
             return preprocessor_torch_v3
         case "onnx_func_v3":
             return gigaam.GigaamPreprocessorV3
         case "onnx_model_v3":
-            return Preprocessor("gigaam_v3", {})
+            return OnnxPreprocessor("gigaam_v3", {})
         case "onnx_model_v3_mt":
-            return Preprocessor("gigaam_v3", {"max_concurrent_workers": 2})
+            return ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v3", {}), 2)
 
 
 @pytest.mark.parametrize(
