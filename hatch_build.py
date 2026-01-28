@@ -14,10 +14,10 @@ class _BuildPreprocessorsHook(BuildHookInterface):  # type: ignore[type-arg]
         self.app.display_info(f"Build ONNX preprocessor models ({self.artifacts_path})")
         sys.path.append(self.root)
 
-        from preprocessors.build import build_models  # noqa: PLC0415
+        from preprocessors.build import build  # noqa: PLC0415
 
         self.artifacts_path.mkdir(exist_ok=True)
-        build_models(self.artifacts_path, self.metadata.version)
+        build(self.artifacts_path, self.metadata.version)
         build_data["artifacts"] = [str(self.artifacts_path.joinpath("*.onnx"))]
 
     def dependencies(self) -> list[str]:

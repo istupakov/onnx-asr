@@ -52,28 +52,30 @@ def preprocessor_torch(waveforms, lens):
     return pad_features(results)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
 def preprocessor(request):
     match request.param:
         case "torch":
             return preprocessor_torch
         case "onnx_func":
             return kaldi.KaldiPreprocessor
-        case "onnx_func_fast":
-            return kaldi.KaldiPreprocessorFast
         case "onnx_model":
             return OnnxPreprocessor("kaldi", {})
         case "onnx_model_mt":
             return ConcurrentPreprocessor(OnnxPreprocessor("kaldi", {}), 2)
-        case "onnx_model_fast":
+
+
+@pytest.fixture(scope="module", params=["onnx_func", "onnx_model", "onnx_model_mt"])
+def preprocessor_fast(request):
+    match request.param:
+        case "onnx_func":
+            return kaldi.KaldiPreprocessorFast
+        case "onnx_model":
             return OnnxPreprocessor("kaldi_fast", {})
-        case "onnx_model_fast_mt":
+        case "onnx_model_mt":
             return ConcurrentPreprocessor(OnnxPreprocessor("kaldi_fast", {}), 2)
 
 
-@pytest.mark.parametrize(
-    "preprocessor", ["torch", "onnx_func", "onnx_model", "onnx_model_mt"], indirect=["preprocessor"]
-)
 def test_kaldi_preprocessor(preprocessor, waveforms):
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin(waveforms, lens)
@@ -84,15 +86,12 @@ def test_kaldi_preprocessor(preprocessor, waveforms):
     np.testing.assert_allclose(actual, expected, atol=5e-4, rtol=1e-4)
 
 
-@pytest.mark.parametrize(
-    "preprocessor", ["onnx_func_fast", "onnx_model_fast", "onnx_model_fast_mt"], indirect=["preprocessor"]
-)
-def test_kaldi_preprocessor_fast(preprocessor, waveforms):
+def test_kaldi_preprocessor_fast(preprocessor_fast, waveforms):
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin(
         waveforms - waveforms.mean(axis=-1, keepdims=True), lens, remove_dc_offset=False
     )
-    actual, actual_lens = preprocessor(waveforms, lens)
+    actual, actual_lens = preprocessor_fast(waveforms, lens)
 
     assert expected.shape[1] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
