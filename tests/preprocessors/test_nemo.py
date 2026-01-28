@@ -9,12 +9,17 @@ from onnx_asr.utils import pad_list
 from preprocessors import nemo
 
 
+@pytest.fixture(scope="module", params=[80, 128])
+def n_mels(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def preprocessor_origin(request):
+def preprocessor_origin(n_mels):
     preprocessor = AudioToMelSpectrogramPreprocessor(
         window_size=nemo.win_length / nemo.sample_rate,
         window_stride=nemo.hop_length / nemo.sample_rate,
-        features=request.param,
+        features=n_mels,
         n_fft=nemo.n_fft,
         pad_to=0,
     )
@@ -56,49 +61,19 @@ def preprocessor_torch(waveforms, lens, n_mels):
     return features, features_lens.numpy()
 
 
-def preprocessor_torch80(waveforms, lens):
-    return preprocessor_torch(waveforms, lens, 80)
-
-
-def preprocessor_torch128(waveforms, lens):
-    return preprocessor_torch(waveforms, lens, 128)
-
-
-@pytest.fixture(scope="module")
-def preprocessor(request):
+@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
+def preprocessor(request, n_mels):
     match request.param:
-        case "torch 80":
-            return preprocessor_torch80
-        case "torch 128":
-            return preprocessor_torch128
-        case "onnx_func 80":
-            return nemo.NemoPreprocessor80
-        case "onnx_func 128":
-            return nemo.NemoPreprocessor128
-        case "onnx_model 80":
-            return OnnxPreprocessor("nemo80", {})
-        case "onnx_model 128":
-            return OnnxPreprocessor("nemo128", {})
-        case "onnx_model_mt 80":
-            return ConcurrentPreprocessor(OnnxPreprocessor("nemo80", {}), 2)
-        case "onnx_model_mt 128":
-            return ConcurrentPreprocessor(OnnxPreprocessor("nemo128", {}), 2)
+        case "torch":
+            return lambda waveforms, lens: preprocessor_torch(waveforms, lens, n_mels)
+        case "onnx_func":
+            return nemo.NemoPreprocessor80 if n_mels == 80 else nemo.NemoPreprocessor128
+        case "onnx_model":
+            return OnnxPreprocessor(f"nemo{n_mels}", {})
+        case "onnx_model_mt":
+            return ConcurrentPreprocessor(OnnxPreprocessor(f"nemo{n_mels}", {}), 2)
 
 
-@pytest.mark.parametrize(
-    ("preprocessor_origin", "preprocessor"),
-    [
-        (80, "torch 80"),
-        (128, "torch 128"),
-        (80, "onnx_func 80"),
-        (128, "onnx_func 128"),
-        (80, "onnx_model 80"),
-        (128, "onnx_model 128"),
-        (80, "onnx_model_mt 80"),
-        (128, "onnx_model_mt 128"),
-    ],
-    indirect=["preprocessor_origin", "preprocessor"],
-)
 def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin(
@@ -111,12 +86,8 @@ def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
     np.testing.assert_allclose(actual, expected.numpy(), atol=5e-4, rtol=1e-4)
 
 
-@pytest.mark.parametrize(
-    ("preprocessor_origin", "melscale_fbanks"),
-    [(80, nemo.melscale_fbanks80), (128, nemo.melscale_fbanks128)],
-    indirect=["preprocessor_origin"],
-)
-def test_nemo_melscale_fbanks(preprocessor_origin, melscale_fbanks):
+def test_nemo_melscale_fbanks(preprocessor_origin, n_mels):
     expected = preprocessor_origin.filter_banks[0].T.numpy()
+    melscale_fbanks = nemo.melscale_fbanks80 if n_mels == 80 else nemo.melscale_fbanks128
 
     np.testing.assert_allclose(melscale_fbanks, expected, atol=5e-7)

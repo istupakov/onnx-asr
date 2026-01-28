@@ -86,38 +86,34 @@ def preprocessor_torch_v3(waveforms, lens):
     ) // gigaam.hop_length + 1
 
 
-@pytest.fixture(scope="module")
-def preprocessor(request):
+@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
+def preprocessor_v2(request):
     match request.param:
-        case "torch_v2":
-            return preprocessor_torch_v2
-        case "onnx_func_v2":
-            return gigaam.GigaamPreprocessorV2
-        case "onnx_model_v2":
-            return OnnxPreprocessor("gigaam_v2", {})
-        case "onnx_model_v2_mt":
-            return ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v2", {}), 2)
-        case "torch_v3":
-            return preprocessor_torch_v3
-        case "onnx_func_v3":
-            return gigaam.GigaamPreprocessorV3
-        case "onnx_model_v3":
-            return OnnxPreprocessor("gigaam_v3", {})
-        case "onnx_model_v3_mt":
-            return ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v3", {}), 2)
+        case "torch":
+            return (preprocessor_torch_v2, True)
+        case "onnx_func":
+            return (gigaam.GigaamPreprocessorV2, False)
+        case "onnx_model":
+            return (OnnxPreprocessor("gigaam_v2", {}), False)
+        case "onnx_model_mt":
+            return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v2", {}), 2), False)
 
 
-@pytest.mark.parametrize(
-    ("preprocessor", "equal"),
-    [
-        ("torch_v2", True),
-        ("onnx_func_v2", False),
-        ("onnx_model_v2", False),
-        ("onnx_model_v2_mt", False),
-    ],
-    indirect=["preprocessor"],
-)
-def test_gigaam_preprocessor_v2(preprocessor, equal, waveforms):
+@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
+def preprocessor_v3(request):
+    match request.param:
+        case "torch":
+            return (preprocessor_torch_v3, True)
+        case "onnx_func":
+            return (gigaam.GigaamPreprocessorV3, False)
+        case "onnx_model":
+            return (OnnxPreprocessor("gigaam_v3", {}), False)
+        case "onnx_model_mt":
+            return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v3", {}), 2), False)
+
+
+def test_gigaam_preprocessor_v2(preprocessor_v2, waveforms):
+    preprocessor, equal = preprocessor_v2
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin_v2(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
@@ -130,17 +126,8 @@ def test_gigaam_preprocessor_v2(preprocessor, equal, waveforms):
         np.testing.assert_allclose(actual, expected, atol=5e-5)
 
 
-@pytest.mark.parametrize(
-    ("preprocessor", "equal"),
-    [
-        ("torch_v3", True),
-        ("onnx_func_v3", False),
-        ("onnx_model_v3", False),
-        ("onnx_model_v3_mt", False),
-    ],
-    indirect=["preprocessor"],
-)
-def test_gigaam_preprocessor_v3(preprocessor, equal, waveforms):
+def test_gigaam_preprocessor_v3(preprocessor_v3, waveforms):
+    preprocessor, equal = preprocessor_v3
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin_v3(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)

@@ -9,6 +9,16 @@ from onnx_asr.utils import pad_list
 from preprocessors import whisper
 
 
+@pytest.fixture
+def base_sec():
+    return 30
+
+
+@pytest.fixture(scope="module", params=[80, 128])
+def n_mels(request):
+    return request.param
+
+
 def preprocessor_origin(waveforms, lens, n_mels):
     waveforms = pad_or_trim(waveforms, N_SAMPLES)
     return log_mel_spectrogram(waveforms, n_mels).numpy(), np.full_like(lens, N_FRAMES)
@@ -39,43 +49,17 @@ def preprocessor_torch(waveforms, lens, n_mels):
     return features, np.full_like(lens, whisper.chunk_length * whisper.sample_rate // whisper.hop_length)
 
 
-def preprocessor_torch80(waveforms, lens):
-    return preprocessor_torch(waveforms, lens, 80)
-
-
-def preprocessor_torch128(waveforms, lens):
-    return preprocessor_torch(waveforms, lens, 128)
-
-
-@pytest.fixture(scope="module")
-def preprocessor(request):
+@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model"])
+def preprocessor(request, n_mels):
     match request.param:
-        case "torch 80":
-            return preprocessor_torch80
-        case "torch 128":
-            return preprocessor_torch128
-        case "onnx_func 80":
-            return whisper.WhisperPreprocessor80
-        case "onnx_func 128":
-            return whisper.WhisperPreprocessor128
-        case "onnx_model 80":
-            return OnnxPreprocessor("whisper80", {})
-        case "onnx_model 128":
-            return OnnxPreprocessor("whisper128", {})
+        case "torch":
+            return lambda waveforms, lens: preprocessor_torch(waveforms, lens, n_mels)
+        case "onnx_func":
+            return whisper.WhisperPreprocessor80 if n_mels == 80 else whisper.WhisperPreprocessor128
+        case "onnx_model":
+            return OnnxPreprocessor(f"whisper{n_mels}", {})
 
 
-@pytest.mark.parametrize(
-    ("n_mels", "preprocessor"),
-    [
-        (80, "torch 80"),
-        (128, "torch 128"),
-        (80, "onnx_func 80"),
-        (128, "onnx_func 128"),
-        (80, "onnx_model 80"),
-        (128, "onnx_model 128"),
-    ],
-    indirect=["preprocessor"],
-)
 def test_whisper_preprocessor(n_mels, preprocessor, waveforms):
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin(waveforms, lens, n_mels)
@@ -86,10 +70,8 @@ def test_whisper_preprocessor(n_mels, preprocessor, waveforms):
     np.testing.assert_allclose(actual, expected, atol=5e-5)
 
 
-@pytest.mark.parametrize(
-    ("n_mels", "melscale_fbanks"), [(80, whisper.melscale_fbanks80), (128, whisper.melscale_fbanks128)]
-)
-def test_whisper_melscale_fbanks(n_mels, melscale_fbanks):
+def test_whisper_melscale_fbanks(n_mels):
     expected = mel_filters("cpu", n_mels).T.numpy()
+    melscale_fbanks = whisper.melscale_fbanks80 if n_mels == 80 else whisper.melscale_fbanks128
 
     np.testing.assert_allclose(melscale_fbanks, expected, atol=5e-7)
