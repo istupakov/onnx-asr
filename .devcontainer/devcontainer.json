@@ -1,9 +1,8 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/python
+// README at: https://github.com/devcontainers/templates/tree/main/src/debian
 {
-	"name": "Python 3",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/python:1-3.13-bullseye",
+	"name": "Debian",
+	"image": "mcr.microsoft.com/devcontainers/base:trixie",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -16,5 +15,9 @@
 			]
 		}
 	},
-	"postCreateCommand": "pipx install uv && uv sync"
+	"remoteEnv": {
+		"UV_LINK_MODE": "copy"
+	},
+	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+	"postStartCommand": "uv sync"
 }
