@@ -3,6 +3,7 @@ import pytest
 import torch
 import torchaudio
 
+from onnx_asr.preprocessors.numpy_preprocessor import GigaamPreprocessorNumpy
 from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, OnnxPreprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import gigaam
@@ -86,11 +87,13 @@ def preprocessor_torch_v3(waveforms, lens):
     ) // gigaam.hop_length + 1
 
 
-@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
+@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])
 def preprocessor_v2(request):
     match request.param:
         case "torch":
             return (preprocessor_torch_v2, True)
+        case "numpy":
+            return (GigaamPreprocessorNumpy("gigaam_v2"), False)
         case "onnx_func":
             return (gigaam.GigaamPreprocessorV2, False)
         case "onnx_model":
@@ -99,11 +102,13 @@ def preprocessor_v2(request):
             return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v2", {}), 2), False)
 
 
-@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
+@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])
 def preprocessor_v3(request):
     match request.param:
         case "torch":
             return (preprocessor_torch_v3, True)
+        case "numpy":
+            return (GigaamPreprocessorNumpy("gigaam_v3"), False)
         case "onnx_func":
             return (gigaam.GigaamPreprocessorV3, False)
         case "onnx_model":
@@ -118,6 +123,7 @@ def test_gigaam_preprocessor_v2(preprocessor_v2, waveforms):
     expected, expected_lens = preprocessor_origin_v2(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
 
+    assert actual.dtype == np.float32
     assert expected.shape[2] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
     if equal:
@@ -132,6 +138,7 @@ def test_gigaam_preprocessor_v3(preprocessor_v3, waveforms):
     expected, expected_lens = preprocessor_origin_v3(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
 
+    assert actual.dtype == np.float32
     assert expected.shape[2] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
     if equal:

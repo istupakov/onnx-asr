@@ -4,6 +4,7 @@ import torch
 import torchaudio
 from nemo.collections.asr.modules import AudioToMelSpectrogramPreprocessor
 
+from onnx_asr.preprocessors.numpy_preprocessor import NemoPreprocessorNumpy
 from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, OnnxPreprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import nemo
@@ -61,11 +62,13 @@ def preprocessor_torch(waveforms, lens, n_mels):
     return features, features_lens.numpy()
 
 
-@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
+@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])
 def preprocessor(request, n_mels):
     match request.param:
         case "torch":
             return lambda waveforms, lens: preprocessor_torch(waveforms, lens, n_mels)
+        case "numpy":
+            return NemoPreprocessorNumpy(f"nemo{n_mels}")
         case "onnx_func":
             return nemo.NemoPreprocessor80 if n_mels == 80 else nemo.NemoPreprocessor128
         case "onnx_model":
@@ -81,6 +84,7 @@ def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
     )
     actual, actual_lens = preprocessor(waveforms, lens)
 
+    assert actual.dtype == np.float32
     assert expected.shape[2] >= max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens.numpy())
     np.testing.assert_allclose(actual, expected.numpy(), atol=5e-4, rtol=1e-4)

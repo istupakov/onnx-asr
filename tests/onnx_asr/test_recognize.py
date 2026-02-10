@@ -8,6 +8,8 @@ import onnx_asr
 import onnx_asr.utils
 from onnx_asr.adapters import TextResultsAsrAdapter
 from onnx_asr.asr import TimestampedResult
+from onnx_asr.preprocessors.numpy_preprocessor import _NumpyPreprocessor
+from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, OnnxPreprocessor
 from onnx_asr.vad import SegmentResult, TimestampedSegmentResult, Vad
 
 models = [
@@ -113,12 +115,26 @@ def test_recognize_with_vad_and_timestamps(model: TextResultsAsrAdapter, vad: Va
     assert all(isinstance(item, TimestampedSegmentResult) for item in result)
 
 
-def test_concurrent_preprocessor() -> None:
+@pytest.mark.parametrize("max_concurrent_workers", [None, 1, 2])
+@pytest.mark.parametrize("use_numpy_preprocessors", [None, True, False])
+def test_preprocessor_options(max_concurrent_workers: int | None, use_numpy_preprocessors: bool | None) -> None:
     model = onnx_asr.load_model(
-        "alphacep/vosk-model-small-ru", quantization="int8", preprocessor_config={"max_concurrent_workers": 2}
+        "alphacep/vosk-model-small-ru",
+        quantization="int8",
+        preprocessor_config={
+            "max_concurrent_workers": max_concurrent_workers,
+            "use_numpy_preprocessors": use_numpy_preprocessors,
+        },
     )
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
+
+    if max_concurrent_workers != 1:
+        assert isinstance(model.asr._preprocessor, ConcurrentPreprocessor)
+    elif use_numpy_preprocessors is True:
+        assert isinstance(model.asr._preprocessor, _NumpyPreprocessor)
+    elif use_numpy_preprocessors is False:
+        assert isinstance(model.asr._preprocessor, OnnxPreprocessor)
 
     result = model.recognize([waveform] * 2)
     assert isinstance(result, list)

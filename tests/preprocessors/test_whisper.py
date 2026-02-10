@@ -4,6 +4,7 @@ import torch
 import torchaudio
 from whisper.audio import N_FRAMES, N_SAMPLES, log_mel_spectrogram, mel_filters, pad_or_trim
 
+from onnx_asr.preprocessors.numpy_preprocessor import WhisperPreprocessorNumpy
 from onnx_asr.preprocessors.preprocessor import OnnxPreprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import whisper
@@ -46,14 +47,16 @@ def preprocessor_torch(waveforms, lens, n_mels):
     ).transpose(-1, -2)
     log_mel_spectrogram = torch.clamp(mel_spectrogram, min=whisper.clamp_min).log10()
     features = (torch.maximum(log_mel_spectrogram, log_mel_spectrogram.max() - 8.0) + 4.0) / 4.0
-    return features, np.full_like(lens, whisper.chunk_length * whisper.sample_rate // whisper.hop_length)
+    return features.numpy(), np.full_like(lens, whisper.chunk_length * whisper.sample_rate // whisper.hop_length)
 
 
-@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model"])
+@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model"])
 def preprocessor(request, n_mels):
     match request.param:
         case "torch":
             return lambda waveforms, lens: preprocessor_torch(waveforms, lens, n_mels)
+        case "numpy":
+            return WhisperPreprocessorNumpy(f"whisper{n_mels}")
         case "onnx_func":
             return whisper.WhisperPreprocessor80 if n_mels == 80 else whisper.WhisperPreprocessor128
         case "onnx_model":
@@ -65,6 +68,7 @@ def test_whisper_preprocessor(n_mels, preprocessor, waveforms):
     expected, expected_lens = preprocessor_origin(waveforms, lens, n_mels)
     actual, actual_lens = preprocessor(waveforms, lens)
 
+    assert actual.dtype == np.float32
     assert expected.shape[2] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
     np.testing.assert_allclose(actual, expected, atol=5e-5)

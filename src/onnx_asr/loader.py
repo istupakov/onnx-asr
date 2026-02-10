@@ -19,6 +19,12 @@ from onnx_asr.models.silero import SileroVad
 from onnx_asr.models.tone import TOneCtc
 from onnx_asr.models.whisper import WhisperHf, WhisperOrt
 from onnx_asr.onnx import OnnxSessionOptions, get_onnx_providers, update_onnx_providers
+from onnx_asr.preprocessors.numpy_preprocessor import (
+    GigaamPreprocessorNumpy,
+    KaldiPreprocessorNumpy,
+    NemoPreprocessorNumpy,
+    WhisperPreprocessorNumpy,
+)
 from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, IdentityPreprocessor, OnnxPreprocessor
 from onnx_asr.preprocessors.resampler import Resampler
 from onnx_asr.utils import (
@@ -73,6 +79,9 @@ class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
 
     max_concurrent_workers: int | None
     """Max parallel preprocessing threads (None - auto, 1 - without parallel processing)."""
+
+    use_numpy_preprocessors: bool | None
+    """Use NumPy preprocessors backend instead of ONNX."""
 
 
 class _Model(Protocol):
@@ -138,8 +147,8 @@ class _Loader(ABC, Generic[T]):
 
         assert self.repo_id is not None
         return Path(
-            hf_hub_download(self.repo_id, "config.json", local_dir=self.local_dir, local_files_only=local_files_only)
-        )  # nosec
+            hf_hub_download(self.repo_id, "config.json", local_dir=self.local_dir, local_files_only=local_files_only)  # nosec
+        )
 
     def _download_model(self, quantization: str | None, *, local_files_only: bool) -> Path:
         from huggingface_hub import snapshot_download  # noqa: PLC0415
@@ -251,7 +260,7 @@ class AsrLoader(_Loader[Asr]):
             "t-tech/t-one": TOneCtc,
         }
 
-    def create_model(
+    def create_model(  # noqa: C901
         self,
         asr_config: OnnxSessionOptions,
         preprocessor_config: PreprocessorRuntimeConfig,
@@ -266,11 +275,28 @@ class AsrLoader(_Loader[Asr]):
                 return IdentityPreprocessor()
 
             providers = get_onnx_providers(preprocessor_config)
-            if name == "kaldi" and providers and providers != ["CPUExecutionProvider"]:
-                name = "kaldi_fast"
-
             max_concurrent_workers = preprocessor_config.pop("max_concurrent_workers", 1)
-            preprocessor = OnnxPreprocessor(name, preprocessor_config)
+            use_numpy_preprocessors = preprocessor_config.pop("use_numpy_preprocessors")
+            if use_numpy_preprocessors is None:
+                use_numpy_preprocessors = not providers or providers == ["CPUExecutionProvider"]
+
+            preprocessor: Preprocessor
+            if use_numpy_preprocessors:
+                if name.startswith("gigaam"):
+                    preprocessor = GigaamPreprocessorNumpy(name)
+                elif name == "kaldi":
+                    preprocessor = KaldiPreprocessorNumpy(name)
+                elif name.startswith("nemo"):
+                    preprocessor = NemoPreprocessorNumpy(name)
+                elif name.startswith("whisper"):
+                    preprocessor = WhisperPreprocessorNumpy(name)
+                else:
+                    raise ModelNotSupportedError(name)
+            else:
+                if name == "kaldi" and providers and providers != ["CPUExecutionProvider"]:
+                    name = "kaldi_fast"
+                preprocessor = OnnxPreprocessor(name, preprocessor_config)
+
             if max_concurrent_workers == 1:
                 return preprocessor
             return ConcurrentPreprocessor(preprocessor, max_concurrent_workers)
@@ -360,9 +386,11 @@ def load_model(
 
     loader = AsrLoader(model, path)
 
-    default_onnx_config: OnnxSessionOptions = {
+    default_onnx_config = update_onnx_providers(
+        {"providers": rt.get_available_providers()}, excluded_providers=["AzureExecutionProvider"]
+    ) | {
         "sess_options": sess_options,
-        "providers": providers or rt.get_available_providers(),
+        "providers": providers,
         "provider_options": provider_options,
     }
 
@@ -377,6 +405,7 @@ def load_model(
                 excluded_providers=OnnxPreprocessor._get_excluded_providers(),
             ),
             "max_concurrent_workers": 1,
+            "use_numpy_preprocessors": None,
         }
 
     if resampler_config is None:

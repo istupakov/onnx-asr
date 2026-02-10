@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import onnx
 
 from preprocessors import build
@@ -8,6 +9,7 @@ from preprocessors import build
 def test_build(tmp_path: Path):
     build.build(tmp_path, "tests")
     assert len(list(tmp_path.glob("*.onnx"))) == 22
+    assert len(list(tmp_path.glob("*.npz"))) == 1
 
 
 def test_save_preprocessor_models(tmp_path: Path):
@@ -44,3 +46,12 @@ def test_save_resampler_models(tmp_path: Path):
         assert len(model.graph.output) == 2
         assert model.graph.output[0].name == "resampled"
         assert model.graph.output[1].name == "resampled_lens"
+
+
+def test_save_fbanks(tmp_path: Path):
+    build.save_fbanks(tmp_path)
+    filename = Path(tmp_path, "fbanks.npz")
+
+    assert filename.exists()
+    with np.load(filename) as data:
+        assert len(data.keys()) == 8

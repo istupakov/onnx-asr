@@ -16,8 +16,9 @@ wheels/
 site/
 .cache/
 
-# ML models
+# ML models and data
 *.onnx
+*.npz
 
 /models/
 /*.ipynb

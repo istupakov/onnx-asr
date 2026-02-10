@@ -25,10 +25,10 @@ class IdentityPreprocessor:
 
 
 class OnnxPreprocessor:
-    """ASR preprocessor implementation."""
+    """ONNX preprocessor implementation."""
 
     def __init__(self, name: str, onnx_options: OnnxSessionOptions):
-        """Create ASR preprocessor.
+        """Create preprocessor.
 
         Args:
             name: Preprocessor name.
@@ -61,7 +61,7 @@ class OnnxPreprocessor:
 
 
 class ConcurrentPreprocessor:
-    """Concurrent ASR preprocessor implementation."""
+    """Concurrent preprocessor implementation."""
 
     def __init__(self, preprocessor: Preprocessor, max_concurrent_workers: int | None = None):
         """Create preprocessor.
