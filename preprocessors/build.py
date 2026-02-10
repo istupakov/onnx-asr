@@ -1,7 +1,8 @@
-"""Build ONNX preprocessors."""
+"""Build ONNX and NumPy preprocessors."""
 
 from pathlib import Path
 
+import numpy as np
 import onnx
 import onnxscript
 
@@ -52,6 +53,21 @@ def save_resampler_models(preprocessors_dir: Path, version: str) -> None:
                 )
 
 
+def save_fbanks(preprocessors_dir: Path) -> None:
+    fbanks = {
+        "gigaam_v2": gigaam.melscale_fbanks_v2,
+        "gigaam_v3": gigaam.melscale_fbanks_v3,
+        "gigaam_v3_window": gigaam.hann_window_v3,
+        "kaldi": kaldi.mel_banks,
+        "nemo80": nemo.melscale_fbanks80,
+        "nemo128": nemo.melscale_fbanks128,
+        "whisper80": whisper.melscale_fbanks80,
+        "whisper128": whisper.melscale_fbanks128,
+    }
+    np.savez_compressed(Path(preprocessors_dir, "fbanks"), allow_pickle=False, **fbanks)
+
+
 def build(preprocessors_dir: Path, version: str) -> None:
     save_preprocessor_models(preprocessors_dir, version)
     save_resampler_models(preprocessors_dir, version)
+    save_fbanks(preprocessors_dir)

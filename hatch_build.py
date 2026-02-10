@@ -18,7 +18,10 @@ class _BuildPreprocessorsHook(BuildHookInterface):  # type: ignore[type-arg]
 
         self.artifacts_path.mkdir(exist_ok=True)
         build(self.artifacts_path, self.metadata.version)
-        build_data["artifacts"] = [str(self.artifacts_path.joinpath("*.onnx"))]
+        build_data["artifacts"] = [
+            str(self.artifacts_path.joinpath("*.onnx")),
+            str(self.artifacts_path.joinpath("*.npz")),
+        ]
 
     def dependencies(self) -> list[str]:
         return self.metadata.config["dependency-groups"]["build"]  # type: ignore[no-any-return]

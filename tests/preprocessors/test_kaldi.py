@@ -4,6 +4,7 @@ import pytest
 import torch
 import torchaudio
 
+from onnx_asr.preprocessors.numpy_preprocessor import KaldiPreprocessorNumpy
 from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, OnnxPreprocessor
 from onnx_asr.utils import pad_list
 from preprocessors import kaldi
@@ -52,11 +53,13 @@ def preprocessor_torch(waveforms, lens):
     return pad_features(results)
 
 
-@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
+@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])
 def preprocessor(request):
     match request.param:
         case "torch":
             return preprocessor_torch
+        case "numpy":
+            return KaldiPreprocessorNumpy("kaldi")
         case "onnx_func":
             return kaldi.KaldiPreprocessor
         case "onnx_model":
@@ -81,6 +84,7 @@ def test_kaldi_preprocessor(preprocessor, waveforms):
     expected, expected_lens = preprocessor_origin(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
 
+    assert actual.dtype == np.float32
     assert expected.shape[1] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
     np.testing.assert_allclose(actual, expected, atol=5e-4, rtol=1e-4)
@@ -93,6 +97,7 @@ def test_kaldi_preprocessor_fast(preprocessor_fast, waveforms):
     )
     actual, actual_lens = preprocessor_fast(waveforms, lens)
 
+    assert actual.dtype == np.float32
     assert expected.shape[1] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
     np.testing.assert_allclose(actual, expected, atol=5e-4, rtol=1e-4)
