@@ -301,8 +301,18 @@ class AsrLoader(_Loader[Asr]):
                 return preprocessor
             return ConcurrentPreprocessor(preprocessor, max_concurrent_workers)
 
+        model_files = self.resolve_model(quantization=quantization)
+        if rt.__version__.startswith("1.24") and any(
+            file for path in model_files.values() for file in path.parent.glob("*.onnx?data") if file.is_symlink()
+        ):
+            warnings.warn(
+                "Onnxruntime 1.24 does not allow symlinks to data files used in the HuggingFace cache. "
+                "Please specify the path to where the model will be downloaded.",
+                stacklevel=2,
+            )
+
         return TextResultsAsrAdapter(
-            self._model_type(self.resolve_model(quantization=quantization), create_preprocessor, asr_config),
+            self._model_type(model_files, create_preprocessor, asr_config),
             Resampler(self._model_type._get_sample_rate(), resampler_config),
         )
 
