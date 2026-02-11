@@ -67,7 +67,7 @@ dev = [
     "ipykernel>=7.1.0",
     "ipywidgets>=8.1.8",
     "mypy>=1.19.1",
-    "ruff>=0.14.11",
+    "ruff>=0.15.0",
     { include-group = "docs" },
     { include-group = "test-preprocessors" },
 ]
@@ -76,6 +76,7 @@ docs = [
     "markdown-callouts>=0.4.0",
     "mkdocs-material[imaging]>=9.7.1",
     "mkdocstrings[python]>=1.0.0",
+    "ruff>=0.15.0",
 ]
 test = [
     "huggingface-hub>=0.30.2",
