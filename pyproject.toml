@@ -6,8 +6,8 @@ build-backend = "hatchling.build"
 name = "onnx-asr"
 dynamic = ["version"]
 dependencies = [
-    "numpy>=1.21.6",
-    "typing-extensions>=4.15.0; python_version < '3.11'",
+    "numpy>=1.22.4",
+    "typing-extensions>=4.6.0; python_version < '3.11'",
 ]
 requires-python = ">=3.10"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
@@ -79,7 +79,6 @@ docs = [
 ]
 test = [
     "huggingface-hub>=0.30.2",
-    "numpy>=1.21.6",
     "onnxruntime>=1.18.1",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
