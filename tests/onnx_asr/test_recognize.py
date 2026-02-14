@@ -7,10 +7,10 @@ import pytest
 import onnx_asr
 import onnx_asr.utils
 from onnx_asr.adapters import TextResultsAsrAdapter
-from onnx_asr.asr import TimestampedResult
+from onnx_asr.asr import BaseAsr, TimestampedResult
 from onnx_asr.preprocessors.numpy_preprocessor import _NumpyPreprocessor
 from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, OnnxPreprocessor
-from onnx_asr.vad import SegmentResult, TimestampedSegmentResult, Vad
+from onnx_asr.vad import BaseVad, SegmentResult, TimestampedSegmentResult, Vad
 
 models = [
     "gigaam-v2-ctc",
@@ -97,7 +97,7 @@ def test_recognize_batch(model: TextResultsAsrAdapter) -> None:
     assert all(isinstance(item, str) for item in result)
 
 
-def test_recognize_with_vad(model: TextResultsAsrAdapter, vad: Vad) -> None:
+def test_recognize_with_vad(model: TextResultsAsrAdapter, vad: BaseVad) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 
@@ -106,7 +106,7 @@ def test_recognize_with_vad(model: TextResultsAsrAdapter, vad: Vad) -> None:
     assert all(isinstance(item, SegmentResult) for item in result)
 
 
-def test_recognize_with_vad_and_timestamps(model: TextResultsAsrAdapter, vad: Vad) -> None:
+def test_recognize_with_vad_and_timestamps(model: TextResultsAsrAdapter, vad: BaseVad) -> None:
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 
@@ -129,12 +129,14 @@ def test_preprocessor_options(max_concurrent_workers: int | None, use_numpy_prep
     rng = np.random.default_rng(0)
     waveform = rng.random((1 * 16_000), dtype=np.float32)
 
+    asr = model.asr
+    assert isinstance(asr, BaseAsr)
     if max_concurrent_workers != 1:
-        assert isinstance(model.asr._preprocessor, ConcurrentPreprocessor)
+        assert isinstance(asr._preprocessor, ConcurrentPreprocessor)
     elif use_numpy_preprocessors is True:
-        assert isinstance(model.asr._preprocessor, _NumpyPreprocessor)
+        assert isinstance(asr._preprocessor, _NumpyPreprocessor)
     elif use_numpy_preprocessors is False:
-        assert isinstance(model.asr._preprocessor, OnnxPreprocessor)
+        assert isinstance(asr._preprocessor, OnnxPreprocessor)
 
     result = model.recognize([waveform] * 2)
     assert isinstance(result, list)

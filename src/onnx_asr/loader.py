@@ -1,11 +1,9 @@
-"""Loader for ASR models."""
+"""Loader for ASR and VAD models."""
 
-import json
 import warnings
-from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Generic, Literal, Protocol, TypeAlias, TypeVar
+from typing import Any, Literal, TypeAlias
 
 import onnxruntime as rt
 
@@ -27,14 +25,11 @@ from onnx_asr.preprocessors.numpy_preprocessor import (
 )
 from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, IdentityPreprocessor, OnnxPreprocessor
 from onnx_asr.preprocessors.resampler import Resampler
+from onnx_asr.resolver import Resolver
 from onnx_asr.utils import (
-    InvalidModelTypeInConfigError,
-    ModelFileNotFoundError,
     ModelNotSupportedError,
-    ModelPathNotDirectoryError,
-    MoreThanOneModelFileFoundError,
-    NoModelNameOrPathSpecifiedError,
 )
+from onnx_asr.vad import Vad
 
 ModelNames = Literal[
     "gigaam-v2-ctc",
@@ -73,6 +68,64 @@ ModelTypes = Literal[
 VadNames = Literal["silero"]
 """Supported VAD model names (can be automatically downloaded from the Hugging Face)."""
 
+AsrTypes: TypeAlias = (
+    GigaamV2Ctc
+    | GigaamV2Rnnt
+    | KaldiTransducer
+    | NemoConformerCtc
+    | NemoConformerRnnt
+    | NemoConformerAED
+    | TOneCtc
+    | WhisperHf
+    | WhisperOrt
+)
+
+
+def create_asr_resolver(
+    model: str, local_dir: str | Path | None = None, *, offline: bool | None = None
+) -> Resolver[AsrTypes]:
+    """Create resolver for ASR models."""
+    model_types: dict[str, type[AsrTypes]] = {
+        "gigaam-v2-ctc": GigaamV2Ctc,
+        "gigaam-v2-rnnt": GigaamV2Rnnt,
+        "gigaam-v3-ctc": GigaamV2Ctc,
+        "gigaam-v3-rnnt": GigaamV2Rnnt,
+        "gigaam-v3-e2e-ctc": GigaamV3E2eCtc,
+        "gigaam-v3-e2e-rnnt": GigaamV3E2eRnnt,
+        "nemo-fastconformer-ru-ctc": NemoConformerCtc,
+        "nemo-fastconformer-ru-rnnt": NemoConformerRnnt,
+        "nemo-parakeet-ctc-0.6b": NemoConformerCtc,
+        "nemo-parakeet-rnnt-0.6b": NemoConformerRnnt,
+        "nemo-parakeet-tdt-0.6b-v2": NemoConformerTdt,
+        "nemo-parakeet-tdt-0.6b-v3": NemoConformerTdt,
+        "nemo-canary-1b-v2": NemoConformerAED,
+        "whisper-base": WhisperOrt,
+        "kaldi-rnnt": KaldiTransducer,
+        "nemo-conformer-ctc": NemoConformerCtc,
+        "nemo-conformer-rnnt": NemoConformerRnnt,
+        "nemo-conformer-tdt": NemoConformerTdt,
+        "nemo-conformer-aed": NemoConformerAED,
+        "t-one-ctc": TOneCtc,
+        "vosk": KaldiTransducer,
+        "whisper-ort": WhisperOrt,
+        "whisper": WhisperHf,
+        "alphacep/vosk-model-ru": KaldiTransducer,
+        "alphacep/vosk-model-small-ru": KaldiTransducer,
+        "t-tech/t-one": TOneCtc,
+    }
+    return Resolver(model_types, model, local_dir, offline=offline)
+
+
+VadTypes: TypeAlias = SileroVad | PyAnnoteVad
+
+
+def create_vad_resolver(
+    model: str, local_dir: str | Path | None = None, *, offline: bool | None = None
+) -> Resolver[VadTypes]:
+    """Create resolver for VAD models."""
+    model_types: dict[str, type[VadTypes]] = {"silero": SileroVad, "pyannote": PyAnnoteVad}
+    return Resolver(model_types, model, local_dir, offline=offline)
+
 
 class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
     """Preprocessor runtime config."""
@@ -84,256 +137,115 @@ class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
     """Use NumPy preprocessors backend instead of ONNX."""
 
 
-class _Model(Protocol):
-    @staticmethod
-    def _get_excluded_providers() -> list[str]: ...
+class Manager:
+    """Manager for models creation."""
 
-    @staticmethod
-    def _get_model_files(quantization: str | None = None) -> dict[str, str]: ...
-
-
-T = TypeVar("T", bound=_Model)
-
-
-class _Loader(ABC, Generic[T]):
-    offline: bool = False
-    local_dir: Path | None = None
-    repo_id: str | None = None
-
-    def __init__(self, model: str, path: str | Path | None = None, *, offline: bool | None = None):  # noqa: C901
-        if path is not None:
-            self.local_dir = Path(path)
-            if self.local_dir.exists():
-                self.offline = True
-                if not self.local_dir.is_dir():
-                    raise ModelPathNotDirectoryError(self.local_dir)
-
-        if offline is not None:
-            self.offline = offline
-
-        if "/" in model:
-            self.repo_id = model
-        elif model in self._model_repos:
-            self.repo_id = self._model_repos[model]
-        elif not (self.offline and self.local_dir):
-            raise NoModelNameOrPathSpecifiedError
-
-        if model in self._model_types:
-            self._model_type = self._model_types[model]
-        elif "/" in model:
-            with self.resolve_config().open("rt", encoding="utf-8") as f:
-                config = json.load(f)
-
-            config_model_type: str = config.get("model_type")
-            if "/" in config_model_type or config_model_type not in self._model_types:
-                raise InvalidModelTypeInConfigError(config_model_type)
-            self._model_type = self._model_types[config_model_type]
-        else:
-            raise ModelNotSupportedError(model)
-
-    def get_excluded_providers(self) -> list[str]:
-        return self._model_type._get_excluded_providers()
-
-    @property
-    @abstractmethod
-    def _model_repos(self) -> dict[str, str]: ...
-
-    @property
-    @abstractmethod
-    def _model_types(self) -> dict[str, type[T]]: ...
-
-    def _download_config(self, *, local_files_only: bool) -> Path:
-        from huggingface_hub import hf_hub_download  # noqa: PLC0415
-
-        assert self.repo_id is not None
-        return Path(
-            hf_hub_download(self.repo_id, "config.json", local_dir=self.local_dir, local_files_only=local_files_only)  # nosec
-        )
-
-    def _download_model(self, quantization: str | None, *, local_files_only: bool) -> Path:
-        from huggingface_hub import snapshot_download  # noqa: PLC0415
-
-        files = list(self._model_type._get_model_files(quantization).values())
-        files = [
-            "config.json",
-            *files,
-            *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx"),
-        ]
-        assert self.repo_id is not None
-        return Path(
-            snapshot_download(
-                self.repo_id, local_dir=self.local_dir, local_files_only=local_files_only, allow_patterns=files
-            )  # nosec
-        )
-
-    def _resolve_model_files(self, path: Path, quantization: str | None) -> dict[str, Path]:
-        files = self._model_type._get_model_files(quantization)
-        if Path(path, "config.json").exists():
-            files |= {"config": "config.json"}
-
-        def find(filename: str) -> Path:
-            files = list(path.glob(filename))
-            if len(files) > 1:
-                raise MoreThanOneModelFileFoundError(filename, path)
-            if len(files) == 0 or not files[0].is_file():
-                raise ModelFileNotFoundError(filename, path)
-            return files[0]
-
-        return {key: find(filename) for key, filename in files.items()}
-
-    def resolve_config(self) -> Path:
-        if self.offline and self.local_dir:
-            config_path = Path(self.local_dir, "config.json")
-            if not config_path.is_file():
-                raise ModelFileNotFoundError(config_path.name, self.local_dir)
-            return config_path
-
-        try:
-            return self._download_config(local_files_only=True)
-        except FileNotFoundError:
-            if self.offline:
-                raise
-            return self._download_config(local_files_only=False)
-
-    def resolve_model(self, *, quantization: str | None = None) -> dict[str, Path]:
-        if self.offline and self.local_dir:
-            return self._resolve_model_files(self.local_dir, quantization)
-
-        try:
-            return self._resolve_model_files(self._download_model(quantization, local_files_only=True), quantization)
-        except FileNotFoundError:
-            if self.offline:
-                raise
-            return self._resolve_model_files(self._download_model(quantization, local_files_only=False), quantization)
-
-
-class AsrLoader(_Loader[Asr]):
-    """Loader class for ASR models."""
-
-    @property
-    def _model_repos(self) -> dict[str, str]:
-        return {
-            "gigaam-v2-ctc": "istupakov/gigaam-v2-onnx",
-            "gigaam-v2-rnnt": "istupakov/gigaam-v2-onnx",
-            "gigaam-v3-ctc": "istupakov/gigaam-v3-onnx",
-            "gigaam-v3-rnnt": "istupakov/gigaam-v3-onnx",
-            "gigaam-v3-e2e-ctc": "istupakov/gigaam-v3-onnx",
-            "gigaam-v3-e2e-rnnt": "istupakov/gigaam-v3-onnx",
-            "nemo-fastconformer-ru-ctc": "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx",
-            "nemo-fastconformer-ru-rnnt": "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx",
-            "nemo-parakeet-ctc-0.6b": "istupakov/parakeet-ctc-0.6b-onnx",
-            "nemo-parakeet-rnnt-0.6b": "istupakov/parakeet-rnnt-0.6b-onnx",
-            "nemo-parakeet-tdt-0.6b-v2": "istupakov/parakeet-tdt-0.6b-v2-onnx",
-            "nemo-parakeet-tdt-0.6b-v3": "istupakov/parakeet-tdt-0.6b-v3-onnx",
-            "nemo-canary-1b-v2": "istupakov/canary-1b-v2-onnx",
-            "whisper-base": "istupakov/whisper-base-onnx",
-        }
-
-    @property
-    def _model_types(self) -> dict[str, type[Asr]]:
-        return {
-            "gigaam-v2-ctc": GigaamV2Ctc,
-            "gigaam-v2-rnnt": GigaamV2Rnnt,
-            "gigaam-v3-ctc": GigaamV2Ctc,
-            "gigaam-v3-rnnt": GigaamV2Rnnt,
-            "gigaam-v3-e2e-ctc": GigaamV3E2eCtc,
-            "gigaam-v3-e2e-rnnt": GigaamV3E2eRnnt,
-            "nemo-fastconformer-ru-ctc": NemoConformerCtc,
-            "nemo-fastconformer-ru-rnnt": NemoConformerRnnt,
-            "nemo-parakeet-ctc-0.6b": NemoConformerCtc,
-            "nemo-parakeet-rnnt-0.6b": NemoConformerRnnt,
-            "nemo-parakeet-tdt-0.6b-v2": NemoConformerTdt,
-            "nemo-parakeet-tdt-0.6b-v3": NemoConformerTdt,
-            "nemo-canary-1b-v2": NemoConformerAED,
-            "whisper-base": WhisperOrt,
-            "kaldi-rnnt": KaldiTransducer,
-            "nemo-conformer-ctc": NemoConformerCtc,
-            "nemo-conformer-rnnt": NemoConformerRnnt,
-            "nemo-conformer-tdt": NemoConformerTdt,
-            "nemo-conformer-aed": NemoConformerAED,
-            "t-one-ctc": TOneCtc,
-            "vosk": KaldiTransducer,
-            "whisper-ort": WhisperOrt,
-            "whisper": WhisperHf,
-            "alphacep/vosk-model-ru": KaldiTransducer,
-            "alphacep/vosk-model-small-ru": KaldiTransducer,
-            "t-tech/t-one": TOneCtc,
-        }
-
-    def create_model(  # noqa: C901
+    def __init__(
         self,
-        asr_config: OnnxSessionOptions,
-        preprocessor_config: PreprocessorRuntimeConfig,
-        resampler_config: OnnxSessionOptions,
+        sess_options: rt.SessionOptions | None = None,
+        providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
+        provider_options: Sequence[dict[Any, Any]] | None = None,
+        preprocessor_config: PreprocessorRuntimeConfig | None = None,
+        resampler_config: OnnxSessionOptions | None = None,
+    ) -> None:
+        """Create model manager."""
+        self.default_onnx_config = update_onnx_providers(
+            {"providers": rt.get_available_providers()}, excluded_providers=["AzureExecutionProvider"]
+        ) | {
+            "sess_options": sess_options,
+            "providers": providers,
+            "provider_options": provider_options,
+        }
+
+        if preprocessor_config is None:
+            self.preprocessor_config = update_onnx_providers(
+                self.default_onnx_config,
+                new_options={"TensorrtExecutionProvider": {"trt_fp16_enable": False}},
+                excluded_providers=OnnxPreprocessor._get_excluded_providers(),
+            )
+            self.preprocessor_max_workers: int | None = 1
+            self.use_numpy_preprocessors = None
+        else:
+            self.preprocessor_max_workers = preprocessor_config.pop("max_concurrent_workers", 1)
+            self.use_numpy_preprocessors = preprocessor_config.pop("use_numpy_preprocessors")
+            self.preprocessor_config = preprocessor_config
+
+        providers = get_onnx_providers(self.preprocessor_config)
+        if self.use_numpy_preprocessors is None:
+            self.use_numpy_preprocessors = not providers or providers == ["CPUExecutionProvider"]
+
+        if resampler_config is None:
+            resampler_config = update_onnx_providers(
+                self.default_onnx_config, excluded_providers=Resampler._get_excluded_providers()
+            )
+        self.resampler_config = resampler_config
+
+    def _create_preprocessor(self, name: str) -> Preprocessor:
+        if name == "identity":
+            return IdentityPreprocessor()
+
+        preprocessor: Preprocessor
+        if self.use_numpy_preprocessors:
+            if name.startswith("gigaam"):
+                preprocessor = GigaamPreprocessorNumpy(name)
+            elif name == "kaldi":
+                preprocessor = KaldiPreprocessorNumpy(name)
+            elif name.startswith("nemo"):
+                preprocessor = NemoPreprocessorNumpy(name)
+            elif name.startswith("whisper"):
+                preprocessor = WhisperPreprocessorNumpy(name)
+            else:
+                raise ModelNotSupportedError(name)
+        else:
+            providers = get_onnx_providers(self.preprocessor_config)
+            if name == "kaldi" and providers and providers != ["CPUExecutionProvider"]:
+                name = "kaldi_fast"
+            preprocessor = OnnxPreprocessor(name, self.preprocessor_config)
+
+        if self.preprocessor_max_workers == 1:
+            return preprocessor
+        return ConcurrentPreprocessor(preprocessor, self.preprocessor_max_workers)
+
+    def _create_resampler(self, sample_rate: Literal[8000, 16000]) -> Resampler:
+        return Resampler(sample_rate, self.resampler_config)
+
+    def create_asr(
+        self,
+        model: str,
+        local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
-    ) -> TextResultsAsrAdapter:
+        offline: bool | None = None,
+        config: OnnxSessionOptions | None = None,
+    ) -> Asr:
         """Create ASR model."""
-
-        def create_preprocessor(name: str) -> Preprocessor:
-            if name == "identity":
-                return IdentityPreprocessor()
-
-            providers = get_onnx_providers(preprocessor_config)
-            max_concurrent_workers = preprocessor_config.pop("max_concurrent_workers", 1)
-            use_numpy_preprocessors = preprocessor_config.pop("use_numpy_preprocessors")
-            if use_numpy_preprocessors is None:
-                use_numpy_preprocessors = not providers or providers == ["CPUExecutionProvider"]
-
-            preprocessor: Preprocessor
-            if use_numpy_preprocessors:
-                if name.startswith("gigaam"):
-                    preprocessor = GigaamPreprocessorNumpy(name)
-                elif name == "kaldi":
-                    preprocessor = KaldiPreprocessorNumpy(name)
-                elif name.startswith("nemo"):
-                    preprocessor = NemoPreprocessorNumpy(name)
-                elif name.startswith("whisper"):
-                    preprocessor = WhisperPreprocessorNumpy(name)
-                else:
-                    raise ModelNotSupportedError(name)
-            else:
-                if name == "kaldi" and providers and providers != ["CPUExecutionProvider"]:
-                    name = "kaldi_fast"
-                preprocessor = OnnxPreprocessor(name, preprocessor_config)
-
-            if max_concurrent_workers == 1:
-                return preprocessor
-            return ConcurrentPreprocessor(preprocessor, max_concurrent_workers)
-
-        model_files = self.resolve_model(quantization=quantization)
-        if rt.__version__.startswith("1.24") and any(
-            file for path in model_files.values() for file in path.parent.glob("*.onnx?data") if file.is_symlink()
-        ):
-            warnings.warn(
-                "Onnxruntime 1.24 does not allow symlinks to data files used in the HuggingFace cache. "
-                "Please specify the path to where the model will be downloaded.",
-                stacklevel=2,
+        resolver = create_asr_resolver(model, local_dir, offline=offline)
+        if config is None:
+            config = update_onnx_providers(
+                self.default_onnx_config, excluded_providers=resolver.model_type._get_excluded_providers()
             )
+        return resolver.model_type(resolver.resolve_model(quantization=quantization), self._create_preprocessor, config)
 
-        return TextResultsAsrAdapter(
-            self._model_type(model_files, create_preprocessor, asr_config),
-            Resampler(self._model_type._get_sample_rate(), resampler_config),
-        )
+    def create_adapter(self, asr: Asr) -> TextResultsAsrAdapter:
+        """Create ASR adapter."""
+        return TextResultsAsrAdapter(asr, self._create_resampler(asr._get_sample_rate()))
 
-
-Vad: TypeAlias = SileroVad | PyAnnoteVad
-
-
-class VadLoader(_Loader[Vad]):
-    """Loader class for VAD models."""
-
-    @property
-    def _model_repos(self) -> dict[str, str]:
-        return {"silero": "onnx-community/silero-vad", "pyannote": "onnx-community/pyannote-segmentation-3.0"}
-
-    @property
-    def _model_types(self) -> dict[str, type[Vad]]:
-        return {"silero": SileroVad, "pyannote": PyAnnoteVad}
-
-    def create_model(self, config: OnnxSessionOptions, *, quantization: str | None = None) -> Vad:
+    def create_vad(
+        self,
+        model: str,
+        local_dir: str | Path | None = None,
+        *,
+        quantization: str | None = None,
+        offline: bool | None = None,
+        config: OnnxSessionOptions | None = None,
+    ) -> Vad:
         """Create VAD model."""
-        return self._model_type(self.resolve_model(quantization=quantization), config)
+        resolver = create_vad_resolver(model, local_dir, offline=offline)
+        if config is None:
+            config = update_onnx_providers(
+                self.default_onnx_config, excluded_providers=resolver.model_type._get_excluded_providers()
+            )
+        return resolver.model_type(resolver.resolve_model(quantization=quantization), config)
 
 
 def load_model(
@@ -394,36 +306,8 @@ def load_model(
             stacklevel=2,
         )
 
-    loader = AsrLoader(model, path)
-
-    default_onnx_config = update_onnx_providers(
-        {"providers": rt.get_available_providers()}, excluded_providers=["AzureExecutionProvider"]
-    ) | {
-        "sess_options": sess_options,
-        "providers": providers,
-        "provider_options": provider_options,
-    }
-
-    if asr_config is None:
-        asr_config = update_onnx_providers(default_onnx_config, excluded_providers=loader.get_excluded_providers())
-
-    if preprocessor_config is None:
-        preprocessor_config = {
-            **update_onnx_providers(
-                default_onnx_config,
-                new_options={"TensorrtExecutionProvider": {"trt_fp16_enable": False, "trt_int8_enable": False}},
-                excluded_providers=OnnxPreprocessor._get_excluded_providers(),
-            ),
-            "max_concurrent_workers": 1,
-            "use_numpy_preprocessors": None,
-        }
-
-    if resampler_config is None:
-        resampler_config = update_onnx_providers(
-            default_onnx_config, excluded_providers=Resampler._get_excluded_providers()
-        )
-
-    return loader.create_model(asr_config, preprocessor_config, resampler_config, quantization=quantization)
+    manager = Manager(sess_options, providers, provider_options, preprocessor_config, resampler_config)
+    return manager.create_adapter(manager.create_asr(model, path, quantization=quantization, config=asr_config))
 
 
 def load_vad(
@@ -452,14 +336,16 @@ def load_vad(
         utils.ModelLoadingError: Model loading error (onnx-asr specific).
 
     """
-    loader = VadLoader(model, path)
-
-    onnx_options = update_onnx_providers(
-        {"providers": rt.get_available_providers()}, excluded_providers=loader.get_excluded_providers()
-    ) | {
+    manager = Manager()
+    config: OnnxSessionOptions = {
         "sess_options": sess_options,
         "providers": providers,
         "provider_options": provider_options,
     }
 
-    return loader.create_model(onnx_options, quantization=quantization)
+    return manager.create_vad(
+        model,
+        path,
+        quantization=quantization,
+        config=config if any(value is not None for value in config.values()) else None,
+    )

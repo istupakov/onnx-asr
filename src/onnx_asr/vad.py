@@ -1,10 +1,10 @@
 """Base VAD classes."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
 from itertools import islice
-from typing import Literal
+from typing import Literal, Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -30,7 +30,24 @@ class TimestampedSegmentResult(TimestampedResult, SegmentResult):
     """Timestamped segment recognition result."""
 
 
-class Vad(ABC):
+class Vad(Protocol):
+    """VAD protocol."""
+
+    def recognize_batch(
+        self,
+        asr: Asr,
+        waveforms: npt.NDArray[np.float32],
+        waveforms_len: npt.NDArray[np.int64],
+        sample_rate: Literal[8_000, 16_000],
+        asr_kwargs: dict[str, object | None],
+        batch_size: int = 8,
+        **kwargs: float,
+    ) -> Iterator[Iterator[TimestampedSegmentResult]]:
+        """Segment and recognize waveforms batch."""
+        ...
+
+
+class BaseVad(Vad):
     """Base VAD class."""
 
     @abstractmethod

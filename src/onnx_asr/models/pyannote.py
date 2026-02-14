@@ -8,10 +8,10 @@ import onnxruntime as rt
 
 from onnx_asr.onnx import OnnxSessionOptions
 from onnx_asr.utils import is_float32_array
-from onnx_asr.vad import Vad
+from onnx_asr.vad import BaseVad
 
 
-class PyAnnoteVad(Vad):
+class PyAnnoteVad(BaseVad):
     """PyAnnote VAD implementation."""
 
     def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):

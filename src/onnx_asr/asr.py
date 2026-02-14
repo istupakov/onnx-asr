@@ -2,7 +2,7 @@
 
 import json
 import re
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,7 +51,21 @@ class Preprocessor(Protocol):
         ...
 
 
-class Asr(ABC):
+class Asr(Protocol):
+    """ASR protocol."""
+
+    @staticmethod
+    def _get_sample_rate() -> Literal[8_000, 16_000]:
+        return 16_000
+
+    def recognize_batch(
+        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: object | None
+    ) -> Iterator[TimestampedResult]:
+        """Recognize waveforms batch."""
+        ...
+
+
+class BaseAsr(Asr):
     """Base ASR class."""
 
     def __init__(
@@ -86,23 +100,12 @@ class Asr(ABC):
     @abstractmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]: ...
 
-    @staticmethod
-    def _get_sample_rate() -> Literal[8_000, 16_000]:
-        return 16_000
-
     @property
     @abstractmethod
     def _preprocessor_name(self) -> str: ...
 
-    @abstractmethod
-    def recognize_batch(
-        self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64], /, **kwargs: object | None
-    ) -> Iterator[TimestampedResult]:
-        """Recognize waveforms batch."""
-        ...
 
-
-class _AsrWithDecoding(Asr):
+class _AsrWithDecoding(BaseAsr):
     DECODE_SPACE_PATTERN = re.compile(r"\A\s|\s\B|(\s)\b")
     window_step = 0.01
 

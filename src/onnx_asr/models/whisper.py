@@ -11,7 +11,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 from onnxruntime import OrtValue
 
-from onnx_asr.asr import Asr, Preprocessor, TimestampedResult
+from onnx_asr.asr import BaseAsr, Preprocessor, TimestampedResult
 from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions, get_onnx_device
 from onnx_asr.utils import is_float32_array, is_int32_array
 
@@ -31,7 +31,7 @@ def bytes_to_unicode() -> dict[int, str]:
     return dict(zip(bs, cs))  # noqa: B905
 
 
-class _Whisper(Asr):
+class _Whisper(BaseAsr):
     def __init__(
         self,
         model_files: dict[str, Path],
