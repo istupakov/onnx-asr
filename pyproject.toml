@@ -115,7 +115,7 @@ python_version = "3.10"
 strict = true
 pretty = true
 untyped_calls_exclude = "onnxruntime"
-exclude = ["^preprocessors.", "^tests.preprocessors."]
+exclude = ["^preprocessors.", "^tests.preprocessors.", "^wrappers."]
 
 [[tool.mypy.overrides]]
 module = ["onnxruntime.*"]
@@ -153,6 +153,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "D", "FBT001", "PGH003", "PLR0911", "PLR2004"]
 "preprocessors/*" = ["ANN", "D103", "F821", "N802", "N806"]
+"wrappers/*" = ["ANN401", "PLC0415"]
 "*.ipynb" = ["ANN", "D", "ERA", "RUF001", "T"]
 
 [tool.pytest]
