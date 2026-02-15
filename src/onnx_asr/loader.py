@@ -82,7 +82,7 @@ AsrTypes: TypeAlias = (
 
 
 def create_asr_resolver(
-    model: str, local_dir: str | Path | None = None, *, offline: bool | None = None
+    model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
 ) -> Resolver[AsrTypes]:
     """Create resolver for ASR models."""
     model_types: dict[str, type[AsrTypes]] = {
@@ -120,7 +120,7 @@ VadTypes: TypeAlias = SileroVad | PyAnnoteVad
 
 
 def create_vad_resolver(
-    model: str, local_dir: str | Path | None = None, *, offline: bool | None = None
+    model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
 ) -> Resolver[VadTypes]:
     """Create resolver for VAD models."""
     model_types: dict[str, type[VadTypes]] = {"silero": SileroVad, "pyannote": PyAnnoteVad}
@@ -211,7 +211,7 @@ class Manager:
 
     def create_asr(
         self,
-        model: str,
+        model: str | None = None,
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
@@ -232,7 +232,7 @@ class Manager:
 
     def create_vad(
         self,
-        model: str,
+        model: str | None = None,
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,

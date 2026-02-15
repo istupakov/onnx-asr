@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
+import sherpa_onnx
 
 from onnx_asr.asr import TimestampedResult
 from onnx_asr.resolver import Resolver
@@ -26,8 +27,6 @@ class SherpaASR:
         """Create wrapper."""
         resolver = Resolver(SherpaASR, repo_id, local_dir, offline=offline)
         model_files = resolver.resolve_model(quantization=quantization)
-
-        import sherpa_onnx
 
         self._recognizer = sherpa_onnx.OfflineRecognizer.from_transducer(
             str(model_files["encoder"]),
