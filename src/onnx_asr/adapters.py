@@ -110,6 +110,7 @@ class AsrAdapter(ABC, Generic[R]):
         waveform: str | Path | npt.NDArray[np.float32] | list[str | Path | npt.NDArray[np.float32]],
         *,
         sample_rate: SampleRates = 16_000,
+        channel: int | Literal["mean"] | None = None,
         **kwargs: Unpack[RecognizeOptions],
     ) -> R | list[R]:
         """Recognize speech (single or batch).
@@ -119,6 +120,7 @@ class AsrAdapter(ABC, Generic[R]):
                       or Numpy array with PCM waveform.
                       A list of file paths or numpy arrays for batch recognition are also supported.
             sample_rate: Sample rate for Numpy arrays in waveform.
+            channel: Channel selector for multi-channel audio.
             **kwargs: ASR options.
 
         Returns:
@@ -135,7 +137,7 @@ class AsrAdapter(ABC, Generic[R]):
             return []
 
         waveform_batch = waveform if isinstance(waveform, list) else [waveform]
-        result = self._recognize_batch(*self.resampler(*read_wav_files(waveform_batch, sample_rate)), **kwargs)
+        result = self._recognize_batch(*self.resampler(*read_wav_files(waveform_batch, sample_rate, channel)), **kwargs)
 
         if isinstance(waveform, list):
             return list(result)

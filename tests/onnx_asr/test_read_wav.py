@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import get_args
+from typing import Literal, get_args
 
 import numpy as np
 import pytest
@@ -52,6 +52,27 @@ def test_read_wav_files(tmp_path: Path, sample_rate: SampleRates) -> None:
     np.testing.assert_equal(result_lens, [d.shape[0] for d in data])
     for i in range(len(data)):
         np.testing.assert_equal(result_data[i], np.pad(data[i], (0, result_data.shape[1] - result_lens[i])))
+
+
+@pytest.mark.parametrize("sample_rate", [16_000, 44_100])
+@pytest.mark.parametrize("channel", [0, 1, "mean"])
+def test_read_wav_files_multichannel(tmp_path: Path, sample_rate: SampleRates, channel: int | Literal["mean"]) -> None:
+    rng = np.random.default_rng(0)
+    files = [tmp_path.joinpath(f"test{k}.wav") for k in [1, 2]]
+    data = [rng.random((k * sample_rate, 2), dtype=np.float32) for k in [1, 2, 3, 4]]
+
+    sf.write(files[0], data[0], sample_rate, "PCM_32")
+    sf.write(files[1], data[1], sample_rate, "PCM_32")
+
+    result_data, result_lens, result_sample_rate = read_wav_files(
+        [*files, data[2], data[3]], numpy_sample_rate=sample_rate, channel=channel
+    )
+    assert result_sample_rate == sample_rate
+    assert result_data.shape[0] == len(data)
+    np.testing.assert_equal(result_lens, [d.shape[0] for d in data])
+    for i in range(len(data)):
+        expected = data[i].mean(axis=-1) if channel == "mean" else data[i][:, channel]
+        np.testing.assert_equal(result_data[i], np.pad(expected, (0, result_data.shape[1] - result_lens[i])))
 
 
 def test_read_wav_files_mono_error_numpy() -> None:

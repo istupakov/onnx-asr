@@ -137,8 +137,20 @@ def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
         ) / max_value - zero_value, f.getframerate()
 
 
+def _select_channel(
+    waveform: npt.NDArray[np.float32], channel: int | Literal["mean"] | None
+) -> npt.NDArray[np.float32]:
+    if channel is not None:
+        return waveform.mean(axis=-1) if channel == "mean" else waveform[:, channel]
+    if waveform.shape[1] == 1:
+        return waveform[:, 0]
+    raise SupportedOnlyMonoAudioError
+
+
 def read_wav_files(
-    waveforms: list[npt.NDArray[np.float32] | str | Path], numpy_sample_rate: SampleRates
+    waveforms: list[npt.NDArray[np.float32] | str | Path],
+    numpy_sample_rate: SampleRates = 16_000,
+    channel: int | Literal["mean"] | None = None,
 ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64], SampleRates]:
     """Convert list of waveform or filenames to Numpy array with common length."""
     results = []
@@ -146,15 +158,11 @@ def read_wav_files(
     for x in waveforms:
         if isinstance(x, (str, Path)):
             waveform, sample_rate = read_wav(str(x))
-            if waveform.shape[1] != 1:
-                raise SupportedOnlyMonoAudioError
-            results.append(waveform[:, 0])
+            results.append(_select_channel(waveform, channel))
             sample_rates.append(sample_rate)
         else:
             x = x.squeeze()
-            if x.ndim != 1:
-                raise SupportedOnlyMonoAudioError
-            results.append(x)
+            results.append(_select_channel(x, channel) if x.ndim != 1 else x)
             sample_rates.append(numpy_sample_rate)
 
     if len(set(sample_rates)) > 1:
