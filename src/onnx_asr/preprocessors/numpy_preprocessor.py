@@ -70,15 +70,20 @@ class KaldiPreprocessorNumpy(_NumpyPreprocessor):
     _n_fft = 512
     _win_length = 400
     _hop_length = 160
-    _snip_edges = False
     _dither = 0.0
     _remove_dc_offset = True
     _preemphasis_coefficient = 0.97
     _float_eps = float(np.finfo(np.float32).eps)
 
     def __init__(self, name: str):  # noqa: D107
-        assert name == "kaldi"
+        assert name in ("kaldi", "wespeaker")
         super().__init__(name)
+        if name == "kaldi":
+            self._snip_edges = False
+            self._window = np.hanning(self._win_length).astype(np.float32) ** 0.85
+        else:
+            self._snip_edges = True
+            self._window = np.hamming(self._win_length).astype(np.float32)
 
     def _symmetric_pad(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
@@ -120,7 +125,7 @@ class KaldiPreprocessorNumpy(_NumpyPreprocessor):
             offset_strided_input = np.pad(strided_input, ((0, 0), (0, 0), (1, 0)), mode="edge")
             strided_input = strided_input - self._preemphasis_coefficient * offset_strided_input[..., :-1]
 
-        strided_input = strided_input * np.hanning(self._win_length) ** 0.85
+        strided_input = strided_input * self._window
         spectrum = np.abs(np.fft.rfft(strided_input, self._n_fft)) ** 2
         mel_energies = np.matmul(spectrum, self._melscale_fbanks).astype(np.float32)
 
