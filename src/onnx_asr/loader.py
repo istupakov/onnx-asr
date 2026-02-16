@@ -188,7 +188,7 @@ class Manager:
         if self.use_numpy_preprocessors:
             if name.startswith("gigaam"):
                 preprocessor = GigaamPreprocessorNumpy(name)
-            elif name == "kaldi":
+            elif name in ("kaldi", "wespeaker"):
                 preprocessor = KaldiPreprocessorNumpy(name)
             elif name.startswith("nemo"):
                 preprocessor = NemoPreprocessorNumpy(name)
@@ -197,9 +197,6 @@ class Manager:
             else:
                 raise ModelNotSupportedError(name)
         else:
-            providers = get_onnx_providers(self.preprocessor_config)
-            if name == "kaldi" and providers and providers != ["CPUExecutionProvider"]:
-                name = "kaldi_fast"
             preprocessor = OnnxPreprocessor(name, self.preprocessor_config)
 
         if self.preprocessor_max_workers == 1:

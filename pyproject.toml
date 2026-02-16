@@ -152,7 +152,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "D", "FBT001", "PGH003", "PLR0911", "PLR2004"]
-"preprocessors/*" = ["ANN", "D103", "F821", "N802", "N806"]
+"preprocessors/*" = ["ANN", "D103", "F821", "FBT", "N802", "N806"]
 "wrappers/*" = ["ANN401", "PLC0415"]
 "*.ipynb" = ["ANN", "D", "ERA", "RUF001", "T"]
 

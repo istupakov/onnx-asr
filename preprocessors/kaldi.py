@@ -22,8 +22,16 @@ high_freq = -400
 
 float_eps = float(np.finfo(np.float32).eps)
 
-mel_banks, _ = torchaudio.compliance.kaldi.get_mel_banks(num_mel_bins, n_fft, sample_rate, low_freq, high_freq, 0, 0, 1)
-mel_banks = torch.nn.functional.pad(mel_banks, (0, 1)).T.numpy()
+kaldi_mel_banks, _ = torchaudio.compliance.kaldi.get_mel_banks(
+    num_mel_bins, n_fft, sample_rate, low_freq, high_freq, 0, 0, 1
+)
+kaldi_mel_banks = torch.nn.functional.pad(kaldi_mel_banks, (0, 1)).T.numpy()
+
+wespeaker_mel_banks, _ = torchaudio.compliance.kaldi.get_mel_banks(
+    num_mel_bins, n_fft, sample_rate, low_freq, 0, 0, 0, 1
+)
+wespeaker_mel_banks = torch.nn.functional.pad(wespeaker_mel_banks, (0, 1)).T.numpy()
+wespeaker_window = np.hamming(win_length).astype(np.float32)
 
 
 @script()
@@ -69,7 +77,12 @@ def sliding_window(waveform: FLOAT["batch_size", "N"]):
 
 
 @script()
-def calc_features(image: FLOAT["batch_size", "T", n_fft // 2 + 1, 2], waveforms_lens: INT64["batch_size"]):
+def calc_features(
+    image: FLOAT["batch_size", "T", n_fft // 2 + 1, 2],
+    waveforms_lens: INT64["batch_size"],
+    mel_banks: FLOAT[n_fft // 2 + 1, 2, num_mel_bins],
+    snip_edges: bool,
+):
     spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
 
     mel_spectrogram = op.MatMul(spectrogram, mel_banks)
@@ -86,11 +99,14 @@ def calc_features(image: FLOAT["batch_size", "T", n_fft // 2 + 1, 2], waveforms_
     return op.Where(mask, log_mel_spectrogram, 0.0), features_lens
 
 
-@script(doc_string="LogMelSpectrogram feature extractor for Kaldi models")
-def KaldiPreprocessor(
+@script()
+def preprocessor(
     waveforms: FLOAT["batch_size", "N"],
     waveforms_lens: INT64["batch_size"],
-) -> tuple[FLOAT["batch_size", "T", num_mel_bins], INT64["batch_size"]]:
+    window: FLOAT[win_length],
+    mel_banks: FLOAT[n_fft // 2 + 1, 2, num_mel_bins],
+    snip_edges: bool,
+):
     if not snip_edges:
         waveforms = symmetric_pad(waveforms, waveforms_lens)
 
@@ -105,19 +121,24 @@ def KaldiPreprocessor(
     if preemphasis_coefficient != 0.0:
         frames = frames - preemphasis_coefficient * op.Pad(frames, pads=[0, 0, 1, 0, 0, -1], mode="edge")
 
-    povey_window = op.Pow(op.HannWindow(win_length, periodic=0), 0.85)
-    frames = povey_window * frames
+    image = op.DFT(op.Unsqueeze(window * frames, axes=[-1]), n_fft, axis=-2, onesided=1)
+    features, features_lens = calc_features(image, waveforms_lens, mel_banks, snip_edges)
+    return features, features_lens
 
-    image = op.DFT(op.Unsqueeze(frames, axes=[-1]), n_fft, axis=-2, onesided=1)
 
-    features, features_lens = calc_features(image, waveforms_lens)
+@script(doc_string="LogMelSpectrogram feature extractor for Kaldi models")
+def KaldiPreprocessor(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
+) -> tuple[FLOAT["batch_size", "T", num_mel_bins], INT64["batch_size"]]:
+    features, features_lens = preprocessor(
+        waveforms, waveforms_lens, op.Pow(op.HannWindow(win_length, periodic=0), 0.85), kaldi_mel_banks, snip_edges
+    )
     return features, features_lens
 
 
 @script(doc_string="LogMelSpectrogram feature extractor for Kaldi models")
 def KaldiPreprocessorFast(
-    waveforms: FLOAT["batch_size", "N"],
-    waveforms_lens: INT64["batch_size"],
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
 ) -> tuple[FLOAT["batch_size", "T", num_mel_bins], INT64["batch_size"]]:
     if dither != 0.0:
         waveforms = waveforms + op.RandomNormalLike(waveforms, scale=dither)
@@ -136,7 +157,17 @@ def KaldiPreprocessorFast(
         op.Pow(op.HannWindow(win_length, periodic=0), 0.85),
         pads=op.Constant(value=[0, n_fft - win_length]),
     )
-    image = op.STFT(op.CastLike(waveforms, povey_window), hop_length, povey_window)
+    image = op.STFT(waveforms, hop_length, povey_window)
 
-    features, features_lens = calc_features(image, waveforms_lens)
+    features, features_lens = calc_features(image, waveforms_lens, kaldi_mel_banks, snip_edges=snip_edges)
+    return features, features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Wespeaker models")
+def WespeakerPreprocessor(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
+) -> tuple[FLOAT["batch_size", "T", num_mel_bins], INT64["batch_size"]]:
+    features, features_lens = preprocessor(
+        waveforms, waveforms_lens, op.Identity(wespeaker_window), wespeaker_mel_banks, True
+    )
     return features, features_lens

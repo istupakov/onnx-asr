@@ -54,4 +54,4 @@ def test_save_fbanks(tmp_path: Path):
 
     assert filename.exists()
     with np.load(filename) as data:
-        assert len(data.keys()) == 8
+        assert len(data.keys()) == 9
