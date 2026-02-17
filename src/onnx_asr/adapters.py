@@ -13,6 +13,7 @@ import numpy.typing as npt
 
 from onnx_asr.asr import Asr, TimestampedResult
 from onnx_asr.preprocessors.resampler import Resampler
+from onnx_asr.se import SpeakerEmbedding
 from onnx_asr.utils import SampleRates, read_wav_files
 from onnx_asr.vad import SegmentResult, TimestampedSegmentResult, Vad
 
@@ -230,3 +231,50 @@ class SegmentResultsAsrAdapter(AsrAdapter[Iterator[SegmentResult]]):
                 self.asr, waveforms, waveforms_len, self.asr._get_sample_rate(), {**kwargs}, **self._vadargs
             )
         )
+
+
+class SeAdapter:
+    """Speaker Embedding adapter class."""
+
+    se: SpeakerEmbedding
+    resampler: Resampler
+
+    def __init__(self, se: SpeakerEmbedding, resampler: Resampler):
+        """Create SE adapter."""
+        self.se = se
+        self.resampler = resampler
+
+    def embedding(
+        self,
+        waveform: str | Path | npt.NDArray[np.float32] | list[str | Path | npt.NDArray[np.float32]],
+        *,
+        sample_rate: SampleRates = 16_000,
+        channel: int | Literal["mean"] | None = None,
+    ) -> npt.NDArray[np.float32]:
+        """Compute speaker embedding (single or batch).
+
+        Args:
+            waveform: Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats are supported)
+                      or Numpy array with PCM waveform.
+                      A list of file paths or numpy arrays for batch recognition are also supported.
+            sample_rate: Sample rate for Numpy arrays in waveform.
+            channel: Channel selector for multi-channel audio.
+
+        Returns:
+            speaker embedding results.
+
+        Raises:
+            utils.AudioLoadingError: Audio loading error (onnx-asr specific).
+            FileNotFoundError: File not found error.
+            wave.Error: WAV file reading error.
+            OSError: Other IO errors.
+
+        """
+        if isinstance(waveform, list) and not waveform:
+            return np.array(None, dtype=np.float32)
+
+        waveform_batch = waveform if isinstance(waveform, list) else [waveform]
+        result = self.se.embedding(*self.resampler(*read_wav_files(waveform_batch, sample_rate, channel)))
+        if isinstance(waveform, list):
+            return result
+        return result.squeeze(0)

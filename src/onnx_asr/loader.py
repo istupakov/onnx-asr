@@ -7,7 +7,7 @@ from typing import Any, Literal, TypeAlias
 
 import onnxruntime as rt
 
-from onnx_asr.adapters import TextResultsAsrAdapter
+from onnx_asr.adapters import SeAdapter, TextResultsAsrAdapter
 from onnx_asr.asr import Asr, Preprocessor
 from onnx_asr.models.gigaam import GigaamV2Ctc, GigaamV2Rnnt, GigaamV3E2eCtc, GigaamV3E2eRnnt
 from onnx_asr.models.kaldi import KaldiTransducer
@@ -15,6 +15,7 @@ from onnx_asr.models.nemo import NemoConformerAED, NemoConformerCtc, NemoConform
 from onnx_asr.models.pyannote import PyAnnoteVad
 from onnx_asr.models.silero import SileroVad
 from onnx_asr.models.tone import TOneCtc
+from onnx_asr.models.wespeaker import WespeakerEmbeddings
 from onnx_asr.models.whisper import WhisperHf, WhisperOrt
 from onnx_asr.onnx import OnnxSessionOptions, get_onnx_providers, update_onnx_providers
 from onnx_asr.preprocessors.numpy_preprocessor import (
@@ -26,6 +27,7 @@ from onnx_asr.preprocessors.numpy_preprocessor import (
 from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, IdentityPreprocessor, OnnxPreprocessor
 from onnx_asr.preprocessors.resampler import Resampler
 from onnx_asr.resolver import Resolver
+from onnx_asr.se import SpeakerEmbedding
 from onnx_asr.utils import (
     ModelNotSupportedError,
 )
@@ -82,7 +84,7 @@ AsrTypes: TypeAlias = (
 
 
 def create_asr_resolver(
-    model: str, local_dir: str | Path | None = None, *, offline: bool | None = None
+    model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
 ) -> Resolver[AsrTypes]:
     """Create resolver for ASR models."""
     model_types: dict[str, type[AsrTypes]] = {
@@ -120,11 +122,18 @@ VadTypes: TypeAlias = SileroVad | PyAnnoteVad
 
 
 def create_vad_resolver(
-    model: str, local_dir: str | Path | None = None, *, offline: bool | None = None
+    model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
 ) -> Resolver[VadTypes]:
     """Create resolver for VAD models."""
     model_types: dict[str, type[VadTypes]] = {"silero": SileroVad, "pyannote": PyAnnoteVad}
     return Resolver(model_types, model, local_dir, offline=offline)
+
+
+def create_se_resolver(
+    model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
+) -> Resolver[WespeakerEmbeddings]:
+    """Create resolver for SE models."""
+    return Resolver(WespeakerEmbeddings, model, local_dir, offline=offline)
 
 
 class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
@@ -206,30 +215,34 @@ class Manager:
     def _create_resampler(self, sample_rate: Literal[8000, 16000]) -> Resampler:
         return Resampler(sample_rate, self.resampler_config)
 
+    def _create_asr_adapter(self, asr: Asr) -> TextResultsAsrAdapter:
+        return TextResultsAsrAdapter(asr, self._create_resampler(asr._get_sample_rate()))
+
+    def _create_se_adapter(self, se: SpeakerEmbedding) -> SeAdapter:
+        return SeAdapter(se, self._create_resampler(se._get_sample_rate()))
+
     def create_asr(
         self,
-        model: str,
+        model: str | ModelNames | ModelTypes | None = None,
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
         offline: bool | None = None,
         config: OnnxSessionOptions | None = None,
-    ) -> Asr:
+    ) -> TextResultsAsrAdapter:
         """Create ASR model."""
         resolver = create_asr_resolver(model, local_dir, offline=offline)
         if config is None:
             config = update_onnx_providers(
                 self.default_onnx_config, excluded_providers=resolver.model_type._get_excluded_providers()
             )
-        return resolver.model_type(resolver.resolve_model(quantization=quantization), self._create_preprocessor, config)
-
-    def create_adapter(self, asr: Asr) -> TextResultsAsrAdapter:
-        """Create ASR adapter."""
-        return TextResultsAsrAdapter(asr, self._create_resampler(asr._get_sample_rate()))
+        return self._create_asr_adapter(
+            resolver.model_type(resolver.resolve_model(quantization=quantization), self._create_preprocessor, config)
+        )
 
     def create_vad(
         self,
-        model: str,
+        model: str | VadNames | None = None,
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
@@ -243,6 +256,25 @@ class Manager:
                 self.default_onnx_config, excluded_providers=resolver.model_type._get_excluded_providers()
             )
         return resolver.model_type(resolver.resolve_model(quantization=quantization), config)
+
+    def create_se(
+        self,
+        model: str | None = None,
+        local_dir: str | Path | None = None,
+        *,
+        quantization: str | None = None,
+        offline: bool | None = None,
+        config: OnnxSessionOptions | None = None,
+    ) -> SeAdapter:
+        """Create SE model."""
+        resolver = create_se_resolver(model, local_dir, offline=offline)
+        if config is None:
+            config = update_onnx_providers(
+                self.default_onnx_config, excluded_providers=resolver.model_type._get_excluded_providers()
+            )
+        return self._create_se_adapter(
+            resolver.model_type(resolver.resolve_model(quantization=quantization), self._create_preprocessor, config)
+        )
 
 
 def load_model(
@@ -304,7 +336,7 @@ def load_model(
         )
 
     manager = Manager(sess_options, providers, provider_options, preprocessor_config, resampler_config)
-    return manager.create_adapter(manager.create_asr(model, path, quantization=quantization, config=asr_config))
+    return manager.create_asr(model, path, quantization=quantization, config=asr_config)
 
 
 def load_vad(

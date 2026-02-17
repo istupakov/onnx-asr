@@ -10,6 +10,7 @@ from onnx_asr.loader import (
     ModelTypes,
     VadNames,
     create_asr_resolver,
+    create_se_resolver,
     create_vad_resolver,
 )
 from onnx_asr.models.kaldi import KaldiTransducer
@@ -17,6 +18,7 @@ from onnx_asr.models.nemo import NemoConformerAED
 from onnx_asr.models.pyannote import PyAnnoteVad
 from onnx_asr.models.silero import SileroVad
 from onnx_asr.models.tone import TOneCtc
+from onnx_asr.models.wespeaker import WespeakerEmbeddings
 from onnx_asr.models.whisper import WhisperHf
 from onnx_asr.resolver import Resolver
 from onnx_asr.utils import (
@@ -208,3 +210,20 @@ def test_resolve_vad_file_not_found_error() -> None:
     loader = create_vad_resolver("silero")
     with pytest.raises(ModelFileNotFoundError):
         loader.resolve_model(quantization="xxx")
+
+
+@pytest.mark.parametrize("model", ["wespeaker/wespeaker-voxceleb-resnet34"])
+def test_se(model: str) -> None:
+    loader = create_se_resolver(model)
+    assert issubclass(loader.model_type, WespeakerEmbeddings)
+    assert not loader.offline
+    assert loader.local_dir is None
+    assert isinstance(loader.repo_id, str)
+
+
+def test_se_with_path(tmp_path: Path) -> None:
+    loader = create_se_resolver(local_dir=tmp_path)
+    assert issubclass(loader.model_type, WespeakerEmbeddings)
+    assert loader.offline
+    assert loader.local_dir == tmp_path
+    assert loader.repo_id is None
