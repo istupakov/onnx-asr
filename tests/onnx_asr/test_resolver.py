@@ -166,7 +166,7 @@ def test_resolve_model_file_not_found_error() -> None:
 
 
 def test_more_than_one_model_file_found_error() -> None:
-    loader = create_asr_resolver("onnx-community/whisper-tiny")
+    loader = create_asr_resolver("onnx-community/whisper-tiny.en")
     with pytest.raises(MoreThanOneModelFileFoundError):
         loader.resolve_model(quantization="*int8")
 
