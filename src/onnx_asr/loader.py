@@ -158,11 +158,13 @@ class Manager:
         resampler_config: OnnxSessionOptions | None = None,
     ) -> None:
         """Create model manager."""
-        self.default_onnx_config = update_onnx_providers(
-            {"providers": rt.get_available_providers()}, excluded_providers=["AzureExecutionProvider"]
-        ) | {
+        default_providers: list[str] = rt.get_available_providers()
+        if default_providers[0] == "AzureExecutionProvider":
+            default_providers.pop(0)
+
+        self.default_onnx_config: OnnxSessionOptions = {
             "sess_options": sess_options,
-            "providers": providers,
+            "providers": providers or default_providers,
             "provider_options": provider_options,
         }
 
@@ -181,7 +183,7 @@ class Manager:
 
         providers = get_onnx_providers(self.preprocessor_config)
         if self.use_numpy_preprocessors is None:
-            self.use_numpy_preprocessors = not providers or providers == ["CPUExecutionProvider"]
+            self.use_numpy_preprocessors = not providers or providers[0] == "CPUExecutionProvider"
 
         if resampler_config is None:
             resampler_config = update_onnx_providers(

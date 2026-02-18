@@ -40,7 +40,7 @@ class WespeakerEmbeddings(SpeakerEmbedding):
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         suffix = "?" + quantization if quantization else ""
-        return {"config": "config.yaml", "model": f"*{suffix}.onnx"}
+        return {"model": f"*{suffix}.onnx"}
 
     def embedding(
         self, waveforms: npt.NDArray[np.float32], waveforms_len: npt.NDArray[np.int64]

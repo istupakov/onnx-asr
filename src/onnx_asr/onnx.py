@@ -52,12 +52,13 @@ class TensorRtOptions:
         return ["TensorrtExecutionProvider", "NvTensorRtRtxExecutionProvider"]
 
     @staticmethod
-    def is_fp16_enabled(onnx_options: OnnxSessionOptions) -> bool:
-        """Check if TensorRT provider use fp16 precision."""
+    def is_low_precision(onnx_options: OnnxSessionOptions) -> bool:
+        """Check if TensorRT provider use int8/fp16/bf16 precision."""
+        trt_config = _merge_onnx_provider_options(onnx_options).get("TensorrtExecutionProvider", {})
         return bool(
-            _merge_onnx_provider_options(onnx_options)
-            .get("TensorrtExecutionProvider", {})
-            .get("trt_fp16_enable", False)
+            trt_config.get("trt_int8_enable", False)
+            or trt_config.get("trt_fp16_enable", False)
+            or trt_config.get("trt_bf16_enable", False)
         )
 
 

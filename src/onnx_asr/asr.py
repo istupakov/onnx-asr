@@ -89,7 +89,7 @@ class BaseAsr(Asr):
             self.config = {}
 
         self.runtime_config = onnx_options
-        self.use_tensorrt_fp16 = TensorRtOptions.is_fp16_enabled(onnx_options)
+        self.use_low_precision = TensorRtOptions.is_low_precision(onnx_options)
         self._preprocessor = preprocessor_factory(self._preprocessor_name)
 
     @staticmethod
@@ -193,7 +193,7 @@ class _AsrWithTransducerDecoding(_AsrWithDecoding, Generic[S]):
         self, encoder_out: npt.NDArray[np.float32], encoder_out_lens: npt.NDArray[np.int64], /, **kwargs: object | None
     ) -> Iterator[tuple[Iterable[int], Iterable[int], Iterable[float] | None]]:
         need_logprobs = kwargs.get("need_logprobs")
-        if self.use_tensorrt_fp16:  # TensorRT fp16 models may return incorrect encoder_out_lens
+        if self.use_low_precision:  # TensorRT low precision models may return incorrect encoder_out_lens
             encoder_out_lens = np.minimum(encoder_out_lens, encoder_out.shape[1])
 
         for encodings, encodings_len in zip(encoder_out, encoder_out_lens, strict=True):

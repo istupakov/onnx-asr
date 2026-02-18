@@ -57,6 +57,14 @@ class Resolver(Generic[T]):
         offline: bool | None = None,
     ):
         """Create model loader."""
+        if model is not None:
+            if "/" in model:
+                self.repo_id = model
+            elif model in model_repos:
+                self.repo_id = model_repos[model]
+            elif not (isinstance(model_type, dict) and model in model_type):
+                raise ModelNotSupportedError(model)
+
         if local_dir is not None:
             self.local_dir = Path(local_dir)
             if self.local_dir.exists():
@@ -67,18 +75,14 @@ class Resolver(Generic[T]):
         if offline is not None:
             self.offline = offline
 
-        if model and "/" in model:
-            self.repo_id = model
-        elif model in model_repos:
-            self.repo_id = model_repos[model]
-        elif not (self.offline and self.local_dir):
+        if not (self.repo_id or (self.offline and self.local_dir)):
             raise NoModelNameOrPathSpecifiedError
 
         if isinstance(model_type, type):
             self.model_type = model_type
         elif model in model_type:
             self.model_type = model_type[model]
-        elif not model or "/" in model:
+        else:
             with self.resolve_config().open("rt", encoding="utf-8") as f:
                 config = json.load(f)
 
@@ -86,8 +90,6 @@ class Resolver(Generic[T]):
             if "/" in config_model_type or config_model_type not in model_type:
                 raise InvalidModelTypeInConfigError(config_model_type)
             self.model_type = model_type[config_model_type]
-        else:
-            raise ModelNotSupportedError(model)
 
     def _download_config(self, *, local_files_only: bool) -> Path:
         from huggingface_hub import hf_hub_download  # noqa: PLC0415
@@ -103,6 +105,7 @@ class Resolver(Generic[T]):
         files = list(self.model_type._get_model_files(quantization).values())
         files = [
             "config.json",
+            "config.yaml",
             *files,
             *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx"),
         ]
