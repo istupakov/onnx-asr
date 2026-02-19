@@ -24,7 +24,7 @@ Key features of **onnx-asr** include:
 * Supports many modern ASR [models](#supported-model-architectures)
 * Runs on a wide range of devices, from small IoT / edge devices to servers with powerful GPUs ([benchmarks](#benchmarks))
 * Works on Windows, Linux, and macOS on x86 and Arm CPUs, with support for CUDA, TensorRT, CoreML, ROCm, and DirectML
-* Supports NumPy versions from 1.22.4 to 2.4+ and Python versions from 3.10 to 3.14
+* Supports NumPy versions from 1.22 to 2.4+ and Python versions from 3.10 to 3.14
 * Loads models from Hugging Face or local directories, including quantized versions
 * Accepts WAV files or NumPy arrays, with built-in file reading and resampling
 * Supports custom models (if their architecture is supported)
@@ -38,7 +38,7 @@ Key features of **onnx-asr** include:
 > Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
 
 > [!WARNING]
-> Onnxruntime 1.24 does not allow symlinks to data files used in the HuggingFace cache for large models. Use an older version of onnxruntime or specify a path to download models.
+> Onnxruntime 1.24.1 does not support symlinks to data files used in the HuggingFace cache for large models. Please upgrade to 1.24.2!
 
 > [!TIP]
 > You can check onnx-asr demo on HF Spaces:

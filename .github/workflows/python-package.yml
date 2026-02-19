@@ -28,7 +28,7 @@ jobs:
         with:
           activate-environment: true
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --locked --all-groups
 
       - name: Lint code with Ruff
         run: ruff check --output-format=github
@@ -70,15 +70,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest, ubuntu-24.04-arm]
-        python-version:
-          ["3.10", "3.11", "3.12", "3.13", "3.13t", "3.14", "3.14t"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        os:
+          [
+            ubuntu-latest,
+            windows-latest,
+            macos-latest,
+            ubuntu-24.04-arm,
+            windows-11-arm,
+          ]
         include:
           - python-version: "3.10"
             numpy-version: numpy==1.22.4
             onnxruntime-version: onnxruntime==1.18.1
             hf-hub-version: huggingface-hub==0.30.2
-            typing-ext-version: typing-extensions==4.6.0
+            typing-version: typing-extensions==4.6.0
           - python-version: "3.11"
             numpy-version: numpy~=1.26
             onnxruntime-version: onnxruntime~=1.20.1
@@ -88,17 +94,26 @@ jobs:
             onnxruntime-version: onnxruntime~=1.22.1
             hf-hub-version: huggingface-hub~=1.0.1
           - python-version: "3.13"
-            numpy-version: numpy~=2.2.6
+            numpy-version: numpy~=2.3.5
             onnxruntime-version: onnxruntime~=1.23.2
+          - python-version: "3.13t"
+            os: ubuntu-latest
+          - python-version: "3.13t"
+            os: ubuntu-24.04-arm
+          - python-version: "3.14t"
+            os: ubuntu-latest
+          - python-version: "3.14t"
+            os: ubuntu-24.04-arm
+          - os: windows-11-arm
+            numpy-version: numpy~=2.3.5
+            onnxruntime-version: onnxruntime>=1.24.2
+          - os: windows-11-arm
+            python-version: "3.14"
+            numpy-version: numpy>=2.4.2
         exclude:
-          - python-version: "3.13t"
-            os: windows-latest
-          - python-version: "3.14t"
-            os: windows-latest
-          - python-version: "3.13t"
-            os: macos-latest
-          - python-version: "3.14t"
-            os: macos-latest
+          - os: windows-11-arm
+            python-version: "3.10"
+
     steps:
       - uses: actions/checkout@v6
       - name: Install uv with Python ${{ matrix.python-version }}
@@ -118,7 +133,7 @@ jobs:
           ${{ matrix.numpy-version }}
           ${{ matrix.onnxruntime-version }}
           ${{ matrix.hf-hub-version }}
-          ${{ matrix.typing-ext-version }}
+          ${{ matrix.typing-version }}
 
       - name: Cache HF models
         uses: actions/cache@v5

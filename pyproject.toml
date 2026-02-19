@@ -68,8 +68,8 @@ dev = [
     "ipywidgets>=8.1.8",
     "mypy>=1.19.1",
     "ruff>=0.15.1",
-    { include-group = "docs" },
-    { include-group = "test-preprocessors" },
+    { include-group = "build" },
+    { include-group = "test" },
 ]
 docs = [
     "click<8.3",                       # Until 8.3.2

@@ -6,7 +6,7 @@ import pytest
 
 try:
     import soundfile as sf  # type: ignore[import-untyped]
-except ImportError:
+except (ImportError, OSError):
     pytest.skip("soundfile not available", allow_module_level=True)
 
 from onnx_asr.utils import (
