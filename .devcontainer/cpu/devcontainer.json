@@ -1,22 +1,30 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/debian
 {
-	"name": "Debian",
+	"name": "CPU",
 	"image": "mcr.microsoft.com/devcontainers/base:trixie",
 	"customizations": {
 		"vscode": {
 			"extensions": [
+				"ms-python.python",
 				"ms-toolsai.jupyter",
 				"charliermarsh.ruff",
-				"tamasfe.even-better-toml",
-				"vincent-templier.vscode-netron",
 				"redhat.vscode-yaml",
-				"github.vscode-github-actions"
-			]
+				"tamasfe.even-better-toml",
+				"github.vscode-github-actions",
+				"vincent-templier.vscode-netron"
+			],
+			"settings": {
+				"python-env.globalSearchPaths": [
+					"~/.venvs"
+				],
+				"python-envs.terminal.autoActivationType": "shellStartup",
+				"python.defaultInterpreterPath": "~/.venvs/default/bin/python"
+			}
 		}
 	},
 	"remoteEnv": {
-		"UV_LINK_MODE": "copy"
+		"UV_PROJECT_ENVIRONMENT": "/home/vscode/.venvs/default"
 	},
 	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh",
 	"postStartCommand": "uv sync"

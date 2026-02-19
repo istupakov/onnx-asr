@@ -1,0 +1,39 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/debian
+{
+	"name": "CUDA",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"hostRequirements": {
+		"gpu": true
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/common-utils:2": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-toolsai.jupyter",
+				"charliermarsh.ruff",
+				"redhat.vscode-yaml",
+				"tamasfe.even-better-toml",
+				"github.vscode-github-actions",
+				"vincent-templier.vscode-netron"
+			],
+			"settings": {
+				"python-env.globalSearchPaths": [
+					"~/.venvs"
+				],
+				"python-envs.terminal.autoActivationType": "shellStartup",
+				"python.defaultInterpreterPath": "~/.venvs/default/bin/python"
+			}
+		}
+	},
+	"remoteEnv": {
+		"UV_PROJECT_ENVIRONMENT": "/home/vscode/.venvs/default"
+	},
+	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+	"postStartCommand": "uv sync"
+}
