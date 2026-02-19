@@ -42,7 +42,7 @@ def test_file_not_found_error(args_list: list[str]) -> None:
 def test_cli_run(args_list: list[str]) -> None:
     try:
         import soundfile as sf  # type: ignore[import-untyped]  # noqa: PLC0415
-    except ImportError:
+    except (ImportError, OSError):
         pytest.skip("soundfile not available")
     args = parse_args(args_list)
     args.model_path = None

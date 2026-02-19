@@ -202,7 +202,7 @@ class WhisperPreprocessorNumpy(_NumpyPreprocessor):
         strided_input = np.lib.stride_tricks.sliding_window_view(waveforms, self._win_length, axis=1)[
             :, :: self._hop_length
         ]
-        strided_input = strided_input * np.hanning(self._win_length + 1)[:-1]
+        strided_input = strided_input * np.hanning(self._win_length + 1)[:-1].astype(np.float32)
         spectrum = np.abs(np.fft.rfft(strided_input, self._n_fft)[:, :-1]) ** 2
 
         mel_spectrogram = np.matmul(spectrum, self._melscale_fbanks).astype(np.float32)
