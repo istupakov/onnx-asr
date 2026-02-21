@@ -51,7 +51,15 @@ watch:
   - README.md
 
 nav:
-  - Readme: index.md
+  - Introduction: index.md
+  - Docs:
+    - Installation: installation.md
+    - Usage: usage.md
+    - Troubleshooting: troubleshooting.md
+    - Benchmarks: benchmarks.md
+    - Comparison: comparison.md
+    - Conversion: conversion.md
+    - License: license.md
   - Demo: demo.md
   - Reference: reference.md
   - Release Notes: release-notes.md
