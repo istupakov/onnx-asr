@@ -52,8 +52,14 @@ watch:
 
 nav:
   - Readme: index.md
+  - Demo: demo.md
   - Reference: reference.md
   - Release Notes: release-notes.md
+
+extra_javascript:
+  - path: https://gradio.s3-us-west-2.amazonaws.com/6.6.0/gradio.js
+    type: module
+  - javascripts/gradio-fix.js
 
 markdown_extensions:
   - admonition
