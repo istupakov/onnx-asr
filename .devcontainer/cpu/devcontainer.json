@@ -15,10 +15,6 @@
 				"vincent-templier.vscode-netron"
 			],
 			"settings": {
-				"python-env.globalSearchPaths": [
-					"~/.venvs"
-				],
-				"python-envs.terminal.autoActivationType": "shellStartup",
 				"python.defaultInterpreterPath": "~/.venvs/default/bin/python"
 			}
 		}

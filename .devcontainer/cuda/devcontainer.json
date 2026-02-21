@@ -9,7 +9,9 @@
 		"gpu": true
 	},
 	"features": {
-		"ghcr.io/devcontainers/features/common-utils:2": {}
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"username": "ubuntu"
+		}
 	},
 	"customizations": {
 		"vscode": {
@@ -23,16 +25,13 @@
 				"vincent-templier.vscode-netron"
 			],
 			"settings": {
-				"python-env.globalSearchPaths": [
-					"~/.venvs"
-				],
-				"python-envs.terminal.autoActivationType": "shellStartup",
 				"python.defaultInterpreterPath": "~/.venvs/default/bin/python"
 			}
 		}
 	},
+	"remoteUser": "ubuntu",
 	"remoteEnv": {
-		"UV_PROJECT_ENVIRONMENT": "/home/vscode/.venvs/default"
+		"UV_PROJECT_ENVIRONMENT": "/home/ubuntu/.venvs/default"
 	},
 	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh",
 	"postStartCommand": "uv sync"

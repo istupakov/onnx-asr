@@ -11,7 +11,7 @@ class _BuildPreprocessorsHook(BuildHookInterface):  # type: ignore[type-arg]
     artifacts_path = Path("src/onnx_asr/preprocessors/data")
 
     def initialize(self, version: str, build_data: dict[str, Any]) -> None:
-        self.app.display_info(f"Build ONNX preprocessor models ({self.artifacts_path})")
+        self.app.display_info(f"Build ONNX and NumPy preprocessors ({self.artifacts_path})")
         sys.path.append(self.root)
 
         from preprocessors.build import build  # noqa: PLC0415

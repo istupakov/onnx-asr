@@ -83,14 +83,22 @@ test = [
     "onnxruntime>=1.18.1",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "soundfile>=0.13.1 ; python_full_version != '3.13.*'", # Don't exist for 3.13t
 ]
-test-preprocessors = [
+test-all = [
     "kaldi-native-fbank>=1.22.3",
     "nemo-toolkit[asr]>=2.6.2",
     "openai-whisper>=20250625",
+    "soundfile>=0.13.1",
     { include-group = "build" },
     { include-group = "test" },
+]
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "hatch_build.py" },
+    { file = "preprocessors/*.py" },
+    { git = { commit = true, tags = true } },
 ]
 
 [tool.uv.sources]
@@ -121,6 +129,10 @@ exclude = ["^preprocessors.", "^tests.preprocessors.", "^wrappers."]
 module = ["onnxruntime.*"]
 follow_untyped_imports = true
 implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = ["soundfile.*"]
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["preprocessors.*"]
