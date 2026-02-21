@@ -1,9 +1,19 @@
 """Helpers for ONNX."""
 
 from collections.abc import Callable, Sequence
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, Literal, TypeAlias, TypedDict
 
 import onnxruntime as rt
+
+Provider: TypeAlias = Literal[
+    "CPUExecutionProvider",
+    "CUDAExecutionProvider",
+    "CoreMLExecutionProvider",
+    "TensorrtExecutionProvider",
+    "NvTensorRtRtxExecutionProvider",
+    "DmlExecutionProvider",
+    "WebGpuExecutionProvider",
+]
 
 
 class OnnxSessionOptions(TypedDict, total=False):
@@ -11,7 +21,7 @@ class OnnxSessionOptions(TypedDict, total=False):
 
     sess_options: rt.SessionOptions | None
     """ONNX Session options."""
-    providers: Sequence[str | tuple[str, dict[Any, Any]]] | None
+    providers: Sequence[str | Provider | tuple[str | Provider, dict[Any, Any]]] | None
     """ONNX providers."""
     provider_options: Sequence[dict[Any, Any]] | None
     """ONNX provider options."""

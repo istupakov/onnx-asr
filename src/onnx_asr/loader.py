@@ -17,7 +17,7 @@ from onnx_asr.models.silero import SileroVad
 from onnx_asr.models.tone import TOneCtc
 from onnx_asr.models.wespeaker import WespeakerEmbeddings
 from onnx_asr.models.whisper import WhisperHf, WhisperOrt
-from onnx_asr.onnx import OnnxSessionOptions, get_onnx_providers, update_onnx_providers
+from onnx_asr.onnx import OnnxSessionOptions, Provider, get_onnx_providers, update_onnx_providers
 from onnx_asr.preprocessors.numpy_preprocessor import (
     GigaamPreprocessorNumpy,
     KaldiPreprocessorNumpy,
@@ -152,7 +152,7 @@ class Manager:
     def __init__(
         self,
         sess_options: rt.SessionOptions | None = None,
-        providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
+        providers: Sequence[str | Provider | tuple[str | Provider, dict[Any, Any]]] | None = None,
         provider_options: Sequence[dict[Any, Any]] | None = None,
         preprocessor_config: PreprocessorRuntimeConfig | None = None,
         resampler_config: OnnxSessionOptions | None = None,
@@ -285,7 +285,7 @@ def load_model(
     *,
     quantization: str | None = None,
     sess_options: rt.SessionOptions | None = None,
-    providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
+    providers: Sequence[str | Provider | tuple[str | Provider, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
     cpu_preprocessing: bool | None = None,
     asr_config: OnnxSessionOptions | None = None,
@@ -347,7 +347,7 @@ def load_vad(
     *,
     quantization: str | None = None,
     sess_options: rt.SessionOptions | None = None,
-    providers: Sequence[str | tuple[str, dict[Any, Any]]] | None = None,
+    providers: Sequence[str | Provider | tuple[str | Provider, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
 ) -> Vad:
     """Load VAD model.
