@@ -1,0 +1,84 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "uv: ruff format",
+            "type": "shell",
+            "command": "uv run ruff format",
+            "problemMatcher": [],
+            "detail": "Format code using Ruff"
+        },
+        {
+            "label": "uv: ruff check",
+            "type": "shell",
+            "command": "uv run ruff check",
+            "problemMatcher": [],
+            "detail": "Lint with Ruff"
+        },
+        {
+            "label": "uv: mypy",
+            "type": "shell",
+            "command": "uv run mypy .",
+            "problemMatcher": [],
+            "detail": "Check types with mypy"
+        },
+        {
+            "label": "uv: build",
+            "type": "shell",
+            "command": "uv build --clear",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "uv: ruff format",
+                "uv: ruff check",
+                "uv: mypy"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "detail": "Lint and build dist"
+        },
+        {
+            "label": "uv: mkdocs build",
+            "type": "shell",
+            "command": "uv run --group docs mkdocs build --clean --strict",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": "**/*.md"
+            },
+            "detail": "Build docs with mkdocs"
+        },
+        {
+            "label": "uv: mkdocs serve",
+            "type": "shell",
+            "command": "uv run --group docs mkdocs serve",
+            "problemMatcher": [],
+            "detail": "Serve docs with mkdocs"
+        },
+        {
+            "label": "uv: pytest",
+            "type": "shell",
+            "command": "uv run --group test-all pytest --cov",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "detail": "Run all tests with pytest"
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "find . -type d -name '__pycache__' -exec rm -rf {} +; rm -rf .ruff_cache .pytest_cache .mypy_cache dist site",
+            "windows": {
+                "command": "Get-ChildItem -Path . -Recurse -Include '__pycache__','.ruff_cache','.pytest_cache','.mypy_cache','dist','site' | Remove-Item -Recurse -Force"
+            },
+            "problemMatcher": [],
+            "detail": "Clean caches and build artifacts"
+        }
+    ]
+}

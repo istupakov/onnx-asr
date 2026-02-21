@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 try:
-    import soundfile as sf  # type: ignore[import-untyped]
+    import soundfile as sf
 except (ImportError, OSError):
     pytest.skip("soundfile not available", allow_module_level=True)
 
