@@ -69,7 +69,7 @@ class MoreThanOneModelFileFoundError(ModelLoadingError, OSError):
 
     def __init__(self, filename: str | Path, path: str | Path):
         """Create error."""
-        super().__init__(f"Found more than 1 file '{filename}' found in path '{path}'.")
+        super().__init__(f"Found more than 1 file '{filename}' in path '{path}'.")
 
 
 class NoModelNameOrPathSpecifiedError(ModelLoadingError, ValueError):
@@ -97,7 +97,9 @@ class SupportedOnlyMonoAudioError(AudioLoadingError):
 
     def __init__(self) -> None:
         """Create error."""
-        super().__init__("Supported only mono audio.")
+        super().__init__(
+            "Supported only mono audio. Use the 'channel' parameter to select a channel or 'mean' to average channels."
+        )
 
 
 class WrongSampleRateError(AudioLoadingError):

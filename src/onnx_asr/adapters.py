@@ -94,6 +94,7 @@ class AsrAdapter(ABC, Generic[R]):
         waveform: str | Path | npt.NDArray[np.float32],
         *,
         sample_rate: SampleRates = 16_000,
+        channel: int | Literal["mean"] | None = None,
         **kwargs: Unpack[RecognizeOptions],
     ) -> R: ...
 
@@ -103,6 +104,7 @@ class AsrAdapter(ABC, Generic[R]):
         waveform: list[str | Path | npt.NDArray[np.float32]],
         *,
         sample_rate: SampleRates = 16_000,
+        channel: int | Literal["mean"] | None = None,
         **kwargs: Unpack[RecognizeOptions],
     ) -> list[R]: ...
 

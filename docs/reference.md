@@ -8,6 +8,8 @@
 
 ::: onnx_asr.loader.VadNames
 
+::: onnx_asr.onnx.Provider
+
 ::: onnx_asr.onnx.OnnxSessionOptions
 
 ::: onnx_asr.loader.PreprocessorRuntimeConfig

@@ -14,6 +14,7 @@ Provider: TypeAlias = Literal[
     "DmlExecutionProvider",
     "WebGpuExecutionProvider",
 ]
+"""ONNX Runtime provider names."""
 
 
 class OnnxSessionOptions(TypedDict, total=False):
