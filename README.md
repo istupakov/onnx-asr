@@ -21,7 +21,7 @@
 
 Key features of **onnx-asr** include:
 
-* Supports many modern ASR [models](https://istupakov.github.io/onnx-asr/usage/#supported-model-names)
+* Supports many modern ASR [models](#supported-model-architectures)
 * Runs on a wide range of devices, from small IoT / edge devices to servers with powerful GPUs ([benchmarks](https://istupakov.github.io/onnx-asr/benchmarks/))
 * Works on Windows, Linux, and macOS on x86 and Arm CPUs, with support for CUDA, TensorRT, CoreML, ROCm, and DirectML
 * Supports NumPy versions from 1.22 to 2.4+ and Python versions from 3.10 to 3.14

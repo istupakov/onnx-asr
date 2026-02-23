@@ -187,5 +187,5 @@ print(model.recognize("test.wav"))
 * `nemo-conformer-tdt` for NeMo Conformer/FastConformer/Parakeet with TDT decoder
 * `nemo-conformer-aed` for NeMo Canary with Transformer decoder
 * `t-one-ctc` for T-Tech T-one with CTC decoder
-* `whisper-ort` for Whisper (exported with [onnxruntime](#openai-whisper-with-onnxruntime-export))
-* `whisper` for Whisper (exported with [optimum](#openai-whisper-with-optimum-export))
+* `whisper-ort` for Whisper (exported with [onnxruntime](conversion.md#openai-whisper-with-onnxruntime-export))
+* `whisper` for Whisper (exported with [optimum](conversion.md#openai-whisper-with-optimum-export))

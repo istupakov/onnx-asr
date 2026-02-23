@@ -16,6 +16,7 @@
         "tag:yaml.org,2002:python/object/apply:pymdownx.slugs.slugify mapping"
     ],
     "files.exclude": {
+        ".cache": true,
         ".coverage": true,
         ".mypy_cache": true,
         ".pytest_cache": true,
