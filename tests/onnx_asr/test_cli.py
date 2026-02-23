@@ -35,8 +35,10 @@ def test_parse_args(args_list: list[str]) -> None:
 
 
 def test_file_not_found_error(args_list: list[str]) -> None:
+    args = parse_args(args_list)
+    args.model_path = None
     with pytest.raises(FileNotFoundError):
-        run(parse_args(args_list))
+        run(args)
 
 
 def test_cli_run(args_list: list[str]) -> None:

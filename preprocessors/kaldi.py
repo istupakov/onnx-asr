@@ -1,10 +1,10 @@
 """LogMelSpectrogram feature extractor for Kaldi models."""
 
 import numpy as np
-import torch
-import torchaudio
 from onnxscript import FLOAT, INT64, graph, script
 from onnxscript import opset17 as op
+
+from preprocessors.fbanks import melscale_fbanks
 
 sample_rate = 16_000
 n_fft = 512
@@ -22,15 +22,12 @@ high_freq = -400
 
 float_eps = float(np.finfo(np.float32).eps)
 
-kaldi_mel_banks, _ = torchaudio.compliance.kaldi.get_mel_banks(
-    num_mel_bins, n_fft, sample_rate, low_freq, high_freq, 0, 0, 1
+kaldi_mel_banks = melscale_fbanks(
+    n_fft // 2 + 1, low_freq, high_freq, num_mel_bins, sample_rate, mel_scale="kaldi"
+).astype(np.float32)
+wespeaker_mel_banks = melscale_fbanks(n_fft // 2 + 1, low_freq, 0, num_mel_bins, sample_rate, mel_scale="kaldi").astype(
+    np.float32
 )
-kaldi_mel_banks = torch.nn.functional.pad(kaldi_mel_banks, (0, 1)).T.numpy()
-
-wespeaker_mel_banks, _ = torchaudio.compliance.kaldi.get_mel_banks(
-    num_mel_bins, n_fft, sample_rate, low_freq, 0, 0, 0, 1
-)
-wespeaker_mel_banks = torch.nn.functional.pad(wespeaker_mel_banks, (0, 1)).T.numpy()
 wespeaker_window = np.hamming(win_length).astype(np.float32)
 
 

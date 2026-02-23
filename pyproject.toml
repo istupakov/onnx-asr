@@ -57,11 +57,9 @@ onnx-asr = "onnx_asr.cli:main"
 build = [
     "hatch-vcs>=0.5.0",
     "hatchling>=1.28.0",
+    "ml-dtypes>=0.5.4",
     "numpy>=2.2.6",
-    "onnx>=1.20.1",
     "onnxscript>=0.6.2",
-    "torch>=2.10.0",
-    "torchaudio>=2.10.0",
 ]
 dev = [
     "ipykernel>=7.2.0",
@@ -87,8 +85,11 @@ test = [
 test-all = [
     "kaldi-native-fbank>=1.22.3",
     "nemo-toolkit[asr]>=2.6.2",
+    "onnx>=1.20.1",
     "openai-whisper>=20250625",
     "soundfile>=0.13.1",
+    "torch>=2.10.0",
+    "torchaudio>=2.10.0",
     { include-group = "build" },
     { include-group = "test" },
 ]

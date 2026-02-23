@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import numpy as np
-import onnx
 import onnxscript
 
 from preprocessors import gigaam, kaldi, nemo, resample, whisper
@@ -12,18 +11,17 @@ from preprocessors import gigaam, kaldi, nemo, resample, whisper
 def save_onnx(
     function: onnxscript.OnnxFunction, filename: Path, version: str, input_size_limit: int = 1024 * 1024
 ) -> None:
-    model = function.to_model_proto()
+    model = onnxscript.ir.from_proto(function.to_model_proto())
 
     model = onnxscript.optimizer.optimize(model, input_size_limit=input_size_limit)
 
     model.producer_name = "OnnxScript"
     model.producer_version = onnxscript.__version__
-    model.metadata_props.add(key="model_author", value="Ilya Stupakov")
-    model.metadata_props.add(key="model_license", value="MIT License")
-    model.metadata_props.add(key="model_version", value=f"onnx-asr {version}")
+    model.metadata_props["model_author"] = "Ilya Stupakov"
+    model.metadata_props["model_license"] = "MIT License"
+    model.metadata_props["model_version"] = f"onnx-asr {version}"
 
-    onnx.checker.check_model(model, full_check=True)
-    onnx.save_model(model, filename)
+    onnxscript.ir.save(model, filename)
 
 
 def save_preprocessor_models(preprocessors_dir: Path, version: str) -> None:
