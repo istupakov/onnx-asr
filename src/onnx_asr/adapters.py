@@ -120,9 +120,9 @@ class AsrAdapter(ABC, Generic[R]):
 
         Args:
             waveform: Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats are supported)
-                      or Numpy array with PCM waveform.
-                      A list of file paths or numpy arrays for batch recognition are also supported.
-            sample_rate: Sample rate for Numpy arrays in waveform.
+                      or NumPy array with PCM waveform.
+                      A list of file paths or NumPy arrays for batch recognition are also supported.
+            sample_rate: Sample rate for NumPy arrays in waveform.
             channel: Channel selector for multi-channel audio.
             **kwargs: ASR options.
 
@@ -139,8 +139,7 @@ class AsrAdapter(ABC, Generic[R]):
         if isinstance(waveform, list) and not waveform:
             return []
 
-        waveform_batch = waveform if isinstance(waveform, list) else [waveform]
-        result = self._recognize_batch(*self.resampler(*read_wav_files(waveform_batch, sample_rate, channel)), **kwargs)
+        result = self._recognize_batch(*self.resampler(*read_wav_files(waveform, sample_rate, channel)), **kwargs)
 
         if isinstance(waveform, list):
             return list(result)
@@ -257,9 +256,9 @@ class SeAdapter:
 
         Args:
             waveform: Path to wav file (only PCM_U8, PCM_16, PCM_24 and PCM_32 formats are supported)
-                      or Numpy array with PCM waveform.
-                      A list of file paths or numpy arrays for batch recognition are also supported.
-            sample_rate: Sample rate for Numpy arrays in waveform.
+                      or NumPy array with PCM waveform.
+                      A list of file paths or NumPy arrays for batch recognition are also supported.
+            sample_rate: Sample rate for NumPy arrays in waveform.
             channel: Channel selector for multi-channel audio.
 
         Returns:
@@ -275,8 +274,7 @@ class SeAdapter:
         if isinstance(waveform, list) and not waveform:
             return np.array(None, dtype=np.float32)
 
-        waveform_batch = waveform if isinstance(waveform, list) else [waveform]
-        result = self.se.embedding(*self.resampler(*read_wav_files(waveform_batch, sample_rate, channel)))
+        result = self.se.embedding(*self.resampler(*read_wav_files(waveform, sample_rate, channel)))
         if isinstance(waveform, list):
             return result
         return result.squeeze(0)

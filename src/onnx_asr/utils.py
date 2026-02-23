@@ -118,6 +118,14 @@ class DifferentSampleRatesError(AudioLoadingError):
         super().__init__("All sample rates in a batch must be the same.")
 
 
+class WrongDataTypeError(AudioLoadingError):
+    """Wrong data type error."""
+
+    def __init__(self) -> None:
+        """Create error."""
+        super().__init__("Waveform must be a path (str or Path), a float32 NumPy array, or a list of these.")
+
+
 def read_wav(filename: str) -> tuple[npt.NDArray[np.float32], int]:
     """Read PCM wav file to Numpy array."""
     with wave.open(filename, mode="rb") as f:
@@ -150,22 +158,26 @@ def _select_channel(
 
 
 def read_wav_files(
-    waveforms: list[npt.NDArray[np.float32] | str | Path],
+    waveforms: npt.NDArray[np.float32] | str | Path | list[npt.NDArray[np.float32] | str | Path],
     numpy_sample_rate: SampleRates = 16_000,
     channel: int | Literal["mean"] | None = None,
 ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64], SampleRates]:
     """Convert list of waveform or filenames to Numpy array with common length."""
+    waveform_batch = waveforms if isinstance(waveforms, list) else [waveforms]
+
     results = []
     sample_rates = []
-    for x in waveforms:
+    for x in waveform_batch:
         if isinstance(x, (str, Path)):
             waveform, sample_rate = read_wav(str(x))
             results.append(_select_channel(waveform, channel))
             sample_rates.append(sample_rate)
-        else:
+        elif is_float32_array(x):
             x = x.squeeze()
             results.append(_select_channel(x, channel) if x.ndim != 1 else x)
             sample_rates.append(numpy_sample_rate)
+        else:
+            raise WrongDataTypeError
 
     if len(set(sample_rates)) > 1:
         raise DifferentSampleRatesError
