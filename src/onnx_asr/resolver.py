@@ -104,11 +104,16 @@ class Resolver(Generic[T]):
 
         files = list(self.model_type._get_model_files(quantization).values())
         files = [
+            *files,
+            *(file.removeprefix("**/") for file in files if file.startswith("**/")),
+        ]
+        files = [
             "config.json",
             "config.yaml",
             *files,
             *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx"),
         ]
+
         assert self.repo_id is not None
         return Path(
             snapshot_download(
