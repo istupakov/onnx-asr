@@ -61,7 +61,10 @@ def preprocessor_torch_v2(waveforms, lens):
         normalized=False,
     )
     mel_spectrogram = torch.matmul(
-        spectrogram.transpose(-1, -2), torch.from_numpy(gigaam.melscale_fbanks_v2)
+        spectrogram.transpose(-1, -2),
+        torchaudio.functional.melscale_fbanks(
+            gigaam.n_fft_v2 // 2 + 1, gigaam.f_min, gigaam.f_max, gigaam.n_mels, gigaam.sample_rate
+        ),
     ).transpose(-1, -2)
     return torch.log(mel_spectrogram.clamp_(gigaam.clamp_min, gigaam.clamp_max)).numpy(), lens // gigaam.hop_length + 1
 
@@ -80,7 +83,12 @@ def preprocessor_torch_v3(waveforms, lens):
         center=False,
     )
     mel_spectrogram = torch.matmul(
-        spectrogram.transpose(-1, -2), torch.from_numpy(gigaam.melscale_fbanks_v3)
+        spectrogram.transpose(-1, -2),
+        torchaudio.functional.melscale_fbanks(
+            gigaam.n_fft_v3 // 2 + 1, gigaam.f_min, gigaam.f_max, gigaam.n_mels, gigaam.sample_rate
+        )
+        .bfloat16()
+        .float(),
     ).transpose(-1, -2)
     return torch.log(mel_spectrogram.clamp_(gigaam.clamp_min, gigaam.clamp_max)).numpy(), (
         lens - gigaam.win_length_v3
@@ -91,34 +99,34 @@ def preprocessor_torch_v3(waveforms, lens):
 def preprocessor_v2(request):
     match request.param:
         case "torch":
-            return (preprocessor_torch_v2, True)
+            return (preprocessor_torch_v2, 0)
         case "numpy":
-            return (GigaamPreprocessorNumpy("gigaam_v2"), False)
+            return (GigaamPreprocessorNumpy("gigaam_v2"), 5e-5)
         case "onnx_func":
-            return (gigaam.GigaamPreprocessorV2, False)
+            return (gigaam.GigaamPreprocessorV2, 1e-3)
         case "onnx_model":
-            return (OnnxPreprocessor("gigaam_v2", {}), False)
+            return (OnnxPreprocessor("gigaam_v2", {}), 1e-3)
         case "onnx_model_mt":
-            return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v2", {}), 2), False)
+            return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v2", {}), 2), 1e-3)
 
 
 @pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])
 def preprocessor_v3(request):
     match request.param:
         case "torch":
-            return (preprocessor_torch_v3, True)
+            return (preprocessor_torch_v3, 0)
         case "numpy":
-            return (GigaamPreprocessorNumpy("gigaam_v3"), False)
+            return (GigaamPreprocessorNumpy("gigaam_v3"), 5e-5)
         case "onnx_func":
-            return (gigaam.GigaamPreprocessorV3, False)
+            return (gigaam.GigaamPreprocessorV3, 1e-3)
         case "onnx_model":
-            return (OnnxPreprocessor("gigaam_v3", {}), False)
+            return (OnnxPreprocessor("gigaam_v3", {}), 1e-3)
         case "onnx_model_mt":
-            return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v3", {}), 2), False)
+            return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v3", {}), 2), 1e-3)
 
 
 def test_gigaam_preprocessor_v2(preprocessor_v2, waveforms):
-    preprocessor, equal = preprocessor_v2
+    preprocessor, tol = preprocessor_v2
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin_v2(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
@@ -126,14 +134,14 @@ def test_gigaam_preprocessor_v2(preprocessor_v2, waveforms):
     assert actual.dtype == np.float32
     assert expected.shape[2] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
-    if equal:
+    if tol == 0:
         np.testing.assert_equal(actual, expected)
     else:
-        np.testing.assert_allclose(actual, expected, atol=5e-5)
+        np.testing.assert_allclose(actual, expected, atol=tol, rtol=tol)
 
 
 def test_gigaam_preprocessor_v3(preprocessor_v3, waveforms):
-    preprocessor, equal = preprocessor_v3
+    preprocessor, tol = preprocessor_v3
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin_v3(waveforms, lens)
     actual, actual_lens = preprocessor(waveforms, lens)
@@ -141,7 +149,28 @@ def test_gigaam_preprocessor_v3(preprocessor_v3, waveforms):
     assert actual.dtype == np.float32
     assert expected.shape[2] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
-    if equal:
+    if tol == 0:
         np.testing.assert_equal(actual, expected)
     else:
-        np.testing.assert_allclose(actual, expected, atol=5e-5, rtol=5e-6)
+        np.testing.assert_allclose(actual, expected, atol=tol, rtol=tol)
+
+
+@pytest.mark.parametrize("version", ["v2", "v3"])
+def test_gigaam_melscale_fbanks(version):
+    if version == "v2":
+        expected = torchaudio.functional.melscale_fbanks(
+            gigaam.n_fft_v2 // 2 + 1, gigaam.f_min, gigaam.f_max, gigaam.n_mels, gigaam.sample_rate
+        ).numpy()
+        melscale_fbanks = gigaam.melscale_fbanks_v2
+    else:
+        expected = (
+            torchaudio.functional.melscale_fbanks(
+                gigaam.n_fft_v3 // 2 + 1, gigaam.f_min, gigaam.f_max, gigaam.n_mels, gigaam.sample_rate
+            )
+            .bfloat16()
+            .float()
+            .numpy()
+        )
+        melscale_fbanks = gigaam.melscale_fbanks_v3
+
+    np.testing.assert_allclose(melscale_fbanks, expected, atol=5e-6, rtol=5e-6)

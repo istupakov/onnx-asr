@@ -121,7 +121,7 @@ def test_kaldi_preprocessor(preprocessor, waveforms):
     assert actual.dtype == np.float32
     assert expected.shape[1] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
-    np.testing.assert_allclose(actual, expected, atol=5e-4, rtol=1e-4)
+    np.testing.assert_allclose(actual, expected, atol=1e-4, rtol=1e-4)
 
 
 def test_kaldi_preprocessor_fast(preprocessor_fast, waveforms):

@@ -42,7 +42,7 @@ class GigaamPreprocessorNumpy(_NumpyPreprocessor):
         self._n_fft = self._sample_rate // (40 if self._v2 else 50)
         self._win_length = self._n_fft
         if self._v2:
-            self._window = np.hanning(self._win_length + 1)[:-1]
+            self._window = np.hanning(self._win_length + 1)[:-1].astype(np.float32)
 
     def __call__(
         self, waveforms: npt.NDArray[np.float32], waveforms_lens: npt.NDArray[np.int64]
@@ -55,9 +55,9 @@ class GigaamPreprocessorNumpy(_NumpyPreprocessor):
             :, :: self._hop_length
         ]
         strided_input = strided_input * self._window
-        spectrum = np.abs(np.fft.rfft(strided_input, self._n_fft)) ** 2
+        spectrum = np.abs(np.fft.rfft(strided_input, self._n_fft)).astype(np.float32) ** 2
 
-        mel_energies = np.matmul(spectrum, self._melscale_fbanks).astype(np.float32)
+        mel_energies = np.matmul(spectrum, self._melscale_fbanks)
 
         return np.log(np.clip(mel_energies, self._clamp_min, self._clamp_max)).transpose(0, 2, 1), (
             waveforms_lens - (0 if self._v2 else self._win_length)
@@ -126,8 +126,8 @@ class KaldiPreprocessorNumpy(_NumpyPreprocessor):
             strided_input = strided_input - self._preemphasis_coefficient * offset_strided_input[..., :-1]
 
         strided_input = strided_input * self._window
-        spectrum = np.abs(np.fft.rfft(strided_input, self._n_fft)) ** 2
-        mel_energies = np.matmul(spectrum, self._melscale_fbanks).astype(np.float32)
+        spectrum = np.abs(np.fft.rfft(strided_input, self._n_fft)).astype(np.float32) ** 2
+        mel_energies = np.matmul(spectrum, self._melscale_fbanks)
 
         features = np.log(np.maximum(mel_energies, np.finfo(np.float32).eps))
         if features.shape[0] > 0:
@@ -162,19 +162,24 @@ class NemoPreprocessorNumpy(_NumpyPreprocessor):
         strided_input = strided_input * np.pad(
             np.hanning(self._win_length), ((self._n_fft - self._win_length) // 2, (self._n_fft - self._win_length) // 2)
         )
-        spectrogram = np.abs(np.fft.rfft(strided_input, self._n_fft)) ** 2
+        spectrogram = np.abs(np.fft.rfft(strided_input, self._n_fft)).astype(np.float32) ** 2
         mel_spectrogram = np.matmul(spectrogram, self._melscale_fbanks)
         log_mel_spectrogram = np.log(mel_spectrogram + self._log_zero_guard_value)
 
         features_lens = waveforms_lens // self._hop_length
         mask = np.arange(log_mel_spectrogram.shape[1])[None, :, None] < features_lens[:, None, None]
-        zero = np.float32(0)
-        mean = np.where(mask, log_mel_spectrogram, zero).sum(axis=1, keepdims=True) / features_lens[:, None, None]
-        var = np.where(mask, (log_mel_spectrogram - mean) ** 2, zero).sum(axis=1, keepdims=True) / (
-            features_lens[:, None, None] - 1
+        mean = np.divide(
+            np.where(mask, log_mel_spectrogram, 0.0).sum(axis=1, keepdims=True),
+            features_lens[:, None, None],
+            dtype=np.float32,
         )
-        features = np.where(mask, (log_mel_spectrogram - mean) / (np.sqrt(var) + 1e-5), zero)
-        return features.transpose(0, 2, 1).astype(np.float32), features_lens
+        var = np.divide(
+            np.where(mask, (log_mel_spectrogram - mean) ** 2, 0.0).sum(axis=1, keepdims=True),
+            features_lens[:, None, None] - 1,
+            dtype=np.float32,
+        )
+        features = np.where(mask, (log_mel_spectrogram - mean) / (np.sqrt(var) + 1e-5), 0.0)
+        return features.transpose(0, 2, 1), features_lens
 
 
 class WhisperPreprocessorNumpy(_NumpyPreprocessor):
@@ -203,9 +208,9 @@ class WhisperPreprocessorNumpy(_NumpyPreprocessor):
             :, :: self._hop_length
         ]
         strided_input = strided_input * np.hanning(self._win_length + 1)[:-1].astype(np.float32)
-        spectrum = np.abs(np.fft.rfft(strided_input, self._n_fft)[:, :-1]) ** 2
+        spectrum = np.abs(np.fft.rfft(strided_input, self._n_fft)[:, :-1]).astype(np.float32) ** 2
 
-        mel_spectrogram = np.matmul(spectrum, self._melscale_fbanks).astype(np.float32)
+        mel_spectrogram = np.matmul(spectrum, self._melscale_fbanks)
         log_mel_spectrogram = np.log10(np.maximum(mel_spectrogram, self._clamp_min))
         features = (np.maximum(log_mel_spectrogram, log_mel_spectrogram.max() - 8.0) + 4.0) / 4.0
         return features.transpose(0, 2, 1), np.full_like(

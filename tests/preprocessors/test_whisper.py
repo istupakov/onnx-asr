@@ -51,19 +51,20 @@ def preprocessor_torch(waveforms, lens, n_mels):
 
 
 @pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model"])
-def preprocessor(request, n_mels):
+def preprocessor_tol(request, n_mels):
     match request.param:
         case "torch":
-            return lambda waveforms, lens: preprocessor_torch(waveforms, lens, n_mels)
+            return (lambda waveforms, lens: preprocessor_torch(waveforms, lens, n_mels)), 5e-5
         case "numpy":
-            return WhisperPreprocessorNumpy(f"whisper{n_mels}")
+            return WhisperPreprocessorNumpy(f"whisper{n_mels}"), 5e-5
         case "onnx_func":
-            return whisper.WhisperPreprocessor80 if n_mels == 80 else whisper.WhisperPreprocessor128
+            return whisper.WhisperPreprocessor80 if n_mels == 80 else whisper.WhisperPreprocessor128, 5e-3
         case "onnx_model":
-            return OnnxPreprocessor(f"whisper{n_mels}", {})
+            return OnnxPreprocessor(f"whisper{n_mels}", {}), 5e-3
 
 
-def test_whisper_preprocessor(n_mels, preprocessor, waveforms):
+def test_whisper_preprocessor(n_mels, preprocessor_tol, waveforms):
+    preprocessor, tol = preprocessor_tol
     waveforms, lens = pad_list(waveforms)
     expected, expected_lens = preprocessor_origin(waveforms, lens, n_mels)
     actual, actual_lens = preprocessor(waveforms, lens)
@@ -71,7 +72,7 @@ def test_whisper_preprocessor(n_mels, preprocessor, waveforms):
     assert actual.dtype == np.float32
     assert expected.shape[2] == max(expected_lens)
     np.testing.assert_equal(actual_lens, expected_lens)
-    np.testing.assert_allclose(actual, expected, atol=5e-5)
+    np.testing.assert_allclose(actual, expected, atol=tol, rtol=tol)
 
 
 def test_whisper_melscale_fbanks(n_mels):

@@ -13,6 +13,7 @@ from onnx_asr.utils import (
     DifferentSampleRatesError,
     SampleRates,
     SupportedOnlyMonoAudioError,
+    WrongDataTypeError,
     WrongSampleRateError,
     read_wav,
     read_wav_files,
@@ -81,6 +82,14 @@ def test_read_wav_files_mono_error_numpy() -> None:
 
     with pytest.raises(SupportedOnlyMonoAudioError):
         read_wav_files([data], 16_000)
+
+
+def test_read_wav_files_wrong_date_type_error() -> None:
+    rng = np.random.default_rng(0)
+    data = rng.integers(-100, 100, (16_000, 2), dtype=np.int16)
+
+    with pytest.raises(WrongDataTypeError):
+        read_wav_files([data], 16_000)  # type: ignore
 
 
 def test_read_wav_files_mono_error_file(tmp_path: Path) -> None:
