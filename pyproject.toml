@@ -54,6 +54,15 @@ Changelog = "https://github.com/istupakov/onnx-asr/releases"
 onnx-asr = "onnx_asr.cli:main"
 
 [dependency-groups]
+benchmark = [
+    "datasets>=4.5.0",
+    "jinja2>=3.1.6",
+    "jiwer>=3.1.0",
+    "pandas>=2.3.3",
+    "soundfile>=0.13.1",
+    "tqdm>=4.67.3",
+    { include-group = "jupyter" },
+]
 build = [
     "hatch-vcs>=0.5.0",
     "hatchling>=1.28.0",
@@ -62,11 +71,10 @@ build = [
     "onnxscript>=0.6.2",
 ]
 dev = [
-    "ipykernel>=7.2.0",
-    "ipywidgets>=8.1.8",
     "mypy>=1.19.1",
     "ruff>=0.15.1",
     { include-group = "build" },
+    { include-group = "jupyter" },
     { include-group = "test" },
 ]
 docs = [
@@ -76,6 +84,7 @@ docs = [
     "mkdocstrings[python]>=1.0.3",
     "ruff>=0.15.1",
 ]
+jupyter = ["ipykernel<7", "ipywidgets>=8.1.8"]
 test = [
     "huggingface-hub>=0.30.2",
     "onnxruntime>=1.18.1",
@@ -101,6 +110,7 @@ cache-keys = [
     { file = "preprocessors/*.py" },
     { git = { commit = true, tags = true } },
 ]
+conflicts = [[{ group = "benchmark" }, { group = "test" }]]
 
 [tool.uv.sources]
 torch = { index = "pytorch" }
