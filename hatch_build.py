@@ -19,8 +19,8 @@ class _BuildPreprocessorsHook(BuildHookInterface):  # type: ignore[type-arg]
         self.artifacts_path.mkdir(exist_ok=True)
         build(self.artifacts_path, self.metadata.version)
         build_data["artifacts"] = [
-            str(self.artifacts_path.joinpath("*.onnx")),
-            str(self.artifacts_path.joinpath("*.npz")),
+            str(self.artifacts_path.joinpath("*.onnx").as_posix()),
+            str(self.artifacts_path.joinpath("*.npz").as_posix()),
         ]
 
     def dependencies(self) -> list[str]:

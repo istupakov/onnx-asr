@@ -158,6 +158,9 @@ jobs:
           report_type: test_results
           flags: ${{ matrix.os }},python-${{ matrix.python-version }}
 
+      - name: Build dist
+        run: uv build
+
   complete:
     needs: test
     runs-on: ubuntu-latest
