@@ -153,6 +153,15 @@ class WhisperHf(_Whisper):
         onnx_options: OnnxSessionOptions,
     ):
         super().__init__(model_files, preprocessor_factory, onnx_options)
+        sess_options = onnx_options.get("sess_options") or rt.SessionOptions()
+        # NOTE: The following is needed to allow loading data from HF Hub cache snapshot.
+        # The Path Traversal Security Policy of onnxruntime prevents loading initializers
+        # from files outside the model file folder, upon referring to the blobs (de-symlink).
+        sess_options.add_session_config_entry(
+            "session.model_external_initializers_file_folder_path",
+            model_files["encoder"].parent.as_posix()
+        )
+        onnx_options["sess_options"] = sess_options
         self._encoder = rt.InferenceSession(model_files["encoder"], **onnx_options)
         self._decoder = rt.InferenceSession(model_files["decoder"], **onnx_options)
         self._device_type, self._device_id = get_onnx_device(self._encoder)
@@ -161,8 +170,8 @@ class WhisperHf(_Whisper):
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         suffix = "?" + quantization if quantization else ""
         return {
-            "encoder": f"**/encoder_model{suffix}.onnx",
-            "decoder": f"**/decoder_model_merged{suffix}.onnx",
+            "encoder": f"encoder_model{suffix}.onnx",
+            "decoder": f"decoder_model_merged{suffix}.onnx",
         } | _Whisper._get_model_files(suffix)
 
     @property

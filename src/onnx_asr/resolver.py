@@ -107,7 +107,8 @@ class Resolver(Generic[T]):
             "config.json",
             "config.yaml",
             *files,
-            *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx"),
+            # corresponding '.onnx_data' files, if any
+            *(str(path.with_suffix(".onnx_data")) for file in files if (path := Path(file)).suffix == ".onnx"),
         ]
         assert self.repo_id is not None
         return Path(
