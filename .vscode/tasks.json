@@ -73,9 +73,9 @@
         {
             "label": "clean",
             "type": "shell",
-            "command": "find . -type d -name '__pycache__' -exec rm -rf {} +; rm -rf .ruff_cache .pytest_cache .mypy_cache dist site",
+            "command": "find . -type d -name '__pycache__' -exec rm -rf {} +; rm -rf .ruff_cache .pytest_cache .mypy_cache .cache dist site",
             "windows": {
-                "command": "Get-ChildItem -Path . -Recurse -Include '__pycache__','.ruff_cache','.pytest_cache','.mypy_cache','dist','site' | Remove-Item -Recurse -Force"
+                "command": "Get-ChildItem -Path . -Recurse -Include '__pycache__','.ruff_cache','.pytest_cache','.mypy_cache','.cache', 'dist','site' | Remove-Item -Recurse -Force"
             },
             "problemMatcher": [],
             "detail": "Clean caches and build artifacts"
