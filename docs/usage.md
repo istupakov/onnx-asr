@@ -10,6 +10,8 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 print(model.recognize("test.wav"))
 ```
 
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
+
 > [!WARNING]
 > Supported WAV file formats: PCM_U8, PCM_16, PCM_24, and PCM_32 formats. For other formats, you either need to convert them first, or use a library that can read them into a NumPy array.
 
@@ -39,7 +41,7 @@ print(model.recognize("test.wav"))
 > [!WARNING]
 > Some long-ago converted `onnx-community` models have a broken `fp16` precision version.
 
-### Using soundfile
+## Using soundfile
 
 ```py
 import onnx_asr
@@ -51,7 +53,9 @@ waveform, sample_rate = sf.read("test.wav", dtype="float32")
 model.recognize(waveform, sample_rate=sample_rate)
 ```
 
-### Batch processing
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
+
+## Batch processing
 
 ```py
 import onnx_asr
@@ -59,7 +63,9 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 print(model.recognize(["test1.wav", "test2.wav", "test3.wav", "test4.wav"]))
 ```
 
-### Quantized models
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
+
+## Quantized models
 
 Most models have quantized versions:
 
@@ -69,7 +75,9 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", quantization="int8")
 print(model.recognize("test.wav"))
 ```
 
-### Timestamps and log probabilities
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
+
+## Timestamps and log probabilities
 
 Return tokens, timestamps and log probabilities:
 
@@ -78,6 +86,8 @@ import onnx_asr
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3").with_timestamps()
 print(model.recognize("test1.wav"))
 ```
+
+API reference: [onnx_asr.load_model][], [with_timestamps][onnx_asr.adapters.SegmentResultsAsrAdapter.with_timestamps], [recognize][onnx_asr.adapters.TimestampedResultsAsrAdapter.recognize], [TimestampedResult][onnx_asr.asr.TimestampedResult]
 
 ## TensorRT
 
@@ -100,6 +110,8 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", providers=providers)
 print(model.recognize("test.wav"))
 ```
 
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
+
 ## VAD (Voice Activity Detection)
 
 Load a VAD ONNX model from Hugging Face and recognize a WAV file:
@@ -111,6 +123,9 @@ model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3").with_vad(vad)
 for res in model.recognize("test.wav"):
     print(res)
 ```
+
+API reference: [onnx_asr.load_vad][], [onnx_asr.load_model][], [with_vad][onnx_asr.adapters.AsrAdapter.with_vad],
+[recognize][onnx_asr.adapters.SegmentResultsAsrAdapter.recognize], [SegmentResult][onnx_asr.vad.SegmentResult]
 
 > [!TIP]
 > You will most likely need to adjust VAD parameters to get the correct results.
@@ -155,6 +170,8 @@ demo = gr.Interface(fn=recognize, inputs="audio", outputs="text")
 demo.launch()
 ```
 
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
+
 ## Load ONNX model from local directory
 
 Load ONNX model from local directory and recognize WAV file:
@@ -164,6 +181,8 @@ import onnx_asr
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", "models/parakeet-v3")
 print(model.recognize("test.wav"))
 ```
+
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
 
 > [!NOTE]
 > If the directory does not exist, it will be created and the model will be loaded into it.
@@ -177,6 +196,9 @@ import onnx_asr
 model = onnx_asr.load_model("istupakov/canary-180m-flash-onnx")
 print(model.recognize("test.wav"))
 ```
+
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
+
 
 ### Supported model types
 
