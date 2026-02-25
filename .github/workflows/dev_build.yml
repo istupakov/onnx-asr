@@ -1,0 +1,103 @@
+name: Dev Build and Publish
+on:
+  workflow_dispatch:
+    inputs:
+      bump-part:
+        description: 'Version bump level (auto-detected from PR label if empty)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - patch
+          - minor
+          - major
+
+jobs:
+  test:
+    name: Test and Lint
+    uses: ./.github/workflows/test.yml
+
+  detect-version:
+    name: Detect dev version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.calc.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Detect bump part
+        id: bump
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Use manual input if provided
+          MANUAL_BUMP="${{ github.event.inputs.bump-part }}"
+          if [ -n "${MANUAL_BUMP}" ]; then
+            echo "Using manual bump part: ${MANUAL_BUMP}"
+            echo "part=${MANUAL_BUMP}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Find open PR for the current branch
+          BRANCH="${{ github.ref_name }}"
+          echo "Looking for PR with head branch: ${BRANCH}"
+
+          PR_JSON=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --head "${BRANCH}" \
+            --state open \
+            --json labels,number \
+            --limit 1)
+
+          if [ "$(echo "${PR_JSON}" | jq length)" -eq 0 ]; then
+            echo "::warning::No open PR found for branch ${BRANCH}. Using current version."
+            echo "part=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PR_NUMBER=$(echo "${PR_JSON}" | jq -r '.[0].number')
+          echo "Found PR #${PR_NUMBER}"
+
+          BUMP_PART=$(echo "${PR_JSON}" | jq -r '.[0].labels[].name' | grep -E '^(major|minor|patch)$' | head -1)
+
+          if [ -z "${BUMP_PART}" ]; then
+            echo "::warning::PR #${PR_NUMBER} has no version label. Using current version."
+            echo "part=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Detected bump part: ${BUMP_PART}"
+          echo "part=${BUMP_PART}" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate version
+        id: calc
+        run: |
+          CURRENT=$(grep -E '^version = "' pyproject.toml | head -1 | sed -E 's/version = "(.*)"/\1/')
+          echo "Current version: ${CURRENT}"
+
+          PART="${{ steps.bump.outputs.part }}"
+          if [ -z "${PART}" ]; then
+            echo "No bump part, using current version: ${CURRENT}"
+            echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT}"
+          case "${PART}" in
+            major) NEW="$((MAJOR+1)).0.0" ;;
+            minor) NEW="${MAJOR}.$((MINOR+1)).0" ;;
+            patch) NEW="${MAJOR}.${MINOR}.$((PATCH+1))" ;;
+          esac
+
+          echo "Calculated version: ${NEW}"
+          echo "version=${NEW}" >> "$GITHUB_OUTPUT"
+
+  dev-release:
+    name: Publish dev package
+    needs: [test, detect-version]
+    uses: riversidefm/github-actions/.github/workflows/build_publish_wheel.yml@main
+    with:
+      dev-version: ${{ needs.detect-version.outputs.version }}
+    secrets: inherit

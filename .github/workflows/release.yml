@@ -1,0 +1,93 @@
+name: Release Build and Publish
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - labeled
+      - unlabeled
+
+jobs:
+  test:
+    name: Test and Lint
+    if: ${{ github.event_name == 'pull_request' || contains(github.event.head_commit.message, 'Bump version:') }}
+    uses: ./.github/workflows/test.yml
+
+  detect-version:
+    name: Detect version from PR label
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.calc.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Extract label and calculate version
+        id: calc
+        run: |
+          CURRENT=$(grep -E '^version = "' pyproject.toml | head -1 | sed -E 's/version = "(.*)"/\1/')
+          echo "Current version: ${CURRENT}"
+
+          LABELS="${{ join(github.event.pull_request.labels.*.name, ' ') }}"
+          PART=$(echo "${LABELS}" | tr ' ' '\n' | grep -E '^(major|minor|patch)$' | head -1)
+
+          if [ -z "${PART}" ]; then
+            echo "::warning::No version label found. Using current version."
+            echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT}"
+          case "${PART}" in
+            major) NEW="$((MAJOR+1)).0.0" ;;
+            minor) NEW="${MAJOR}.$((MINOR+1)).0" ;;
+            patch) NEW="${MAJOR}.${MINOR}.$((PATCH+1))" ;;
+          esac
+
+          echo "Calculated version: ${NEW} (${PART})"
+          echo "version=${NEW}" >> "$GITHUB_OUTPUT"
+
+  # PR: tests must pass, then build with .dev suffix
+  pr-release:
+    name: Publish dev package
+    if: ${{ github.event_name == 'pull_request' }}
+    needs: [test, detect-version]
+    uses: riversidefm/github-actions/.github/workflows/build_publish_wheel.yml@main
+    with:
+      dev-version: ${{ needs.detect-version.outputs.version }}
+    secrets: inherit
+
+  # Main merge: tests must pass, then build with version from git tag
+  release:
+    name: Publish package
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, 'Bump version:') }}
+    needs: [test]
+    uses: riversidefm/github-actions/.github/workflows/build_publish_wheel.yml@main
+    secrets: inherit
+
+  tag:
+    name: Create Git Tag
+    needs: [release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Extract version from commit message
+        id: version
+        run: |
+          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP '\d+\.\d+\.\d+' | tail -1)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"

@@ -1092,7 +1092,7 @@ name = "cuda-bindings"
 version = "13.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cuda-pathfinder" },
+    { name = "cuda-pathfinder", marker = "sys_platform != 'darwin'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/63/579402b642f5b9b8ceb79e456b39b5771f27e132a8af3b140e54d69790fc/cuda_bindings-13.1.1-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:4400370a83f1538e25ed4c18c34a0e9d5fad39741e282e69ce24d1479a11017d", size = 15777291, upload-time = "2025-12-09T22:05:41.109Z" },
@@ -1859,19 +1859,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/01/ee/02a2c011bdab74c6fb3c75474d40b3052059d95df7e73351460c8588d963/h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1", size = 101250, upload-time = "2025-04-24T03:35:25.427Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86", size = 37515, upload-time = "2025-04-24T03:35:24.344Z" },
-]
-
-[[package]]
-name = "hatch-vcs"
-version = "0.5.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "hatchling" },
-    { name = "setuptools-scm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6b/b0/4cc743d38adbee9d57d786fa496ed1daadb17e48589b6da8fa55717a0746/hatch_vcs-0.5.0.tar.gz", hash = "sha256:0395fa126940340215090c344a2bf4e2a77bcbe7daab16f41b37b98c95809ff9", size = 11424, upload-time = "2025-05-27T05:16:04.49Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/48/1f85cee4b7b4f40b9b814b1febbc661bda6ced9649e410a0b74f6e415dd0/hatch_vcs-0.5.0-py3-none-any.whl", hash = "sha256:b49677dbdc597460cc22d01b27ab3696f5e16a21ecf2700fb01bc28e1f2a04a7", size = 8507, upload-time = "2025-05-27T05:16:03.184Z" },
 ]
 
 [[package]]
@@ -3713,7 +3700,7 @@ name = "numba-cuda"
 version = "0.15.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numba" },
+    { name = "numba", marker = "sys_platform != 'darwin'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/56/d7/f8dd134b7896b30d69e5b29af27264b1143458d43e088f210abc16cba91e/numba_cuda-0.15.1.tar.gz", hash = "sha256:219771179a396ba2a6911648b908609c1373d2055373d5fb8294f0a1947c4690", size = 491996, upload-time = "2025-06-14T21:34:24.931Z" }
 wheels = [
@@ -4152,6 +4139,7 @@ wheels = [
 
 [[package]]
 name = "onnx-asr"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-dev') or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test') or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test-all')" },
@@ -4183,7 +4171,6 @@ benchmark = [
     { name = "tqdm" },
 ]
 build = [
-    { name = "hatch-vcs" },
     { name = "hatchling" },
     { name = "ml-dtypes" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-dev') or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test') or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test-all')" },
@@ -4191,7 +4178,6 @@ build = [
     { name = "onnxscript" },
 ]
 dev = [
-    { name = "hatch-vcs" },
     { name = "hatchling" },
     { name = "huggingface-hub" },
     { name = "ipykernel" },
@@ -4224,7 +4210,6 @@ test = [
     { name = "pytest-cov" },
 ]
 test-all = [
-    { name = "hatch-vcs" },
     { name = "hatchling" },
     { name = "huggingface-hub" },
     { name = "kaldi-native-fbank" },
@@ -4267,14 +4252,12 @@ benchmark = [
     { name = "tqdm", specifier = ">=4.67.3" },
 ]
 build = [
-    { name = "hatch-vcs", specifier = ">=0.5.0" },
     { name = "hatchling", specifier = ">=1.28.0" },
     { name = "ml-dtypes", specifier = ">=0.5.4" },
     { name = "numpy", specifier = ">=2.2.6" },
     { name = "onnxscript", specifier = ">=0.6.2" },
 ]
 dev = [
-    { name = "hatch-vcs", specifier = ">=0.5.0" },
     { name = "hatchling", specifier = ">=1.28.0" },
     { name = "huggingface-hub", specifier = ">=0.30.2" },
     { name = "ipykernel", specifier = "<7" },
@@ -4306,7 +4289,6 @@ test = [
     { name = "pytest-cov", specifier = ">=7.0.0" },
 ]
 test-all = [
-    { name = "hatch-vcs", specifier = ">=0.5.0" },
     { name = "hatchling", specifier = ">=1.28.0" },
     { name = "huggingface-hub", specifier = ">=0.30.2" },
     { name = "kaldi-native-fbank", specifier = ">=1.22.3" },
@@ -4761,7 +4743,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess", marker = "(python_full_version < '3.11' and sys_platform == 'emscripten') or (python_full_version < '3.11' and sys_platform == 'win32') or (sys_platform != 'emscripten' and sys_platform != 'win32') or (sys_platform == 'emscripten' and extra != 'group-8-onnx-asr-benchmark') or (sys_platform == 'win32' and extra != 'group-8-onnx-asr-benchmark') or (sys_platform == 'emscripten' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-dev') or (sys_platform == 'emscripten' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test') or (sys_platform == 'emscripten' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test-all') or (sys_platform == 'win32' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-dev') or (sys_platform == 'win32' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test') or (sys_platform == 'win32' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test-all')" },
+    { name = "ptyprocess", marker = "(python_full_version < '3.11' and sys_platform == 'emscripten') or (python_full_version < '3.11' and sys_platform == 'win32') or (sys_platform != 'emscripten' and sys_platform != 'win32') or (sys_platform == 'emscripten' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-dev') or (sys_platform == 'emscripten' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test') or (sys_platform == 'emscripten' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test-all') or (sys_platform == 'emscripten' and extra != 'group-8-onnx-asr-benchmark' and extra != 'group-8-onnx-asr-test-all') or (sys_platform == 'win32' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-dev') or (sys_platform == 'win32' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test') or (sys_platform == 'win32' and extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test-all') or (sys_platform == 'win32' and extra != 'group-8-onnx-asr-benchmark' and extra != 'group-8-onnx-asr-test-all')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
@@ -6310,20 +6292,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/82/f3/748f4d6f65d1756b9ae577f329c951cda23fb900e4de9f70900ced962085/setuptools-82.0.0.tar.gz", hash = "sha256:22e0a2d69474c6ae4feb01951cb69d515ed23728cf96d05513d36e42b62b37cb", size = 1144893, upload-time = "2026-02-08T15:08:40.206Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e1/c6/76dc613121b793286a3f91621d7b75a2b493e0390ddca50f11993eadf192/setuptools-82.0.0-py3-none-any.whl", hash = "sha256:70b18734b607bd1da571d097d236cfcfacaf01de45717d59e6e04b96877532e0", size = 1003468, upload-time = "2026-02-08T15:08:38.723Z" },
-]
-
-[[package]]
-name = "setuptools-scm"
-version = "9.2.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-    { name = "setuptools" },
-    { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-dev') or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test') or (extra == 'group-8-onnx-asr-benchmark' and extra == 'group-8-onnx-asr-test-all')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7b/b1/19587742aad604f1988a8a362e660e8c3ac03adccdb71c96d86526e5eb62/setuptools_scm-9.2.2.tar.gz", hash = "sha256:1c674ab4665686a0887d7e24c03ab25f24201c213e82ea689d2f3e169ef7ef57", size = 203385, upload-time = "2025-10-19T22:08:05.608Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/ea/ac2bf868899d0d2e82ef72d350d97a846110c709bacf2d968431576ca915/setuptools_scm-9.2.2-py3-none-any.whl", hash = "sha256:30e8f84d2ab1ba7cb0e653429b179395d0c33775d54807fc5f1dd6671801aef7", size = 62975, upload-time = "2025-10-19T22:08:04.007Z" },
 ]
 
 [[package]]

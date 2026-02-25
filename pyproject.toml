@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling", "ml-dtypes>=0.5.4", "numpy>=2.2.6", "onnxscript>=0.6.2"]
 build-backend = "hatchling.build"
 
 [project]
 name = "onnx-asr"
-dynamic = ["version"]
+version = "0.0.1"
 dependencies = [
     "numpy>=1.22.4",
     "typing-extensions>=4.6.0; python_version < '3.11'",
@@ -64,7 +64,6 @@ benchmark = [
     { include-group = "jupyter" },
 ]
 build = [
-    "hatch-vcs>=0.5.0",
     "hatchling>=1.28.0",
     "ml-dtypes>=0.5.4",
     "numpy>=2.2.6",
@@ -108,7 +107,6 @@ cache-keys = [
     { file = "pyproject.toml" },
     { file = "hatch_build.py" },
     { file = "preprocessors/*.py" },
-    { git = { commit = true, tags = true } },
 ]
 conflicts = [[{ group = "benchmark" }, { group = "test" }]]
 
@@ -117,12 +115,18 @@ torch = { index = "pytorch" }
 torchaudio = { index = "pytorch" }
 
 [[tool.uv.index]]
+name = "riverside-fm-python"
+url = "https://riverside-fm-690765672468.d.codeartifact.us-east-1.amazonaws.com/pypi/python/simple/"
+explicit = true
+
+[[tool.uv.index]]
 name = "pytorch"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
-[tool.hatch.version]
-source = "vcs"
+[tool.fm]
+upstream-version = "0.10.2"
+upstream-repo = "https://github.com/istupakov/onnx-asr"
 
 [tool.hatch.build]
 only-packages = true

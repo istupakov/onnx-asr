@@ -1,0 +1,20 @@
+name: Bump Version
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+jobs:
+  check_labels:
+    name: Check labels
+    if: github.event.pull_request.merged == true
+    uses: riversidefm/github-actions/.github/workflows/check_label_for_release.yml@main
+    secrets: inherit
+  bump_version:
+    name: Bump version
+    needs: check_labels
+    uses: riversidefm/github-actions/.github/workflows/bump_version_generic.yml@main
+    secrets: inherit
+    with:
+      runs-on: ubuntu-latest

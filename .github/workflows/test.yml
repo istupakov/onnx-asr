@@ -1,0 +1,67 @@
+name: Test and Lint
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+env:
+  HF_HOME: ${{ github.workspace }}/.cache/huggingface
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          activate-environment: true
+
+      - name: Install dependencies
+        run: uv sync --locked --group test-all
+
+      - name: Cache HF models
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.HF_HOME }}
+          key: ${{ runner.os }}-hf-models
+
+      - name: Run tests
+        run: pytest --cov --cov-report term --cov-report xml --junitxml junit.xml -o junit_family=legacy
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+
+  lint:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          activate-environment: true
+
+      - name: Install dependencies
+        run: uv sync --locked --group dev
+
+      - name: Run ruff check
+        run: ruff check --output-format=github
+
+      - name: Run ruff format check
+        run: ruff format --diff
+
+      - name: Run mypy
+        continue-on-error: true
+        run: mypy .

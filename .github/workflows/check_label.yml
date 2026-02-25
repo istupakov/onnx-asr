@@ -1,0 +1,14 @@
+name: "Check Version Label"
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - labeled
+      - unlabeled
+      - reopened
+      - opened
+jobs:
+  check_labels:
+    uses: riversidefm/github-actions/.github/workflows/check_label_for_release.yml@main
+    secrets: inherit
