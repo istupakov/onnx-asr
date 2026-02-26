@@ -21,13 +21,13 @@
 
 Key features of **onnx-asr** include:
 
-* Supports many modern ASR [models](#supported-model-architectures)
-* Runs on a wide range of devices, from small IoT / edge devices to servers with powerful GPUs ([benchmarks](https://istupakov.github.io/onnx-asr/benchmarks/))
-* Works on Windows, Linux, and macOS on x86 and Arm CPUs, with support for CUDA, TensorRT, CoreML, ROCm, and DirectML
+* Supports many modern ASR [models](https://istupakov.github.io/onnx-asr/usage/#supported-model-names)
+* Runs on a wide range of devices, from small IoT/edge devices to servers with powerful GPUs ([benchmarks](https://istupakov.github.io/onnx-asr/benchmarks/))
+* Works on Windows, Linux, and macOS on x86 and Arm CPUs, with support for CUDA, TensorRT, CoreML, DirectML, ROCm, and WebGPU
 * Supports NumPy versions from 1.22 to 2.4+ and Python versions from 3.10 to 3.14
 * Loads models from Hugging Face or local directories, including quantized versions
 * Accepts WAV files or NumPy arrays, with built-in file reading and resampling
-* Supports custom models (if their architecture is supported)
+* Supports custom models (see the [Conversion Guide](https://istupakov.github.io/onnx-asr/conversion/) for instructions)
 * Supports batch processing
 * Supports long-form recognition using [VAD](https://istupakov.github.io/onnx-asr/usage/#vad-voice-activity-detection) (Voice Activity Detection)
 * Can return token-level timestamps and log probabilities
@@ -38,10 +38,10 @@ Key features of **onnx-asr** include:
 > Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
 
 > [!WARNING]
-> Onnxruntime 1.24.1 does not support symlinks to data files used in the HuggingFace cache for large models. Please upgrade to 1.24.2!
+> onnxruntime 1.24.1 does not support symlinks to data files used in the HuggingFace cache for large models. Please upgrade to 1.24.2!
 
 > [!TIP]
-> You can check onnx-asr demo on HF Spaces:
+> You can check the onnx-asr demo on HF Spaces:
 > 
 > [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
 
@@ -53,7 +53,7 @@ Install onnx-asr:
 pip install onnx-asr[cpu,hub]
 ```
 
-Load model and recognize WAV file:
+Load a model and recognize a WAV file:
 ```py
 import onnx_asr
 
@@ -70,13 +70,15 @@ print(result)
 
 For more examples, see the [Usage Guide](https://istupakov.github.io/onnx-asr/usage/).
 
+See the [Installation Guide](https://istupakov.github.io/onnx-asr/installation/) for detailed installation instructions.
+
 ## Supported Model Architectures
 
 The package supports the following modern ASR model architectures (see the [supported model names](https://istupakov.github.io/onnx-asr/usage/#supported-model-names) for the full list of models and [comparison](https://istupakov.github.io/onnx-asr/comparison/) with original implementations):
 
-* Nvidia NeMo Conformer/FastConformer/Parakeet/Canary (with CTC, RNN-T, TDT and Transformer decoders)
-* Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
+* NVIDIA NeMo Conformer/FastConformer/Parakeet/Canary (with CTC, RNN-T, TDT and Transformer decoders)
 * GigaChat GigaAM v2/v3 (with CTC and RNN-T decoders, including E2E versions)
+* Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
 * T-Tech T-one (with CTC decoder, no streaming support yet)
 * OpenAI Whisper
 
@@ -85,32 +87,24 @@ When saving these models in ONNX format, usually only the encoder and decoder ar
 * Log-mel spectrogram preprocessors
 * Greedy search decoding
 
-## Installation
+## Benchmarks
 
-See the [Installation Guide](https://istupakov.github.io/onnx-asr/installation/) for detailed instructions.
+**Inverse Real-Time Factor (RTFx)**: the ratio of audio duration to processing time. RTFx > 1 means processing faster than real-time (higher RTFx values indicate better performance).
 
-## Usage Examples
+| Model               | 9800X3D CPU (RTFx) | Cortex A53 CPU (RTFx) | T4 CUDA (RTFx) | RTX 5070 Ti TensorRT (RTFx) |
+|---------------------|---------|---------|---------|----------|
+| NeMo Parakeet v2/v3 | 36      | 1.0     | 57      | 320      |
+| NeMo Canary v2      | 8       | N/A     | 21      | 36       |
+| GigaAM v3 CTC       | 59      | 1.6     | 84      | 1370     |
+| GigaAM v3 RNN-T     | 43      | 1.5     | 40      | 130      |
 
-See the [Usage Guide](https://istupakov.github.io/onnx-asr/usage/) for detailed examples.
+See the [Benchmarks](https://istupakov.github.io/onnx-asr/benchmarks/) page for detailed performance benchmarks.
 
 ## Troubleshooting / FAQ
 
 See the [Troubleshooting Guide](https://istupakov.github.io/onnx-asr/troubleshooting/) for common issues and solutions.
 
 For more help, check the [GitHub Issues](https://github.com/istupakov/onnx-asr/issues) or open a new one.
-
-## Benchmarks
-
-See the [Benchmarks](https://istupakov.github.io/onnx-asr/benchmarks/) page for detailed performance benchmarks.
-
-## Comparison with Original Implementations
-
-See the [Comparison Guide](https://istupakov.github.io/onnx-asr/comparison/) for detailed performance comparisons with original implementations.
-
-
-## Convert Model to ONNX
-
-See the [Conversion Guide](https://istupakov.github.io/onnx-asr/conversion/) for instructions on converting models to ONNX format.
 
 ## License
 
