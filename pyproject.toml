@@ -84,7 +84,11 @@ docs = [
     "mkdocstrings[python]>=1.0.3",
     "ruff>=0.15.1",
 ]
-jupyter = ["ipykernel<7", "ipywidgets>=8.1.8"]
+jupyter = [
+    "ipykernel<7",
+    "ipywidgets>=8.1.8",
+    "nbstripout>=0.9.1",
+]
 test = [
     "huggingface-hub>=0.30.2",
     "onnxruntime>=1.18.1",

@@ -16,7 +16,25 @@ env:
   HF_HOME: ${{ github.workspace }}/.cache/huggingface
 
 jobs:
+  lint:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Check code formatting with Ruff
+        run: uv run ruff format --diff
+      - name: Check code with Ruff
+        run: uv run ruff check --output-format=github
+      - name: Check types with MyPy
+        run: uv run mypy .
+      - name: Check Jupyter outputs
+        run: find . -name '*.ipynb' -exec uv run nbstripout --verify {} +
+
   build:
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -28,14 +46,7 @@ jobs:
         with:
           activate-environment: true
       - name: Install dependencies
-        run: uv sync --locked --group test-all --group docs
-
-      - name: Lint code with Ruff
-        run: ruff check --output-format=github
-      - name: Check code formatting with Ruff
-        run: ruff format --diff
-      - name: Check types with MyPy
-        run: mypy .
+        run: uv sync --group test-all --group docs
 
       - name: Cache HF models
         uses: actions/cache@v5
@@ -159,6 +170,7 @@ jobs:
           flags: ${{ matrix.os }},python-${{ matrix.python-version }}
 
       - name: Build dist
+        if: ${{ matrix.python-version != '3.13t' && matrix.python-version != '3.14t' }}
         run: uv build
 
   complete:

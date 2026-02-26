@@ -11,6 +11,13 @@
             "detail": "Format code using Ruff"
         },
         {
+            "label": "uv: nbstripout",
+            "type": "shell",
+            "command": "find . -name '*.ipynb' -exec uv run nbstripout {} +",
+            "problemMatcher": [],
+            "detail": "Clean Jupyter outputs"
+        },
+        {
             "label": "uv: ruff check",
             "type": "shell",
             "command": "uv run ruff check",
@@ -31,6 +38,7 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "uv: ruff format",
+                "uv: nbstripout",
                 "uv: ruff check",
                 "uv: mypy"
             ],

@@ -15,12 +15,12 @@
 				"vincent-templier.vscode-netron"
 			],
 			"settings": {
-				"python.defaultInterpreterPath": "~/.venvs/default/bin/python"
+				"python.defaultInterpreterPath": "/home/vscode/.venv/bin/python"
 			}
 		}
 	},
 	"remoteEnv": {
-		"UV_PROJECT_ENVIRONMENT": "/home/vscode/.venvs/default"
+		"UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
 	},
 	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh",
 	"postStartCommand": "uv sync"
