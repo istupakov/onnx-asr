@@ -1,5 +1,6 @@
+""" PyAnnote VAD implementation. """
 
-from onnx_asr.vad import Vad
+from onnx_asr.vad import BaseVad
 from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
 from onnx_asr.utils import is_float32_array
 
@@ -16,7 +17,7 @@ import numpy.typing as npt
 from itertools import permutations, chain
 
 
-class PyAnnoteVad(Vad):
+class PyAnnoteVad(BaseVad):
     """ Pyannote VAD implementation. """
 
     INF = 10**15
