@@ -25,13 +25,13 @@
 				"vincent-templier.vscode-netron"
 			],
 			"settings": {
-				"python.defaultInterpreterPath": "~/.venvs/default/bin/python"
+				"python.defaultInterpreterPath": "/home/ubuntu/.venv/bin/python"
 			}
 		}
 	},
 	"remoteUser": "ubuntu",
 	"remoteEnv": {
-		"UV_PROJECT_ENVIRONMENT": "/home/ubuntu/.venvs/default"
+		"UV_PROJECT_ENVIRONMENT": "/home/ubuntu/.venv"
 	},
 	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh",
 	"postStartCommand": "uv sync"
