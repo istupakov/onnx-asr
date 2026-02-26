@@ -53,13 +53,13 @@ watch:
 nav:
   - Introduction: index.md
   - Docs:
-    - Installation: installation.md
-    - Usage: usage.md
-    - Troubleshooting: troubleshooting.md
-    - Benchmarks: benchmarks.md
-    - Comparison: comparison.md
-    - Conversion: conversion.md
-    - License: license.md
+      - Installation: installation.md
+      - Usage: usage.md
+      - Benchmarks: benchmarks.md
+      - Troubleshooting: troubleshooting.md
+      - Comparison: comparison.md
+      - Conversion: conversion.md
+      - License: license.md
   - Demo: demo.md
   - Reference: reference.md
   - Release Notes: release-notes.md
@@ -68,6 +68,12 @@ extra_javascript:
   - path: https://gradio.s3-us-west-2.amazonaws.com/6.6.0/gradio.js
     type: module
   - javascripts/gradio-fix.js
+  - https://unpkg.com/katex@0/dist/katex.min.js
+  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+  - javascripts/katex.js
+
+extra_css:
+  - https://unpkg.com/katex@0/dist/katex.min.css
 
 markdown_extensions:
   - admonition
@@ -77,6 +83,8 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
   - toc:
       permalink: true
       slugify: !!python/object/apply:pymdownx.slugs.slugify
