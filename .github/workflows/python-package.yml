@@ -69,7 +69,7 @@ jobs:
         run: |
           uv pip compile --group build --generate-hashes -o build-constraints.txt
           uv build -b build-constraints.txt --require-hashes
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels
           path: ./dist/onnx_asr-*.whl
@@ -140,7 +140,7 @@ jobs:
         with:
           activate-environment: true
           python-version: ${{ matrix.python-version }}
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: wheels
           path: ./dist
