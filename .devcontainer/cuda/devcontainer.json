@@ -25,7 +25,9 @@
 				"vincent-templier.vscode-netron"
 			],
 			"settings": {
-				"python.defaultInterpreterPath": "/home/ubuntu/.venv/bin/python"
+				"python-envs.globalSearchPaths": [
+					"~/**/.venv"
+				]
 			}
 		}
 	},
