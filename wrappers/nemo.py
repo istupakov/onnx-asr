@@ -17,12 +17,12 @@ from onnx_asr.asr import TimestampedResult
 class NemoASR:
     """Wrapper model for NeMo Toolkit ASR."""
 
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, device: str = "cpu"):
         """Create wrapper."""
         self.logger = Logger()
         self.logger.setLevel(Logger.ERROR)
 
-        self.model: Any = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
+        self.model: Any = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name).to(self.device)
         self.model.change_decoding_strategy({"strategy": "greedy_batch"})
         self.model.eval()
 
