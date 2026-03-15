@@ -3,7 +3,7 @@
 from collections.abc import Iterable, Iterator
 from itertools import chain, permutations
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -73,7 +73,9 @@ class PyAnnoteVad(BaseVad):
                 batch of shape(batch_size, num_frames(589 for 10s), 7)
                 { no-speech }, { spk1 }, { spk2 }, { spk3 }, { spk1 + spk2 }, { spk1 + spk3 }, { spk2 + spk3 }
             """
-            output = np.exp(self._model.run(["logits"], {"input_values": window[:, None, :]})[0])
+            output = np.exp(
+                cast(npt.NDArray[np.float32], self._model.run(["logits"], {"input_values": window[:, None, :]})[0])
+            )
             assert is_float32_array(output)
             return output
 
@@ -103,9 +105,11 @@ class PyAnnoteVad(BaseVad):
 
         def reorder(window: npt.NDArray[np.float32], chunk: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
             """Make sure all the windows have the correct speaker order."""
-            perms = [np.array(perm).T for perm in permutations(window.T)]
+            perms: list[npt.NDArray[np.float32]] = [
+                np.array(perm, dtype=np.float32).T for perm in permutations(window.T)
+            ]
             diffs = np.sum(np.abs(np.sum(np.array(perms)[:, :overlap_len] - chunk, axis=1)), axis=1)
-            return perms[np.argmin(diffs)]
+            return perms[int(np.argmin(diffs))]
 
         def fuse(window: npt.NDArray[np.float32], chunk: npt.NDArray[np.float32]) -> None:
             """Combine overlapping chunks and take an average of their probs."""
@@ -121,7 +125,7 @@ class PyAnnoteVad(BaseVad):
             return window[:, :4]
 
         overlap_len = self._sample2frame(overlap)
-        overlap_chunk = np.zeros((overlap_len, 4))
+        overlap_chunk: npt.NDArray[np.float32] = np.zeros((overlap_len, 4), dtype=np.float32)
         for i, window in enumerate(windows, 1):
             window = merge_spk_probs(window)
             if i == 1:
@@ -208,7 +212,7 @@ class PyAnnoteVad(BaseVad):
         self,
         waveforms: npt.NDArray[np.float32],
         waveforms_len: npt.NDArray[np.int64],
-        sample_rate: Literal[16_000],
+        sample_rate: Literal[8000, 16000],
         **kwargs: float,
     ) -> Iterator[Iterator[tuple[int, int]]]:
         """Segment a batch of waveforms into speech intervals.
@@ -224,7 +228,7 @@ class PyAnnoteVad(BaseVad):
         overlap = 5 * sample_rate
 
         def segment(
-            decoding: Iterator[npt.NDArray[np.float32]], waveform_len: np.int64, **kwargs: float
+            decoding: Iterable[tuple[int, npt.NDArray[np.float32]]], waveform_len: int, **kwargs: float
         ) -> Iterator[tuple[int, int]]:
             return self._merge_segments(self._find_segments(decoding, **kwargs), waveform_len, sample_rate, **kwargs)
 
@@ -236,15 +240,19 @@ class PyAnnoteVad(BaseVad):
                     (batch_windows[0] for batch_windows in encoding), window_size, overlap
                 )
             )
-            yield segment(decoding, waveforms_len[0], **kwargs)
+            yield segment(decoding, int(waveforms_len[0]), **kwargs)
         else:
             yield from (
                 segment(
                     (
                         (begin, 1 - window[:, 0])
-                        for begin, window in self._decode(undecode_windows, window_size, overlap)
+                        for begin, window in self._decode(
+                            cast(Iterator[npt.NDArray[np.float32]], iter(undecode_windows)),
+                            window_size,
+                            overlap,
+                        )
                     ),
-                    waveform_len,
+                    int(waveform_len),
                     **kwargs,
                 )
                 for undecode_windows, waveform_len in zip(zip(*encoding, strict=True), waveforms_len, strict=False)
