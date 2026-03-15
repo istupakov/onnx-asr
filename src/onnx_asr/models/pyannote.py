@@ -1,20 +1,17 @@
 """PyAnnote VAD implementation."""
 
-from onnx_asr.vad import BaseVad
-from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
-from onnx_asr.utils import is_float32_array
-
-import onnxruntime as rt
-
-from pathlib import Path
-
 from collections.abc import Iterable, Iterator
+from itertools import chain, permutations
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
+import onnxruntime as rt
 
-from itertools import permutations, chain
+from onnx_asr.onnx import OnnxSessionOptions, TensorRtOptions
+from onnx_asr.utils import is_float32_array
+from onnx_asr.vad import BaseVad
 
 
 class PyAnnoteVad(BaseVad):
@@ -25,8 +22,7 @@ class PyAnnoteVad(BaseVad):
     STRIDE = 270
 
     def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        """Create Pyannote VAD"""
-
+        """Create Pyannote VAD."""
         self._model = rt.InferenceSession(model_files["model"], **onnx_options)
         self._num_windows = 0
 
@@ -40,27 +36,25 @@ class PyAnnoteVad(BaseVad):
         return {"model": f"**/model{suffix}.onnx"}
 
     @staticmethod
-    def _sample2frame(L_in: int) -> int:
-        # receptive field: 991
-        # stride: 270
-        return (L_in - PyAnnoteVad.RECEPTIVE_FIELD) // PyAnnoteVad.STRIDE + 1
+    def _sample2frame(l_in: int) -> int:
+        return (l_in - PyAnnoteVad.RECEPTIVE_FIELD) // PyAnnoteVad.STRIDE + 1
 
     @staticmethod
-    def _frame2sample(L_in: int) -> int:
-        # receptive field: 991
-        # stride: 270
-        return (L_in - 1) * PyAnnoteVad.STRIDE + PyAnnoteVad.RECEPTIVE_FIELD
+    def _frame2sample(l_in: int) -> int:
+        return (l_in - 1) * PyAnnoteVad.STRIDE + PyAnnoteVad.RECEPTIVE_FIELD
 
     def _encode(
-        self, waveforms: npt.NDArray[np.float32], window_size: int, overlap: int, **kwargs
+        self, waveforms: npt.NDArray[np.float32], window_size: int, overlap: int, **kwargs: float
     ) -> Iterator[npt.NDArray[np.float32]]:
-        """
-        Args:
-            waveforms: audio samples with shape (batch_size, num_samples)
-            window_size: number of window samples
-            overlap: number of overlap samples
-        """
+        """Encode waveforms into windowed model outputs.
 
+        Args:
+        waveforms: audio samples with shape (batch_size, num_samples)
+        window_size: number of window samples
+        overlap: number of overlap samples
+        **kwargs: additional keyword arguments passed through to inner calls
+
+        """
         # 10s sliding window and 5s overlap
         windows = np.lib.stride_tricks.sliding_window_view(waveforms, window_size, axis=-1)[
             :, :: (window_size - overlap), :
@@ -71,7 +65,8 @@ class PyAnnoteVad(BaseVad):
             self._num_windows += 1
 
         def process(window: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
-            """
+            """Run model inference on a single window batch.
+
             Input:
                 window: (batch_size, window_size)
             Output:
@@ -94,26 +89,29 @@ class PyAnnoteVad(BaseVad):
             )
 
     def _decode(
-        self, windows: Iterator[npt.NDArray[np.float32]], window_size: int, overlap: int, **kwargs
+        self, windows: Iterator[npt.NDArray[np.float32]], window_size: int, overlap: int, **kwargs: float
     ) -> Iterator[tuple[int, npt.NDArray[np.float32]]]:
-        """
+        """Decode windowed model outputs into per-sample speaker probability arrays.
+
         Args:
-            windows: Iterator of window with shape (num_frames, num_spk) where num_spk = 7
-            window_size: number of window samples
-            overlap: number of overlap samples
+        windows: Iterator of window with shape (num_frames, num_spk) where num_spk = 7
+        window_size: number of window samples
+        overlap: number of overlap samples
+        **kwargs: additional keyword arguments passed through to inner calls
+
         """
 
         def reorder(window: npt.NDArray[np.float32], chunk: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
-            """Make sure all the windows have the correct speaker order"""
+            """Make sure all the windows have the correct speaker order."""
             perms = [np.array(perm).T for perm in permutations(window.T)]
             diffs = np.sum(np.abs(np.sum(np.array(perms)[:, :overlap_len] - chunk, axis=1)), axis=1)
             return perms[np.argmin(diffs)]
 
-        def fuse(window, chunk):
-            """Combine overlapping chunks and take an average of their probs"""
+        def fuse(window: npt.NDArray[np.float32], chunk: npt.NDArray[np.float32]) -> None:
+            """Combine overlapping chunks and take an average of their probs."""
             window[:, :] = (window[:, :] + chunk[:, :]) / 2
 
-        def merge_spk_probs(window):
+        def merge_spk_probs(window: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
             # for each spk add all probs up
             window[:, 1] += window[:, 4] + window[:, 5]
             window[:, 2] += window[:, 4] + window[:, 6]
@@ -130,12 +128,10 @@ class PyAnnoteVad(BaseVad):
                 overlap_chunk = window[-overlap_len:]
                 yield 0, window[:-overlap_len]
             elif i > 1 and i < self._num_windows:
-                # window[ : , 1:] = reorder(window[ : , 1: ], overlap_chunk[ : , 1: ])
                 fuse(window[:overlap_len], overlap_chunk)
                 overlap_chunk = window[-overlap_len:]
                 yield (i - 1) * (window_size - overlap), window[:-overlap_len]
             else:
-                # window[ : , 1:] = reorder(window[ : , 1:], overlap_chunk[ : , 1: ])
                 fuse(window[:overlap_len], overlap_chunk)
                 yield (i - 1) * (window_size - overlap), window
 
@@ -147,9 +143,14 @@ class PyAnnoteVad(BaseVad):
         neg_threshold: float | None = None,
         **kwargs: float,
     ) -> Iterator[tuple[int, int]]:
-        """
+        """Find speech segments from decoded probabilities.
+
         Args:
-            decoding: a Iterable of (begin and window)
+        decoding: a Iterable of (begin and window)
+        threshold: probability threshold to enter speech state.
+        neg_threshold: probability threshold to exit speech state, defaults to threshold - 0.15.
+        **kwargs: additional keyword arguments passed through to inner calls
+
         """
         if neg_threshold is None:
             neg_threshold = threshold - 0.15
@@ -210,11 +211,14 @@ class PyAnnoteVad(BaseVad):
         sample_rate: Literal[16_000],
         **kwargs: float,
     ) -> Iterator[Iterator[tuple[int, int]]]:
-        """
+        """Segment a batch of waveforms into speech intervals.
+
         Args:
-            waveforms: audio samples with shape (batch_size, num_samples)
-            waveforms_len: ints with shape( batch_size, 1 )
-            sample_rate: Literal[16_000]
+        waveforms: audio samples with shape (batch_size, num_samples)
+        waveforms_len: ints with shape( batch_size, 1 )
+        sample_rate: Literal[16_000]
+        **kwargs: additional keyword arguments forwarded to segmentation helpers
+
         """
         window_size = 10 * sample_rate
         overlap = 5 * sample_rate
@@ -243,5 +247,5 @@ class PyAnnoteVad(BaseVad):
                     waveform_len,
                     **kwargs,
                 )
-                for undecode_windows, waveform_len in zip(zip(*encoding, strict=True), waveforms_len)
+                for undecode_windows, waveform_len in zip(zip(*encoding, strict=True), waveforms_len, strict=False)
             )
