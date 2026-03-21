@@ -6,7 +6,7 @@
         {
             "label": "uv: ruff format",
             "type": "shell",
-            "command": "uv run ruff format",
+            "command": "uv run --extra cpu ruff format",
             "problemMatcher": [],
             "detail": "Format code using Ruff"
         },
@@ -20,14 +20,14 @@
         {
             "label": "uv: ruff check",
             "type": "shell",
-            "command": "uv run ruff check",
+            "command": "uv run --extra cpu ruff check",
             "problemMatcher": [],
             "detail": "Lint with Ruff"
         },
         {
             "label": "uv: mypy",
             "type": "shell",
-            "command": "uv run mypy .",
+            "command": "uv run --extra cpu mypy .",
             "problemMatcher": [],
             "detail": "Check types with mypy"
         },
@@ -52,7 +52,7 @@
         {
             "label": "uv: mkdocs build",
             "type": "shell",
-            "command": "uv run --group docs mkdocs build --clean --strict",
+            "command": "uv run --only-group docs mkdocs build --clean --strict",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -63,14 +63,14 @@
         {
             "label": "uv: mkdocs serve",
             "type": "shell",
-            "command": "uv run --group docs mkdocs serve",
+            "command": "uv run --only-group docs mkdocs serve",
             "problemMatcher": [],
             "detail": "Serve docs with mkdocs"
         },
         {
             "label": "uv: pytest",
             "type": "shell",
-            "command": "uv run --group test-all pytest --cov",
+            "command": "uv run --extra cpu --group test-all pytest --cov",
             "problemMatcher": [],
             "group": {
                 "kind": "test",
