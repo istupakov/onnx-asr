@@ -73,6 +73,7 @@ build = [
 dev = [
     "mypy>=1.19.1",
     "ruff>=0.15.1",
+    "onnx-asr[hub]",
     { include-group = "build" },
     { include-group = "jupyter" },
     { include-group = "test" },
@@ -84,17 +85,8 @@ docs = [
     "mkdocstrings[python]>=1.0.3",
     "ruff>=0.15.1",
 ]
-jupyter = [
-    "ipykernel<7",
-    "ipywidgets>=8.1.8",
-    "nbstripout>=0.9.1",
-]
-test = [
-    "huggingface-hub>=0.30.2",
-    "onnxruntime>=1.18.1",
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-]
+jupyter = ["ipykernel<7", "ipywidgets>=8.1.8", "nbstripout>=0.9.1"]
+test = ["pytest>=9.0.2", "pytest-cov>=7.0.0"]
 test-all = [
     "kaldi-native-fbank>=1.22.3",
     "nemo-toolkit[asr]>=2.6.2",
@@ -114,7 +106,7 @@ cache-keys = [
     { file = "preprocessors/*.py" },
     { git = { commit = true, tags = true } },
 ]
-conflicts = [[{ group = "benchmark" }, { group = "test" }]]
+conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
 
 [tool.uv.sources]
 torch = { index = "pytorch" }

@@ -23,13 +23,13 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Install dependencies
-        run: uv sync --locked
+        run: uv sync --locked --extra cpu
       - name: Check code formatting with Ruff
-        run: uv run ruff format --diff
+        run: uv run --extra cpu ruff format --diff
       - name: Check code with Ruff
-        run: uv run ruff check --output-format=github
+        run: uv run --extra cpu ruff check --output-format=github
       - name: Check types with MyPy
-        run: uv run mypy .
+        run: uv run --extra cpu mypy .
       - name: Check Jupyter outputs
         run: find . -name '*.ipynb' -exec uv run nbstripout --verify {} +
 
@@ -46,7 +46,7 @@ jobs:
         with:
           activate-environment: true
       - name: Install dependencies
-        run: uv sync --group test-all --group docs
+        run: uv sync --extra cpu --group test-all --group docs
 
       - name: Cache HF models
         uses: actions/cache@v5
@@ -148,7 +148,7 @@ jobs:
       - name: Install packages
         shell: bash
         run: >-
-          uv pip install --group test ./dist/onnx_asr-*.whl
+          uv pip install --group test $(find ./dist -name onnx_asr-*.whl)[cpu,hub]
           ${{ matrix.numpy }} 
           ${{ matrix.onnxruntime }}
           ${{ matrix.hf-hub }}
