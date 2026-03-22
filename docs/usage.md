@@ -132,7 +132,7 @@ API reference: [onnx_asr.load_vad][], [onnx_asr.load_model][], [with_vad][onnx_a
 
 ### Supported VAD names
 
-* `silero` for Silero VAD ([origin](https://github.com/snakers4/silero-vad), [onnx](https://huggingface.co/onnx-community/silero-vad))
+* `silero` for Silero VAD ([origin](https://github.com/snakers4/silero-vad), [onnx](https://huggingface.co/istupakov/silero-vad-onnx))
 
 ## CLI
 

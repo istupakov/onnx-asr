@@ -36,7 +36,7 @@ class SileroVad(BaseVad):
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
         suffix = "?" + quantization if quantization else ""
-        return {"model": f"**/model{suffix}.onnx"}
+        return {"model": f"silero_vad{suffix}.onnx"}
 
     def _encode(
         self, waveforms: npt.NDArray[np.float32], sample_rate: int, hop_size: int, context_size: int
@@ -112,7 +112,7 @@ class SileroVad(BaseVad):
                 if cur_end - cur_start > min_speech_duration:
                     yield max(cur_start - speech_pad, 0), min(cur_end + speech_pad, waveform_len)
                 while end - start > max_speech_duration:
-                    yield max(start - speech_pad, 0), start + max_speech_duration - speech_pad
+                    yield max(start - speech_pad, 0), start + max_speech_duration + speech_pad
                     start += max_speech_duration
                 cur_start, cur_end = start, end
 
