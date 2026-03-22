@@ -6,17 +6,16 @@ import pytest
 
 from onnx_asr.asr import Asr, BaseAsr
 from onnx_asr.loader import (
-    ModelNames,
-    ModelTypes,
+    AsrNames,
+    AsrTypeNames,
     VadNames,
+    VadTypeNames,
     create_asr_resolver,
     create_se_resolver,
     create_vad_resolver,
 )
 from onnx_asr.models.kaldi import KaldiTransducer
 from onnx_asr.models.nemo import NemoConformerAED
-from onnx_asr.models.pyannote import PyAnnoteVad
-from onnx_asr.models.silero import SileroVad
 from onnx_asr.models.tone import TOneCtc
 from onnx_asr.models.wespeaker import WespeakerEmbeddings
 from onnx_asr.models.whisper import WhisperHf
@@ -32,8 +31,8 @@ from onnx_asr.utils import (
 from onnx_asr.vad import BaseVad
 
 
-@pytest.mark.parametrize("model", get_args(ModelNames))
-def test_model_names(model: ModelNames) -> None:
+@pytest.mark.parametrize("model", get_args(AsrNames))
+def test_model_names(model: AsrNames) -> None:
     loader = create_asr_resolver(model)
     assert issubclass(loader.model_type, BaseAsr)
     assert not loader.offline
@@ -41,8 +40,8 @@ def test_model_names(model: ModelNames) -> None:
     assert isinstance(loader.repo_id, str)
 
 
-@pytest.mark.parametrize("model", get_args(ModelNames))
-def test_model_names_with_path(model: ModelNames, tmp_path: Path) -> None:
+@pytest.mark.parametrize("model", get_args(AsrNames))
+def test_model_names_with_path(model: AsrNames, tmp_path: Path) -> None:
     loader = create_asr_resolver(model, tmp_path)
     assert issubclass(loader.model_type, BaseAsr)
     assert loader.offline
@@ -84,8 +83,8 @@ def test_model_repos_with_path(model: str, tmp_path: Path, type: type[Asr]) -> N
     assert loader.repo_id == model
 
 
-@pytest.mark.parametrize("model", get_args(ModelTypes))
-def test_model_types(model: ModelTypes, tmp_path: Path) -> None:
+@pytest.mark.parametrize("model", get_args(AsrTypeNames))
+def test_model_types(model: AsrTypeNames, tmp_path: Path) -> None:
     loader = create_asr_resolver(model, tmp_path)
     assert issubclass(loader.model_type, BaseAsr)
     assert loader.offline
@@ -114,20 +113,20 @@ def test_model_not_supported_error(tmp_path: Path) -> None:
         create_asr_resolver("xxx", tmp_path)
 
 
-@pytest.mark.parametrize("model", get_args(ModelTypes))
-def test_no_model_name_or_path_specified_error(model: ModelTypes) -> None:
+@pytest.mark.parametrize("model", get_args(AsrTypeNames))
+def test_no_model_name_or_path_specified_error(model: AsrTypeNames) -> None:
     with pytest.raises(NoModelNameOrPathSpecifiedError):
         create_asr_resolver(model)
 
 
-@pytest.mark.parametrize("model", get_args(ModelTypes))
-def test_no_model_name_and_empty_path_specified_error(model: ModelTypes, tmp_path: Path) -> None:
+@pytest.mark.parametrize("model", get_args(AsrTypeNames))
+def test_no_model_name_and_empty_path_specified_error(model: AsrTypeNames, tmp_path: Path) -> None:
     with pytest.raises(NoModelNameOrPathSpecifiedError):
         create_asr_resolver(model, Path(tmp_path, "model"))
 
 
-@pytest.mark.parametrize("model", get_args(ModelTypes))
-def test_model_path_not_found_error(model: ModelTypes, tmp_path: Path) -> None:
+@pytest.mark.parametrize("model", get_args(AsrTypeNames))
+def test_model_path_not_found_error(model: AsrTypeNames, tmp_path: Path) -> None:
     Path(tmp_path, "model").write_text("test")
     with pytest.raises(ModelPathNotDirectoryError):
         create_asr_resolver(model, Path(tmp_path, "model"))
@@ -188,7 +187,7 @@ def test_without_huggingface_hub(monkeypatch: pytest.MonkeyPatch) -> None:
     loader_with_path.resolve_model(quantization="uint8")
 
 
-@pytest.mark.parametrize("model", [*get_args(VadNames), "pyannote"])
+@pytest.mark.parametrize("model", get_args(VadNames))
 def test_vad(model: str) -> None:
     loader = create_vad_resolver(model)
     assert issubclass(loader.model_type, BaseVad)
@@ -197,13 +196,22 @@ def test_vad(model: str) -> None:
     assert isinstance(loader.repo_id, str)
 
 
-@pytest.mark.parametrize("model", [*get_args(VadNames), "pyannote"])
+@pytest.mark.parametrize("model", get_args(VadNames))
 def test_vad_with_path(model: str, tmp_path: Path) -> None:
     loader = create_vad_resolver(model, tmp_path)
-    assert issubclass(loader.model_type, SileroVad | PyAnnoteVad)
+    assert issubclass(loader.model_type, BaseVad)
     assert loader.offline
     assert loader.local_dir == tmp_path
     assert isinstance(loader.repo_id, str)
+
+
+@pytest.mark.parametrize("model", get_args(VadTypeNames))
+def test_vad_types(model: VadTypeNames, tmp_path: Path) -> None:
+    loader = create_vad_resolver(model, tmp_path)
+    assert issubclass(loader.model_type, BaseVad)
+    assert loader.offline
+    assert loader.local_dir == tmp_path
+    assert loader.repo_id is None
 
 
 def test_resolve_vad_file_not_found_error() -> None:

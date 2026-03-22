@@ -2,11 +2,13 @@
 -----
 ::: onnx_asr
 
-::: onnx_asr.loader.ModelNames
+::: onnx_asr.loader.AsrNames
 
-::: onnx_asr.loader.ModelTypes
+::: onnx_asr.loader.AsrTypeNames
 
 ::: onnx_asr.loader.VadNames
+
+::: onnx_asr.loader.VadTypeNames
 
 ::: onnx_asr.onnx.Provider
 
