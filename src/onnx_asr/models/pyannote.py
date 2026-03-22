@@ -1,7 +1,7 @@
 """PyAnnote VAD implementation."""
 
 from collections.abc import Iterable, Iterator
-from itertools import chain, permutations
+from itertools import permutations
 from pathlib import Path
 from typing import Literal, cast
 
@@ -15,14 +15,19 @@ from onnx_asr.vad import BaseVad
 
 
 class PyAnnoteVad(BaseVad):
-    """Pyannote VAD implementation."""
+    """PyAnnote VAD implementation."""
 
-    INF = 10**15
     RECEPTIVE_FIELD = 991
     STRIDE = 270
 
     def __init__(self, model_files: dict[str, Path], onnx_options: OnnxSessionOptions):
-        """Create Pyannote VAD."""
+        """Create PyAnnote VAD.
+
+        Args:
+            model_files: Dict with paths to model files.
+            onnx_options: Options for onnxruntime InferenceSession.
+
+        """
         self._model = rt.InferenceSession(model_files["model"], **onnx_options)
         self._num_windows = 0
 
@@ -49,10 +54,10 @@ class PyAnnoteVad(BaseVad):
         """Encode waveforms into windowed model outputs.
 
         Args:
-        waveforms: audio samples with shape (batch_size, num_samples)
-        window_size: number of window samples
-        overlap: number of overlap samples
-        **kwargs: additional keyword arguments passed through to inner calls
+            waveforms: audio samples with shape (batch_size, num_samples)
+            window_size: number of window samples
+            overlap: number of overlap samples
+            **kwargs: additional keyword arguments passed through to inner calls
 
         """
         # 10s sliding window and 5s overlap
@@ -96,10 +101,10 @@ class PyAnnoteVad(BaseVad):
         """Decode windowed model outputs into per-sample speaker probability arrays.
 
         Args:
-        windows: Iterator of window with shape (num_frames, num_spk) where num_spk = 7
-        window_size: number of window samples
-        overlap: number of overlap samples
-        **kwargs: additional keyword arguments passed through to inner calls
+            windows: Iterator of window with shape (num_frames, num_spk) where num_spk = 7
+            window_size: number of window samples
+            overlap: number of overlap samples
+            **kwargs: additional keyword arguments passed through to inner calls
 
         """
 
@@ -150,10 +155,10 @@ class PyAnnoteVad(BaseVad):
         """Find speech segments from decoded probabilities.
 
         Args:
-        decoding: a Iterable of (begin and window)
-        threshold: probability threshold to enter speech state.
-        neg_threshold: probability threshold to exit speech state, defaults to threshold - 0.15.
-        **kwargs: additional keyword arguments passed through to inner calls
+            decoding: a Iterable of (begin and window)
+            threshold: probability threshold to enter speech state.
+            neg_threshold: probability threshold to exit speech state, defaults to threshold - 0.15.
+            **kwargs: additional keyword arguments passed through to inner calls
 
         """
         if neg_threshold is None:
@@ -179,35 +184,6 @@ class PyAnnoteVad(BaseVad):
         if state == 1:
             yield start, last_begin + self._frame2sample(last_i) + offset
 
-    def _merge_segments(
-        self,
-        segments: Iterator[tuple[int, int]],
-        waveform_len: int,
-        sample_rate: int,
-        *,
-        min_speech_duration_ms: float = 200,
-        max_speech_duration_s: float = 20,
-        min_silence_duration_ms: float = 100,
-        speech_pad_ms: float = 50,
-        **kwargs: float,
-    ) -> Iterator[tuple[int, int]]:
-        speech_pad = int(speech_pad_ms * sample_rate // 1000)
-        min_speech_duration = int(min_speech_duration_ms * sample_rate // 1000) - 2 * speech_pad
-        max_speech_duration = int(max_speech_duration_s * sample_rate) - 2 * speech_pad
-        min_silence_duration = int(min_silence_duration_ms * sample_rate // 1000) + 2 * speech_pad
-
-        cur_start, cur_end = -self.INF, -self.INF
-        for start, end in chain(segments, ((waveform_len, waveform_len), (self.INF, self.INF))):
-            if start - cur_end < min_silence_duration and end - cur_start < max_speech_duration:
-                cur_end = end
-            else:
-                if cur_end - cur_start > min_speech_duration:
-                    yield max(cur_start - speech_pad, 0), min(cur_end + speech_pad, waveform_len)
-                while end - start > max_speech_duration:
-                    yield max(start - speech_pad, 0), start + max_speech_duration - speech_pad
-                    start += max_speech_duration
-                cur_start, cur_end = start, end
-
     def segment_batch(
         self,
         waveforms: npt.NDArray[np.float32],
@@ -218,10 +194,10 @@ class PyAnnoteVad(BaseVad):
         """Segment a batch of waveforms into speech intervals.
 
         Args:
-        waveforms: audio samples with shape (batch_size, num_samples)
-        waveforms_len: ints with shape( batch_size, 1 )
-        sample_rate: Literal[16_000]
-        **kwargs: additional keyword arguments forwarded to segmentation helpers
+            waveforms: audio samples with shape (batch_size, num_samples)
+            waveforms_len: ints with shape( batch_size, 1 )
+            sample_rate: Literal[16_000]
+            **kwargs: additional keyword arguments forwarded to segmentation helpers
 
         """
         window_size = 10 * sample_rate
