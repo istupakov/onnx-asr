@@ -33,7 +33,7 @@ from onnx_asr.utils import (
 )
 from onnx_asr.vad import Vad
 
-ModelNames = Literal[
+AsrNames = Literal[
     "gigaam-v2-ctc",
     "gigaam-v2-rnnt",
     "gigaam-v3-ctc",
@@ -54,7 +54,7 @@ ModelNames = Literal[
 ]
 """Supported ASR model names (can be automatically downloaded from the Hugging Face)."""
 
-ModelTypes = Literal[
+AsrTypeNames = Literal[
     "kaldi-rnnt",
     "nemo-conformer-ctc",
     "nemo-conformer-rnnt",
@@ -69,6 +69,9 @@ ModelTypes = Literal[
 
 VadNames = Literal["silero"]
 """Supported VAD model names (can be automatically downloaded from the Hugging Face)."""
+
+VadTypeNames = Literal["silero-vad", "pyannote-vad"]
+"""Supported VAD model types."""
 
 AsrTypes: TypeAlias = (
     GigaamV2Ctc
@@ -125,7 +128,12 @@ def create_vad_resolver(
     model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
 ) -> Resolver[VadTypes]:
     """Create resolver for VAD models."""
-    model_types: dict[str, type[VadTypes]] = {"silero": SileroVad, "pyannote": PyAnnoteVad}
+    model_types: dict[str, type[VadTypes]] = {
+        "silero": SileroVad,
+        "silero-vad": SileroVad,
+        "onnx-community/pyannote-segmentation-3.0": PyAnnoteVad,
+        "pyannote-vad": PyAnnoteVad,
+    }
     return Resolver(model_types, model, local_dir, offline=offline)
 
 
@@ -225,7 +233,7 @@ class Manager:
 
     def create_asr(
         self,
-        model: str | ModelNames | ModelTypes | None = None,
+        model: str | AsrNames | AsrTypeNames | None = None,
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
@@ -244,7 +252,7 @@ class Manager:
 
     def create_vad(
         self,
-        model: str | VadNames | None = None,
+        model: str | VadNames | VadTypeNames | None = None,
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
@@ -280,7 +288,7 @@ class Manager:
 
 
 def load_model(
-    model: str | ModelNames | ModelTypes,
+    model: str | AsrNames | AsrTypeNames,
     path: str | Path | None = None,
     *,
     quantization: str | None = None,
@@ -342,7 +350,7 @@ def load_model(
 
 
 def load_vad(
-    model: VadNames = "silero",
+    model: str | VadNames | VadTypeNames = "silero",
     path: str | Path | None = None,
     *,
     quantization: str | None = None,
@@ -353,7 +361,7 @@ def load_vad(
     """Load VAD model.
 
     Args:
-        model: VAD model name (supports download from Hugging Face).
+        model: VAD model name or type (download from Hugging Face supported if full model name is provided).
         path: Path to directory with model files.
         quantization: Model quantization (`None` | `int8` | ... ).
         sess_options: Optional SessionOptions for onnxruntime.

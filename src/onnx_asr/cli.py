@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from typing import get_args
 
 import onnx_asr
-from onnx_asr.loader import ModelNames, ModelTypes, VadNames
+from onnx_asr.loader import AsrNames, AsrTypeNames, VadNames
 
 
 def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
@@ -14,7 +14,7 @@ def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="onnx_asr", description=onnx_asr.__doc__)
     parser.add_argument(
         "model",
-        help=f"Model name or type {(*get_args(ModelNames), *get_args(ModelTypes), 'onnx-community/whisper-...')}",
+        help=f"Model name or type {(*get_args(AsrNames), *get_args(AsrTypeNames), 'onnx-community/whisper-...')}",
     )
     parser.add_argument(
         "filename",
