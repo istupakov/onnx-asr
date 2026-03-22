@@ -35,10 +35,10 @@ Key features of **onnx-asr** include:
 * Provides a simple command-line interface ([CLI](https://istupakov.github.io/onnx-asr/usage/#cli))
 
 > [!NOTE]
-> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
+> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v1/v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
 
 > [!WARNING]
-> onnxruntime 1.24.1 does not support symlinks to data files used in the HuggingFace cache for large models. Please upgrade to 1.24.2!
+> onnxruntime 1.24.1 has known compatibility issues with onnx-asr. Please use newer (or older) versions!
 
 > [!TIP]
 > You can check the onnx-asr demo on HF Spaces:

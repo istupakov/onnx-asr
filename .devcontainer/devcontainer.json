@@ -23,5 +23,5 @@
 		"UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
 	},
 	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh",
-	"postStartCommand": "uv sync"
+	"postStartCommand": "uv sync --extra cpu"
 }
