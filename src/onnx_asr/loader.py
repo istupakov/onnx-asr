@@ -70,7 +70,7 @@ AsrTypeNames = Literal[
 VadNames = Literal["silero", "onnx-community/pyannote-segmentation-3.0"]
 """Supported VAD model names (can be automatically downloaded from the Hugging Face)."""
 
-VadTypeNames = Literal["silero-vad", "pyannote-vad"]
+VadTypeNames = Literal["pyannote"]
 """Supported VAD model types."""
 
 AsrTypes: TypeAlias = (
@@ -130,9 +130,7 @@ def create_vad_resolver(
     """Create resolver for VAD models."""
     model_types: dict[str, type[VadTypes]] = {
         "silero": SileroVad,
-        "silero-vad": SileroVad,
-        "onnx-community/pyannote-segmentation-3.0": PyAnnoteVad,
-        "pyannote-vad": PyAnnoteVad,
+        "pyannote": PyAnnoteVad,
     }
     return Resolver(model_types, model, local_dir, offline=offline)
 

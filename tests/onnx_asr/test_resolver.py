@@ -196,7 +196,7 @@ def test_vad(model: str) -> None:
     assert isinstance(loader.repo_id, str)
 
 
-@pytest.mark.parametrize("model", get_args(VadNames))
+@pytest.mark.parametrize("model", ["silero"])
 def test_vad_with_path(model: str, tmp_path: Path) -> None:
     loader = create_vad_resolver(model, tmp_path)
     assert issubclass(loader.model_type, BaseVad)

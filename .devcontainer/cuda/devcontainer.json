@@ -34,5 +34,5 @@
 		"UV_PROJECT_ENVIRONMENT": "/home/ubuntu/.venv"
 	},
 	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh",
-	"postStartCommand": "uv sync"
+	"postStartCommand": "uv sync --extra gpu"
 }
