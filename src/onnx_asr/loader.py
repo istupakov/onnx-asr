@@ -67,7 +67,7 @@ AsrTypeNames = Literal[
 ]
 """Supported ASR model types."""
 
-VadNames = Literal["silero"]
+VadNames = Literal["silero", "onnx-community/pyannote-segmentation-3.0"]
 """Supported VAD model names (can be automatically downloaded from the Hugging Face)."""
 
 VadTypeNames = Literal["silero-vad", "pyannote-vad"]

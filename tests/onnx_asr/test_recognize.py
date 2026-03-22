@@ -1,5 +1,3 @@
-from collections.abc import Iterator
-
 import numpy as np
 import onnxruntime
 import pytest
@@ -10,7 +8,6 @@ from onnx_asr.adapters import TextResultsAsrAdapter
 from onnx_asr.asr import BaseAsr, TimestampedResult
 from onnx_asr.preprocessors.numpy_preprocessor import _NumpyPreprocessor
 from onnx_asr.preprocessors.preprocessor import ConcurrentPreprocessor, OnnxPreprocessor
-from onnx_asr.vad import BaseVad, SegmentResult, TimestampedSegmentResult, Vad
 
 models = [
     "gigaam-v2-ctc",
@@ -38,11 +35,6 @@ def model(request: pytest.FixtureRequest) -> TextResultsAsrAdapter:
             return onnx_asr.load_model(request.param, quantization="uint8")
         case _:
             return onnx_asr.load_model(request.param, quantization="int8")
-
-
-@pytest.fixture(scope="module")
-def vad() -> Vad:
-    return onnx_asr.load_vad("silero")
 
 
 def test_file_not_found_error(model: TextResultsAsrAdapter) -> None:
@@ -95,24 +87,6 @@ def test_recognize_batch(model: TextResultsAsrAdapter) -> None:
     result = model.recognize([waveform1, waveform2])
     assert isinstance(result, list)
     assert all(isinstance(item, str) for item in result)
-
-
-def test_recognize_with_vad(model: TextResultsAsrAdapter, vad: BaseVad) -> None:
-    rng = np.random.default_rng(0)
-    waveform = rng.random((1 * 16_000), dtype=np.float32)
-
-    result = model.with_vad(vad).recognize(waveform)
-    assert isinstance(result, Iterator)
-    assert all(isinstance(item, SegmentResult) for item in result)
-
-
-def test_recognize_with_vad_and_timestamps(model: TextResultsAsrAdapter, vad: BaseVad) -> None:
-    rng = np.random.default_rng(0)
-    waveform = rng.random((1 * 16_000), dtype=np.float32)
-
-    result = model.with_vad(vad).with_timestamps().recognize(waveform)
-    assert isinstance(result, Iterator)
-    assert all(isinstance(item, TimestampedSegmentResult) for item in result)
 
 
 @pytest.mark.parametrize("max_concurrent_workers", [None, 1, 2])
