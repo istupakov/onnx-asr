@@ -158,6 +158,7 @@ class NemoConformerAED(_NemoConformer):
         self._transcribe_input = np.array(
             [
                 [
+                    self._tokens[" "],
                     self._tokens["<|startofcontext|>"],
                     self._tokens["<|startoftranscript|>"],
                     self._tokens["<|emo:undefined|>"],
@@ -230,17 +231,17 @@ class NemoConformerAED(_NemoConformer):
 
         language = kwargs.get("language")
         if language:
-            batch_tokens[:, 3] = self._tokens[f"<|{language}|>"]
+            batch_tokens[:, 4] = self._tokens[f"<|{language}|>"]
 
         target_language = kwargs.get("target_language") or language
         if target_language:
-            batch_tokens[:, 4] = self._tokens[f"<|{target_language}|>"]
+            batch_tokens[:, 5] = self._tokens[f"<|{target_language}|>"]
 
         pnc = kwargs.get("pnc")
         if pnc is not None:
             if isinstance(pnc, bool):
                 pnc = "pnc" if pnc else "nopnc"
-            batch_tokens[:, 5] = self._tokens[f"<|{pnc}|>"]
+            batch_tokens[:, 6] = self._tokens[f"<|{pnc}|>"]
 
         prefix_len = batch_tokens.shape[1]
         shapes = {x.name: x.shape for x in self._decoder.get_inputs()}

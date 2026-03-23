@@ -34,7 +34,7 @@ Tests of Russian ASR models were performed on a *test* subset of the [Russian Li
 | Nemo Parakeet TDT 0.6B V3 |        default       | 2.34%  | 10.95% |       20.5 | 178.1        |
 | Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 2.38%  | 10.95% |       34.1 | 237.7        |
 |     Nemo Canary 1B V2     |        default       | 4.89%  | 20.00% |        4.5 | 32.3         |
-|     Nemo Canary 1B V2     |       onnx-asr       | 5.00%  | 20.03% |        7.4 | 27.3         |
+|     Nemo Canary 1B V2     |       onnx-asr       | 5.01%  | 19.97% |        7.4 | 27.3         |
 |       T-Tech T-one        |        default       | 1.28%  | 6.56%  |       27.6 | N/A          |
 |       T-Tech T-one        |       onnx-asr       | 1.28%  | 6.57%  |       25.4 | 77.0         |
 |      Vosk 0.52 small      |     greedy_search    | 3.64%  | 14.53% |       94.4 | 135.8        |
@@ -66,7 +66,7 @@ Tests of English ASR models were performed on a *test* subset of the [Voxpopuli]
 | Nemo Parakeet TDT 0.6B V3 |        default       | 3.97%  | 6.76%  | 21.4       | 234.3         |
 | Nemo Parakeet TDT 0.6B V3 |       onnx-asr       | 3.97%  | 6.75%  | 41.2       | 294.8         |
 |     Nemo Canary 1B V2     |        default       | 4.62%  | 7.42%  | 5.2        | 42.6          |
-|     Nemo Canary 1B V2     |       onnx-asr       | 4.67%  | 7.49%  | 9.8        | 36.7          |
+|     Nemo Canary 1B V2     |       onnx-asr       | 4.62%  | 7.42%  | 9.8        | 36.7          |
 |       Whisper base        |        default       | 6.88%  | 12.26% | 17.7       | 69.7          |
 |       Whisper base        |       onnx-asr[^1]   | 7.52%  | 12.76% | 35.0       | 77.9          |
 |  Whisper large-v3-turbo   |        default       | 7.23%  | 11.54% | N/A        | 55.3          |
