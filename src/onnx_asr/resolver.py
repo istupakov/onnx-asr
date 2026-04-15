@@ -129,7 +129,14 @@ class Resolver(Generic[T]):
             files = list(path.glob(filename))
             if len(files) > 1:
                 raise MoreThanOneModelFileFoundError(filename, path)
-            if len(files) == 0 or not files[0].is_file():
+            if len(files) == 0:
+                orig_path = Path(filename)
+                if orig_path.suffix == ".onnx":
+                    files = list(path.glob(str(orig_path.with_suffix(".ort"))))
+                    if len(files) == 1 and files[0].is_file():
+                        return files[0]
+                raise ModelFileNotFoundError(filename, path)
+            if not files[0].is_file():
                 raise ModelFileNotFoundError(filename, path)
             return files[0]
 
