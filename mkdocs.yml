@@ -65,7 +65,7 @@ nav:
   - Release Notes: release-notes.md
 
 extra_javascript:
-  - path: https://gradio.s3-us-west-2.amazonaws.com/6.9.0/gradio.js
+  - path: https://gradio.s3-us-west-2.amazonaws.com/6.12.0/gradio.js
     type: module
   - javascripts/gradio-fix.js
   - https://unpkg.com/katex@0/dist/katex.min.js

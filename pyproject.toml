@@ -55,7 +55,7 @@ onnx-asr = "onnx_asr.cli:main"
 
 [dependency-groups]
 benchmark = [
-    "datasets>=4.5.0",
+    "datasets>=4.8.4",
     "jinja2>=3.1.6",
     "jiwer>=3.1.0",
     "pandas>=2.3.3",
@@ -71,30 +71,30 @@ build = [
     "onnxscript>=0.6.2",
 ]
 dev = [
-    "mypy>=1.19.1",
-    "ruff>=0.15.1",
+    "mypy>=1.20.1",
+    "ruff>=0.15.11",
     "onnx-asr[hub]",
     { include-group = "build" },
     { include-group = "jupyter" },
     { include-group = "test" },
 ]
 docs = [
-    "click<8.3",                       # Until 8.3.2
+    "click>=8.3.2",
     "markdown-callouts>=0.4.0",
     "mkdocs-material[imaging]>=9.7.2",
-    "mkdocstrings[python]>=1.0.3",
-    "ruff>=0.15.1",
+    "mkdocstrings[python]>=1.0.4",
+    "ruff>=0.15.11",
 ]
 jupyter = ["ipykernel<7", "ipywidgets>=8.1.8", "nbstripout>=0.9.1"]
-test = ["pytest>=9.0.2", "pytest-cov>=7.0.0"]
+test = ["pytest>=9.0.3", "pytest-cov>=7.0.0"]
 test-all = [
     "kaldi-native-fbank>=1.22.3",
-    "nemo-toolkit[asr]>=2.6.2",
-    "onnx>=1.20.1",
+    "nemo-toolkit[asr]>=2.7.2",
+    "onnx>=1.21.0",
     "openai-whisper>=20250625",
     "soundfile>=0.13.1",
-    "torch>=2.10.0",
-    "torchaudio>=2.10.0",
+    "torch>=2.11.0",
+    "torchaudio>=2.11.0",
     { include-group = "build" },
     { include-group = "test" },
 ]
