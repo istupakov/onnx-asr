@@ -19,8 +19,9 @@ site/
 # ML models and data
 *.onnx
 *.npz
-
 /models/
+
+.env
 /*.ipynb
 *.wav
 *.mp3
