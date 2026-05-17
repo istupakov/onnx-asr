@@ -5,6 +5,7 @@ from onnxscript import FLOAT, INT64, graph, script
 from onnxscript import opset17 as op
 
 from preprocessors.fbanks import melscale_fbanks
+from preprocessors.stft import conv_power_spectrogram, stft_conv_weights
 
 sample_rate = 16_000
 n_fft = 512
@@ -29,6 +30,9 @@ wespeaker_mel_banks = melscale_fbanks(n_fft // 2 + 1, low_freq, 0, num_mel_bins,
     np.float32
 )
 wespeaker_window = np.hamming(win_length).astype(np.float32)
+stft_conv_weights_kaldi = stft_conv_weights(
+    np.pad(np.hanning(win_length) ** 0.85, (0, n_fft - win_length)).astype(np.float32)
+)
 
 
 @script()
@@ -75,13 +79,11 @@ def sliding_window(waveform: FLOAT["batch_size", "N"]):
 
 @script()
 def calc_features(
-    image: FLOAT["batch_size", "T", n_fft // 2 + 1, 2],
+    spectrogram: FLOAT["batch_size", "T", n_fft // 2 + 1],
     waveforms_lens: INT64["batch_size"],
     mel_banks: FLOAT[n_fft // 2 + 1, 2, num_mel_bins],
     snip_edges: bool,
 ):
-    spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
-
     mel_spectrogram = op.MatMul(spectrogram, mel_banks)
     log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, min=float_eps))
 
@@ -119,7 +121,8 @@ def preprocessor(
         frames = frames - preemphasis_coefficient * op.Pad(frames, pads=[0, 0, 1, 0, 0, -1], mode="edge")
 
     image = op.DFT(op.Unsqueeze(window * frames, axes=[-1]), n_fft, axis=-2, onesided=1)
-    features, features_lens = calc_features(image, waveforms_lens, mel_banks, snip_edges)
+    spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
+    features, features_lens = calc_features(spectrogram, waveforms_lens, mel_banks, snip_edges)
     return features, features_lens
 
 
@@ -155,8 +158,32 @@ def KaldiPreprocessorFast(
         pads=op.Constant(value=[0, n_fft - win_length]),
     )
     image = op.STFT(waveforms, hop_length, povey_window)
+    spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
 
-    features, features_lens = calc_features(image, waveforms_lens, kaldi_mel_banks, snip_edges=snip_edges)
+    features, features_lens = calc_features(spectrogram, waveforms_lens, kaldi_mel_banks, snip_edges=snip_edges)
+    return features, features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Kaldi models (Conv-based STFT)")
+def KaldiPreprocessorFastConv(
+    waveforms: FLOAT["batch_size", "N"], waveforms_lens: INT64["batch_size"]
+) -> tuple[FLOAT["batch_size", "T", num_mel_bins], INT64["batch_size"]]:
+    if dither != 0.0:
+        waveforms = waveforms + op.RandomNormalLike(waveforms, scale=dither)
+
+    if remove_dc_offset:
+        waveforms = waveforms - op.ReduceMean(waveforms, axes=[-1])
+
+    if not snip_edges:
+        waveforms = symmetric_pad(waveforms, waveforms_lens)
+
+    if preemphasis_coefficient != 0.0:
+        waveforms = waveforms - preemphasis_coefficient * op.Pad(waveforms, pads=[0, 1, 0, -1], mode="edge")
+
+    waveforms = op.Pad(waveforms, pads=op.Constant(value=[0, 0, 0, n_fft - win_length]))
+    spectrogram = conv_power_spectrogram(waveforms, stft_conv_weights_kaldi)
+
+    features, features_lens = calc_features(spectrogram, waveforms_lens, kaldi_mel_banks, snip_edges=snip_edges)
     return features, features_lens
 
 
