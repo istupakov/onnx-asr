@@ -6,6 +6,7 @@ from onnxscript import FLOAT, INT64, script
 from onnxscript import opset17 as op
 
 from preprocessors.fbanks import melscale_fbanks
+from preprocessors.stft import conv_power_spectrogram, stft_conv_weights
 
 sample_rate = 16_000
 n_fft_v2 = sample_rate // 40
@@ -26,6 +27,9 @@ melscale_fbanks_v3 = (
     melscale_fbanks(n_fft_v3 // 2 + 1, f_min, f_max, n_mels, sample_rate).astype(bfloat16).astype(np.float32)
 )
 hann_window_v3 = np.hanning(win_length_v3 + 1)[:-1].astype(bfloat16).astype(np.float32)
+
+stft_conv_weights_v2 = stft_conv_weights(np.hanning(win_length_v2 + 1)[:-1].astype(np.float32))
+stft_conv_weights_v3 = stft_conv_weights(hann_window_v3)
 
 
 @script(doc_string="LogMelSpectrogram feature extractor for GigaAM v2 models")
@@ -60,6 +64,42 @@ def GigaamPreprocessorV3(
     spectrogram = op.ReduceSumSquare(image, axes=[-1], keepdims=0)
 
     mel_spectrogram = op.MatMul(op.CastLike(spectrogram, melscale_fbanks_v3), melscale_fbanks_v3)
+    log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, clamp_min, clamp_max))
+
+    features_lens = (waveforms_lens - win_length_v3) / hop_length + 1
+    features = op.Transpose(log_mel_spectrogram, perm=[0, 2, 1])
+    return features, features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for GigaAM v2 models (Conv-based STFT)")
+def GigaamPreprocessorV2Conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", n_mels, "T"], INT64["batch_size"]]:
+    waveforms = op.Pad(
+        waveforms,
+        pads=op.Constant(value=[0, n_fft_v2 // 2, 0, n_fft_v2 // 2]),
+        mode="reflect",
+    )
+
+    spectrogram = conv_power_spectrogram(waveforms, stft_conv_weights_v2)
+
+    mel_spectrogram = op.MatMul(spectrogram, melscale_fbanks_v2)
+    log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, clamp_min, clamp_max))
+
+    features_lens = waveforms_lens / hop_length + 1
+    features = op.Transpose(log_mel_spectrogram, perm=[0, 2, 1])
+    return features, features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for GigaAM v3 models (Conv-based STFT)")
+def GigaamPreprocessorV3Conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", n_mels, "T"], INT64["batch_size"]]:
+    spectrogram = conv_power_spectrogram(waveforms, stft_conv_weights_v3)
+
+    mel_spectrogram = op.MatMul(spectrogram, melscale_fbanks_v3)
     log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, clamp_min, clamp_max))
 
     features_lens = (waveforms_lens - win_length_v3) / hop_length + 1

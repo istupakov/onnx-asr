@@ -34,6 +34,13 @@ def save_preprocessor_models(preprocessors_dir: Path, version: str) -> None:
         "nemo128.onnx": nemo.NemoPreprocessor128,
         "whisper80.onnx": whisper.WhisperPreprocessor80,
         "whisper128.onnx": whisper.WhisperPreprocessor128,
+        "gigaam_v2_conv.onnx": gigaam.GigaamPreprocessorV2Conv,
+        "gigaam_v3_conv.onnx": gigaam.GigaamPreprocessorV3Conv,
+        "kaldi_conv.onnx": kaldi.KaldiPreprocessorFastConv,
+        "nemo80_conv.onnx": nemo.NemoPreprocessor80Conv,
+        "nemo128_conv.onnx": nemo.NemoPreprocessor128Conv,
+        "whisper80_conv.onnx": whisper.WhisperPreprocessor80Conv,
+        "whisper128_conv.onnx": whisper.WhisperPreprocessor128Conv,
     }
     for filename, model in preprocessors.items():
         save_onnx(model, preprocessors_dir.joinpath(filename), version)

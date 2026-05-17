@@ -5,6 +5,7 @@ from onnxscript import FLOAT, INT64, script
 from onnxscript import opset17 as op
 
 from preprocessors.fbanks import melscale_fbanks
+from preprocessors.stft import conv_power_spectrogram, stft_conv_weights
 
 chunk_length = 30
 sample_rate = 16_000
@@ -22,6 +23,7 @@ melscale_fbanks80 = melscale_fbanks(n_fft // 2 + 1, 0, sample_rate // 2, 80, sam
 melscale_fbanks128 = melscale_fbanks(n_fft // 2 + 1, 0, sample_rate // 2, 128, sample_rate, "slaney", "slaney").astype(
     np.float32
 )
+stft_conv_weights_whisper = stft_conv_weights(np.hanning(win_length + 1)[:-1].astype(np.float32))
 
 
 @script()
@@ -75,5 +77,61 @@ def WhisperPreprocessor128(
         waveforms,
         waveforms_lens,
         melscale_fbanks128,
+    )
+    return features, features_lens
+
+
+@script()
+def whisper_preprocessor_conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+    melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"],
+    conv_weights: FLOAT["channels", 1, n_fft],
+):
+    waveforms = op.Pad(
+        waveforms,
+        pads=(chunk_length * sample_rate - op.Shape(waveforms, start=1, end=2)) * op.Constant(value=[0, 0, 0, 1]),
+    )
+    waveforms = op.Pad(
+        waveforms,
+        pads=op.Constant(value=[0, n_fft // 2, 0, n_fft // 2]),
+        mode="reflect",
+    )
+
+    spectrogram = conv_power_spectrogram(waveforms, conv_weights)[:, :-1]
+
+    mel_spectrogram = op.MatMul(spectrogram, melscale_fbanks)
+    log_mel_spectrogram = op.Log(op.Clip(mel_spectrogram, clamp_min)) / ln10
+    log_mel_spectrogram = (op.Max(log_mel_spectrogram, op.ReduceMax(log_mel_spectrogram) - 8) + 4) / 4.0
+
+    return op.Transpose(log_mel_spectrogram, perm=[0, 2, 1]), op.ConstantOfShape(
+        op.Shape(waveforms_lens), value=features_length
+    )
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Whisper models (Conv-based STFT)", default_opset=op)
+def WhisperPreprocessor80Conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", 80, "T"], INT64["batch_size"]]:
+    features, features_lens = whisper_preprocessor_conv(
+        waveforms,
+        waveforms_lens,
+        melscale_fbanks80,
+        stft_conv_weights_whisper,
+    )
+    return features, features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Whisper models (Conv-based STFT)", default_opset=op)
+def WhisperPreprocessor128Conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", 128, "T"], INT64["batch_size"]]:
+    features, features_lens = whisper_preprocessor_conv(
+        waveforms,
+        waveforms_lens,
+        melscale_fbanks128,
+        stft_conv_weights_whisper,
     )
     return features, features_lens

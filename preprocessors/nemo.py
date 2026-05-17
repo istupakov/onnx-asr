@@ -5,6 +5,7 @@ from onnxscript import FLOAT, INT64, script
 from onnxscript import opset17 as op
 
 from preprocessors.fbanks import melscale_fbanks
+from preprocessors.stft import conv_power_spectrogram, stft_conv_weights
 
 sample_rate = 16_000
 n_fft = 512
@@ -19,6 +20,9 @@ melscale_fbanks80 = melscale_fbanks(n_fft // 2 + 1, 0, sample_rate // 2, 80, sam
 )
 melscale_fbanks128 = melscale_fbanks(n_fft // 2 + 1, 0, sample_rate // 2, 128, sample_rate, "slaney", "slaney").astype(
     np.float32
+)
+stft_conv_weights_nemo = stft_conv_weights(
+    np.pad(np.hanning(win_length), (n_fft // 2 - win_length // 2, n_fft // 2 - win_length // 2)).astype(np.float32)
 )
 
 
@@ -85,5 +89,60 @@ def NemoPreprocessor128(
         waveforms,
         waveforms_lens,
         melscale_fbanks128,
+    )
+    return features, features_lens
+
+
+@script()
+def nemo_preprocessor_conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+    melscale_fbanks: FLOAT[n_fft // 2 + 1, "M"],
+    conv_weights: FLOAT["channels", 1, n_fft],
+):
+    if preemph != 0.0:
+        timemask = op.Range(0, op.Squeeze(op.Shape(waveforms, start=1, end=2)), 1) < op.Unsqueeze(
+            waveforms_lens, axes=[1]
+        )
+        waveforms = op.Concat(waveforms[:, :1], waveforms[:, 1:] - preemph * waveforms[:, :-1], axis=-1)
+        waveforms = op.Where(timemask, waveforms, 0.0)
+
+    waveforms = op.Pad(
+        waveforms,
+        pads=op.Constant(value=[0, n_fft // 2, 0, n_fft // 2]),
+    )
+    spectrogram = conv_power_spectrogram(waveforms, conv_weights)
+
+    mel_spectrogram = op.MatMul(spectrogram, melscale_fbanks)
+    log_mel_spectrogram = op.Log(mel_spectrogram + log_zero_guard_value)
+
+    features_lens = waveforms_lens / hop_length
+    return normalize(op.Transpose(log_mel_spectrogram, perm=[0, 2, 1]), features_lens), features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Nemo models (Conv-based STFT)", default_opset=op)
+def NemoPreprocessor80Conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", 80, "T"], INT64["batch_size"]]:
+    features, features_lens = nemo_preprocessor_conv(
+        waveforms,
+        waveforms_lens,
+        melscale_fbanks80,
+        stft_conv_weights_nemo,
+    )
+    return features, features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Nemo models (Conv-based STFT)", default_opset=op)
+def NemoPreprocessor128Conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", 128, "T"], INT64["batch_size"]]:
+    features, features_lens = nemo_preprocessor_conv(
+        waveforms,
+        waveforms_lens,
+        melscale_fbanks128,
+        stft_conv_weights_nemo,
     )
     return features, features_lens
