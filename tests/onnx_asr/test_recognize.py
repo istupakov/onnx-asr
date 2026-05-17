@@ -89,15 +89,19 @@ def test_recognize_batch(model: TextResultsAsrAdapter) -> None:
     assert all(isinstance(item, str) for item in result)
 
 
+@pytest.mark.parametrize("use_conv_preprocessors", [False, True])
 @pytest.mark.parametrize("max_concurrent_workers", [None, 1, 2])
 @pytest.mark.parametrize("use_numpy_preprocessors", [None, True, False])
-def test_preprocessor_options(max_concurrent_workers: int | None, use_numpy_preprocessors: bool | None) -> None:
+def test_preprocessor_options(
+    max_concurrent_workers: int | None, use_numpy_preprocessors: bool | None, use_conv_preprocessors: bool
+) -> None:
     model = onnx_asr.load_model(
         "alphacep/vosk-model-small-ru",
         quantization="int8",
         preprocessor_config={
             "max_concurrent_workers": max_concurrent_workers,
             "use_numpy_preprocessors": use_numpy_preprocessors,
+            "use_conv_preprocessors": use_conv_preprocessors,
         },
     )
     rng = np.random.default_rng(0)

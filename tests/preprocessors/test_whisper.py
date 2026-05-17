@@ -50,7 +50,9 @@ def preprocessor_torch(waveforms, lens, n_mels):
     return features.numpy(), np.full_like(lens, whisper.chunk_length * whisper.sample_rate // whisper.hop_length)
 
 
-@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model"])
+@pytest.fixture(
+    scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_func_conv", "onnx_model_conv"]
+)
 def preprocessor_tol(request, n_mels):
     match request.param:
         case "torch":
@@ -61,6 +63,10 @@ def preprocessor_tol(request, n_mels):
             return whisper.WhisperPreprocessor80 if n_mels == 80 else whisper.WhisperPreprocessor128, 5e-3
         case "onnx_model":
             return OnnxPreprocessor(f"whisper{n_mels}", {}), 5e-3
+        case "onnx_func_conv":
+            return (whisper.WhisperPreprocessor80Conv if n_mels == 80 else whisper.WhisperPreprocessor128Conv), 5e-3
+        case "onnx_model_conv":
+            return OnnxPreprocessor(f"whisper{n_mels}_conv", {}), 5e-3
 
 
 def test_whisper_preprocessor(n_mels, preprocessor_tol, waveforms):

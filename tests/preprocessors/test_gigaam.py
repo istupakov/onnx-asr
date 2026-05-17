@@ -95,7 +95,10 @@ def preprocessor_torch_v3(waveforms, lens):
     ) // gigaam.hop_length + 1
 
 
-@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])
+@pytest.fixture(
+    scope="module",
+    params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt", "onnx_func_conv", "onnx_model_conv"],
+)
 def preprocessor_v2(request):
     match request.param:
         case "torch":
@@ -108,9 +111,16 @@ def preprocessor_v2(request):
             return (OnnxPreprocessor("gigaam_v2", {}), 1e-3)
         case "onnx_model_mt":
             return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v2", {}), 2), 1e-3)
+        case "onnx_func_conv":
+            return (gigaam.GigaamPreprocessorV2Conv, 1e-3)
+        case "onnx_model_conv":
+            return (OnnxPreprocessor("gigaam_v2_conv", {}), 1e-3)
 
 
-@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])
+@pytest.fixture(
+    scope="module",
+    params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt", "onnx_func_conv", "onnx_model_conv"],
+)
 def preprocessor_v3(request):
     match request.param:
         case "torch":
@@ -123,6 +133,10 @@ def preprocessor_v3(request):
             return (OnnxPreprocessor("gigaam_v3", {}), 1e-3)
         case "onnx_model_mt":
             return (ConcurrentPreprocessor(OnnxPreprocessor("gigaam_v3", {}), 2), 1e-3)
+        case "onnx_func_conv":
+            return (gigaam.GigaamPreprocessorV3Conv, 1e-3)
+        case "onnx_model_conv":
+            return (OnnxPreprocessor("gigaam_v3_conv", {}), 1e-3)
 
 
 def test_gigaam_preprocessor_v2(preprocessor_v2, waveforms):
