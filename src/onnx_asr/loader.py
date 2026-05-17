@@ -17,7 +17,7 @@ from onnx_asr.models.silero import SileroVad
 from onnx_asr.models.tone import TOneCtc
 from onnx_asr.models.wespeaker import WespeakerEmbeddings
 from onnx_asr.models.whisper import WhisperHf, WhisperOrt
-from onnx_asr.onnx import OnnxSessionOptions, Provider, get_onnx_providers, update_onnx_providers
+from onnx_asr.onnx import OnnxSessionOptions, Provider, TensorRtOptions, get_onnx_providers, update_onnx_providers
 from onnx_asr.preprocessors.numpy_preprocessor import (
     GigaamPreprocessorNumpy,
     KaldiPreprocessorNumpy,
@@ -142,6 +142,13 @@ def create_se_resolver(
     return Resolver(WespeakerEmbeddings, model, local_dir, offline=offline)
 
 
+CONV_PREPROCESSORS = frozenset({"gigaam_v2", "gigaam_v3", "kaldi", "nemo80", "nemo128", "whisper80", "whisper128"})
+"""ONNX preprocessors that have a Conv-based STFT variant (named ``<name>_conv``)."""
+
+CONV_DEFAULT_PROVIDERS = (*TensorRtOptions.get_provider_names(), "CUDAExecutionProvider")
+"""Execution providers for which the Conv-based preprocessors are enabled by default."""
+
+
 class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
     """Preprocessor runtime config."""
 
@@ -150,6 +157,15 @@ class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
 
     use_numpy_preprocessors: bool | None
     """Use NumPy preprocessors backend instead of ONNX."""
+
+    use_conv_preprocessors: bool | None
+    """Use Conv-based STFT in ONNX preprocessors.
+
+    op.STFT has no kernel in the CUDA execution provider (the STFT node falls
+    back to CPU with host/device copies around it). The Conv-based graph runs
+    natively on every provider and is faster on CPU for non-power-of-2 sizes.
+    None - auto (enabled when a CUDA or TensorRT execution provider is used).
+    """
 
 
 class Manager:
@@ -175,17 +191,31 @@ class Manager:
         }
 
         if preprocessor_config is None:
-            self.preprocessor_config = update_onnx_providers(
-                self.default_onnx_config,
-                new_options={"TensorrtExecutionProvider": {"trt_fp16_enable": False}},
-                excluded_providers=OnnxPreprocessor._get_excluded_providers(),
-            )
             self.preprocessor_max_workers: int | None = 1
             self.use_numpy_preprocessors = None
+            self.use_conv_preprocessors: bool | None = None
+            base_config: OnnxSessionOptions = self.default_onnx_config
         else:
             self.preprocessor_max_workers = preprocessor_config.pop("max_concurrent_workers", 1)
             self.use_numpy_preprocessors = preprocessor_config.pop("use_numpy_preprocessors")
-            self.preprocessor_config = preprocessor_config
+            self.use_conv_preprocessors = preprocessor_config.pop("use_conv_preprocessors", None)
+            base_config = preprocessor_config
+
+        if self.use_conv_preprocessors is None:
+            self.use_conv_preprocessors = any(p in CONV_DEFAULT_PROVIDERS for p in get_onnx_providers(base_config))
+
+        if preprocessor_config is None:
+            # op.STFT has no kernel in the CUDA execution provider, so the STFT
+            # preprocessors exclude it (the node would otherwise fall back to CPU
+            # with host/device copies). The Conv variant runs on every provider,
+            # so when it is used the CUDA provider is kept.
+            self.preprocessor_config = update_onnx_providers(
+                base_config,
+                new_options={"TensorrtExecutionProvider": {"trt_fp16_enable": False}},
+                excluded_providers=[] if self.use_conv_preprocessors else OnnxPreprocessor._get_excluded_providers(),
+            )
+        else:
+            self.preprocessor_config = base_config
 
         providers = get_onnx_providers(self.preprocessor_config)
         if self.use_numpy_preprocessors is None:
@@ -213,6 +243,8 @@ class Manager:
                 preprocessor = WhisperPreprocessorNumpy(name)
             else:
                 raise ModelNotSupportedError(name)
+        elif self.use_conv_preprocessors and name in CONV_PREPROCESSORS:
+            preprocessor = OnnxPreprocessor(f"{name}_conv", self.preprocessor_config)
         else:
             preprocessor = OnnxPreprocessor(name, self.preprocessor_config)
 
