@@ -83,7 +83,9 @@ def preprocessor(request):
             return kaldi.KaldiPreprocessor
 
 
-@pytest.fixture(scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt"])
+@pytest.fixture(
+    scope="module", params=["torch", "onnx_func", "onnx_model", "onnx_model_mt", "onnx_func_conv", "onnx_model_conv"]
+)
 def preprocessor_fast(request):
     match request.param:
         case "torch":
@@ -94,6 +96,10 @@ def preprocessor_fast(request):
             return OnnxPreprocessor("kaldi", {})
         case "onnx_model_mt":
             return ConcurrentPreprocessor(OnnxPreprocessor("kaldi", {}), 2)
+        case "onnx_func_conv":
+            return kaldi.KaldiPreprocessorFastConv
+        case "onnx_model_conv":
+            return OnnxPreprocessor("kaldi_conv", {})
 
 
 @pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])

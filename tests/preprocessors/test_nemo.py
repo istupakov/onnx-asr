@@ -62,7 +62,10 @@ def preprocessor_torch(waveforms, lens, n_mels):
     return features, features_lens.numpy()
 
 
-@pytest.fixture(scope="module", params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt"])
+@pytest.fixture(
+    scope="module",
+    params=["torch", "numpy", "onnx_func", "onnx_model", "onnx_model_mt", "onnx_func_conv", "onnx_model_conv"],
+)
 def preprocessor(request, n_mels):
     match request.param:
         case "torch":
@@ -75,6 +78,10 @@ def preprocessor(request, n_mels):
             return OnnxPreprocessor(f"nemo{n_mels}", {})
         case "onnx_model_mt":
             return ConcurrentPreprocessor(OnnxPreprocessor(f"nemo{n_mels}", {}), 2)
+        case "onnx_func_conv":
+            return nemo.NemoPreprocessor80Conv if n_mels == 80 else nemo.NemoPreprocessor128Conv
+        case "onnx_model_conv":
+            return OnnxPreprocessor(f"nemo{n_mels}_conv", {})
 
 
 def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
