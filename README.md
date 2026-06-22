@@ -37,9 +37,6 @@ Key features of **onnx-asr** include:
 > [!NOTE]
 > Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v1/v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
 
-> [!WARNING]
-> onnxruntime 1.24.1 has known compatibility issues with onnx-asr. Please use newer (or older) versions!
-
 > [!TIP]
 > You can check the onnx-asr demo on HF Spaces:
 > 
