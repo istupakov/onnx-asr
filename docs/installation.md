@@ -81,11 +81,20 @@ The supported platforms are primarily determined by available ONNX Runtime wheel
 
     > [!WARNING]
     > First, you need to install the [required](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements) version of CUDA/cuDNN for `CUDAExecutionProvider` and [required](https://onnxruntime.ai/docs/execution-providers/TensorRT-ExecutionProvider.html#requirements) TensorRT for `TensorrtExecutionProvider` (optional).
+    > `onnxruntime-gpu` 1.27 and newer require CUDA 13. Earlier versions require CUDA 12.
 
     You can also install `onnxruntime` CUDA/cuDNN dependencies and TensorRT via pip:
 
+    For `onnxruntime-gpu` 1.27 and newer (CUDA 13):
+
     ```sh
-    pip install onnxruntime-gpu[cuda,cudnn] tensorrt-cu12-libs
+    pip install "onnxruntime-gpu[cuda,cudnn]>=1.27" tensorrt-cu13-libs
+    ```
+
+    For earlier versions (CUDA 12):
+
+    ```sh
+    pip install "onnxruntime-gpu[cuda,cudnn]<1.27" tensorrt-cu12-libs
     ```
 
 3. With `onnxruntime` for [WinML](https://onnxruntime.ai/docs/get-started/with-windows.html) and `huggingface-hub`:
