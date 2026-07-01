@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04
+FROM nvidia/cuda:13.2.1-cudnn-runtime-ubuntu24.04
 
 # Install TensorRT & GCC
 RUN apt-get update && apt-get install -y --no-install-recommends \
