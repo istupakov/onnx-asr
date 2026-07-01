@@ -49,7 +49,7 @@ jobs:
         run: uv sync --extra cpu --group test-all --group docs
 
       - name: Cache HF models
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.HF_HOME }}
           key: ${{ runner.os }}-hf-models
@@ -159,7 +159,7 @@ jobs:
           ${{ matrix.soundfile }}
 
       - name: Cache HF models
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.HF_HOME }}
           key: ${{ runner.os }}-hf-models
