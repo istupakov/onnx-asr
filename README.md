@@ -35,7 +35,7 @@ Key features of **onnx-asr** include:
 * Provides a simple command-line interface ([CLI](https://istupakov.github.io/onnx-asr/usage/#cli))
 
 > [!NOTE]
-> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v1/v2 (Multilingual)** and **GigaAM v2/v3 (Ru)** models!
+> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v1/v2 (Multilingual)** and **GigaAM v2/v3 (Ru) / Multilingual** models!
 
 > [!TIP]
 > You can check the onnx-asr demo on HF Spaces:

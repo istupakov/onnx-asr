@@ -20,6 +20,8 @@ model_repos = {
     "gigaam-v3-rnnt": "istupakov/gigaam-v3-onnx",
     "gigaam-v3-e2e-ctc": "istupakov/gigaam-v3-onnx",
     "gigaam-v3-e2e-rnnt": "istupakov/gigaam-v3-onnx",
+    "gigaam-multilingual-ctc": "istupakov/gigaam-multilingual-ctc-onnx",
+    "gigaam-multilingual-large-ctc": "istupakov/gigaam-multilingual-large-ctc-onnx",
     "nemo-fastconformer-ru-ctc": "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx",
     "nemo-fastconformer-ru-rnnt": "istupakov/stt_ru_fastconformer_hybrid_large_pc_onnx",
     "nemo-parakeet-ctc-0.6b": "istupakov/parakeet-ctc-0.6b-onnx",

@@ -14,11 +14,11 @@ from onnx_asr.asr import TimestampedResult
 class GigaamASR:
     """Wrapper model for GigaAM ASR."""
 
-    def __init__(self, revision: str, device: str = "cpu"):
+    def __init__(self, model: str, revision: str, device: str = "cpu"):
         """Create wrapper."""
         self.device = device
         self.model: Any = AutoModel.from_pretrained(
-            "ai-sage/GigaAM-v3",
+            f"ai-sage/{model}",
             revision=revision,
             trust_remote_code=True,
         ).to(self.device)

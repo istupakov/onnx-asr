@@ -9,7 +9,7 @@ import onnxruntime as rt
 
 from onnx_asr.adapters import SeAdapter, TextResultsAsrAdapter
 from onnx_asr.asr import Asr, Preprocessor
-from onnx_asr.models.gigaam import GigaamV2Ctc, GigaamV2Rnnt, GigaamV3E2eCtc, GigaamV3E2eRnnt
+from onnx_asr.models.gigaam import GigaamMultilingualCtc, GigaamV2Ctc, GigaamV2Rnnt, GigaamV3E2eCtc, GigaamV3E2eRnnt
 from onnx_asr.models.kaldi import KaldiTransducer
 from onnx_asr.models.nemo import NemoConformerAED, NemoConformerCtc, NemoConformerRnnt, NemoConformerTdt
 from onnx_asr.models.pyannote import PyAnnoteVad
@@ -40,6 +40,8 @@ AsrNames = Literal[
     "gigaam-v3-rnnt",
     "gigaam-v3-e2e-ctc",
     "gigaam-v3-e2e-rnnt",
+    "gigaam-multilingual-ctc",
+    "gigaam-multilingual-large-ctc",
     "nemo-fastconformer-ru-ctc",
     "nemo-fastconformer-ru-rnnt",
     "nemo-parakeet-ctc-0.6b",
@@ -97,6 +99,8 @@ def create_asr_resolver(
         "gigaam-v3-rnnt": GigaamV2Rnnt,
         "gigaam-v3-e2e-ctc": GigaamV3E2eCtc,
         "gigaam-v3-e2e-rnnt": GigaamV3E2eRnnt,
+        "gigaam-multilingual-ctc": GigaamMultilingualCtc,
+        "gigaam-multilingual-large-ctc": GigaamMultilingualCtc,
         "nemo-fastconformer-ru-ctc": NemoConformerCtc,
         "nemo-fastconformer-ru-rnnt": NemoConformerRnnt,
         "nemo-parakeet-ctc-0.6b": NemoConformerCtc,
@@ -320,6 +324,7 @@ def load_model(
                 GigaAM v2 (`gigaam-v2-ctc` | `gigaam-v2-rnnt`)
                 GigaAM v3 (`gigaam-v3-ctc` | `gigaam-v3-rnnt` |
                            `gigaam-v3-e2e-ctc` | `gigaam-v3-e2e-rnnt`)
+                GigaAM Multilingual (`gigaam-multilingual-ctc` | `gigaam-multilingual-large-ctc`)
                 Kaldi Transducer (`kaldi-rnnt`)
                 NeMo Conformer (`nemo-conformer-ctc` | `nemo-conformer-rnnt` | `nemo-conformer-tdt` |
                                 `nemo-conformer-aed`)
