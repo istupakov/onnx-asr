@@ -35,15 +35,15 @@ Key features of **onnx-asr** include:
 * Provides a simple command-line interface ([CLI](https://istupakov.github.io/onnx-asr/usage/#cli))
 
 > [!NOTE]
-> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v1/v2 (Multilingual)** and **GigaAM v2/v3 (Ru) / Multilingual** models!
+> Supports **Parakeet v2 (En) / v3 (Multilingual)**, **Canary v1/v2 (Multilingual)**, **GigaAM v2/v3 (Ru)**, and **GigaAM Multilingual** models!
 
 > [!TIP]
-> You can check the onnx-asr demo on HF Spaces:
+> Try the onnx-asr demo on Hugging Face Spaces:
 > 
 > [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://istupakov-onnx-asr.hf.space/)
 
 
-## Quickstart
+## Quick Start
 
 Install onnx-asr:
 ```sh
@@ -57,13 +57,13 @@ import onnx_asr
 # Load the Parakeet TDT v3 model from Hugging Face (may take a few minutes)
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 
-# Recognize speech and print result
+# Recognize speech and print the result
 result = model.recognize("test.wav")
 print(result)
 ```
 
 > [!WARNING]
-> The maximum audio length for most models is 20-30 seconds. For longer audio, [VAD](https://istupakov.github.io/onnx-asr/usage/#vad-voice-activity-detection) can be used.
+> The maximum audio length for most models is 20–30 seconds. For longer audio, use [VAD](https://istupakov.github.io/onnx-asr/usage/#vad-voice-activity-detection).
 
 For more examples, see the [Usage Guide](https://istupakov.github.io/onnx-asr/usage/).
 
@@ -71,22 +71,22 @@ See the [Installation Guide](https://istupakov.github.io/onnx-asr/installation/)
 
 ## Supported Model Architectures
 
-The package supports the following modern ASR model architectures (see the [supported model names](https://istupakov.github.io/onnx-asr/usage/#supported-model-names) for the full list of models and [comparison](https://istupakov.github.io/onnx-asr/comparison/) with original implementations):
+The package supports the following modern ASR model architectures. See [supported model names](https://istupakov.github.io/onnx-asr/usage/#supported-model-names) for a complete list and the [model comparison](https://istupakov.github.io/onnx-asr/comparison/) for comparisons with the original implementations.
 
-* NVIDIA NeMo Conformer/FastConformer/Parakeet/Canary (with CTC, RNN-T, TDT and Transformer decoders)
-* GigaChat GigaAM v2/v3 (with CTC and RNN-T decoders, including E2E versions)
-* Kaldi Icefall Zipformer (with stateless RNN-T decoder) including Alpha Cephei Vosk 0.52+
-* T-Tech T-one (with CTC decoder, no streaming support yet)
+* NVIDIA NeMo Conformer/FastConformer/Parakeet/Canary (with CTC, RNN-T, TDT, and Transformer decoders)
+* GigaChat GigaAM v2/v3/Multilingual (with CTC and RNN-T decoders, including E2E versions)
+* Kaldi Icefall Zipformer (with a stateless RNN-T decoder), including Alpha Cephei Vosk 0.52+
+* T-Tech T-one (with a CTC decoder; streaming is not yet supported)
 * OpenAI Whisper
 
-When saving these models in ONNX format, usually only the encoder and decoder are saved. To run them, the corresponding preprocessor and decoding must be implemented. Therefore, the package contains these implementations for all supported models:
+When these models are saved in ONNX format, typically only the encoder and decoder are included. Running them requires the corresponding preprocessing and decoding implementations. This package provides both for all supported models:
 
 * Log-mel spectrogram preprocessors
 * Greedy search decoding
 
 ## Benchmarks
 
-**Inverse Real-Time Factor (RTFx)**: the ratio of audio duration to processing time. RTFx > 1 means processing faster than real-time (higher RTFx values indicate better performance).
+**Inverse Real-Time Factor (RTFx)** is the ratio of audio duration to processing time. An RTFx greater than 1 indicates faster-than-real-time processing; higher values indicate better performance.
 
 | Model               | 9800X3D CPU (RTFx) | Cortex A53 CPU (RTFx) | T4 CUDA (RTFx) | RTX 5070 Ti TensorRT (RTFx) |
 |---------------------|---------|---------|---------|----------|
@@ -97,7 +97,7 @@ When saving these models in ONNX format, usually only the encoder and decoder ar
 
 See the [Benchmarks](https://istupakov.github.io/onnx-asr/benchmarks/) page for detailed performance benchmarks.
 
-## Troubleshooting / FAQ
+## Troubleshooting and FAQ
 
 See the [Troubleshooting Guide](https://istupakov.github.io/onnx-asr/troubleshooting/) for common issues and solutions.
 
