@@ -158,3 +158,12 @@ class GigaamV3E2eRnnt(GigaamV2Rnnt):
             "joint": f"v3_e2e_rnnt_joint{suffix}.onnx",
             "vocab": "v3_e2e_rnnt_vocab.txt",
         }
+
+
+class GigaamMultilingualCtc(GigaamV2Ctc):
+    """GigaAM Multilingual CTC model implementation."""
+
+    @staticmethod
+    def _get_model_files(quantization: str | None = None) -> dict[str, str]:
+        suffix = "?" + quantization if quantization else ""
+        return {"model": f"multilingual*_ctc{suffix}.onnx", "vocab": "multilingual_vocab.txt"}
