@@ -74,7 +74,7 @@ class BaseVad(Vad):
             if start - cur_end < min_silence_duration and end - cur_start < max_speech_duration:
                 cur_end = end
             else:
-                if cur_end - cur_start > min_speech_duration:
+                if cur_start < waveform_len and cur_end > cur_start and cur_end - cur_start > min_speech_duration:
                     yield max(cur_start - speech_pad, 0), min(cur_end + speech_pad, waveform_len)
                 while end - start > max_speech_duration:
                     yield max(start - speech_pad, 0), start + max_speech_duration + speech_pad
