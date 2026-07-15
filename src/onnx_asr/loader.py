@@ -15,6 +15,7 @@ from onnx_asr.models.nemo import NemoConformerAED, NemoConformerCtc, NemoConform
 from onnx_asr.models.pyannote import PyAnnoteVad
 from onnx_asr.models.silero import SileroVad
 from onnx_asr.models.tone import TOneCtc
+from onnx_asr.models.wav2vec2 import Wav2Vec2Ctc
 from onnx_asr.models.wespeaker import WespeakerEmbeddings
 from onnx_asr.models.whisper import WhisperHf, WhisperOrt
 from onnx_asr.onnx import OnnxSessionOptions, Provider, TensorRtOptions, get_onnx_providers, update_onnx_providers
@@ -64,6 +65,7 @@ AsrTypeNames = Literal[
     "nemo-conformer-aed",
     "t-one-ctc",
     "vosk",
+    "wav2vec2-ctc",
     "whisper-ort",
     "whisper",
 ]
@@ -83,6 +85,7 @@ AsrTypes: TypeAlias = (
     | NemoConformerRnnt
     | NemoConformerAED
     | TOneCtc
+    | Wav2Vec2Ctc
     | WhisperHf
     | WhisperOrt
 )
@@ -116,6 +119,7 @@ def create_asr_resolver(
         "nemo-conformer-aed": NemoConformerAED,
         "t-one-ctc": TOneCtc,
         "vosk": KaldiTransducer,
+        "wav2vec2-ctc": Wav2Vec2Ctc,
         "whisper-ort": WhisperOrt,
         "whisper": WhisperHf,
         "alphacep/vosk-model-ru": KaldiTransducer,
@@ -336,6 +340,7 @@ def load_model(
                 NeMo Canary (`nemo-canary-1b-v2`)
                 T-One (`t-one-ctc` | `t-tech/t-one`)
                 Vosk (`vosk` | `alphacep/vosk-model-ru` | `alphacep/vosk-model-small-ru`)
+                Wav2Vec2 CTC (`wav2vec2-ctc`)
                 Whisper Base exported with onnxruntime (`whisper-ort` | `whisper-base-ort`)
                 Whisper from onnx-community (`whisper` | `onnx-community/whisper-large-v3-turbo` |
                                              `onnx-community/*whisper*`)
