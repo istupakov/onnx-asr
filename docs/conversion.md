@@ -97,3 +97,81 @@ Export model to ONNX with Hugging Face `optimum-cli`:
 ```sh
 optimum-cli export onnx --model openai/whisper-base ./whisper-onnx
 ```
+
+## HuggingFace Wav2Vec2 CTC
+
+Install **transformers** and **torch**:
+
+```sh
+pip install transformers torch
+```
+
+Export the model with feature normalization (`do_normalize`) baked into the graph, so
+the model uses the plain `"identity"` preprocessor (raw waveform in, no separate
+feature-extractor asset needed):
+
+```py
+import json
+from pathlib import Path
+
+import torch
+from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
+
+hf_model_id = "proxectonos/Nos_ASR-wav2vec2-xls-r-300m-gl"
+onnx_dir = Path("wav2vec2-onnx")
+onnx_dir.mkdir(exist_ok=True)
+
+model = Wav2Vec2ForCTC.from_pretrained(hf_model_id).eval()
+processor = Wav2Vec2Processor.from_pretrained(hf_model_id)
+do_normalize = bool(processor.feature_extractor.do_normalize)
+
+
+class NormalizedWav2Vec2(torch.nn.Module):
+    def forward(self, input_values, input_lengths):
+        if do_normalize:
+            mask = torch.arange(input_values.shape[1])[None, :] < input_lengths[:, None]
+            count = input_lengths.to(input_values.dtype).clamp(min=1)[:, None]
+            mean = (input_values * mask).sum(dim=1, keepdim=True) / count
+            var = (((input_values - mean) * mask) ** 2).sum(dim=1, keepdim=True) / count
+            input_values = torch.where(mask, (input_values - mean) / torch.sqrt(var + 1e-5), input_values)
+        logits = model(input_values).logits
+        return torch.nn.functional.log_softmax(logits, dim=-1)
+
+
+torch.onnx.export(
+    NormalizedWav2Vec2(),
+    (torch.randn(1, 16000), torch.tensor([16000], dtype=torch.int64)),
+    str(onnx_dir / "model.onnx"),
+    input_names=["input_values", "input_lengths"],
+    output_names=["logprobs"],
+    dynamic_axes={
+        "input_values": {0: "batch", 1: "time"},
+        "input_lengths": {0: "batch"},
+        "logprobs": {0: "batch", 1: "frames"},
+    },
+    opset_version=18,
+)
+
+vocab = processor.tokenizer.get_vocab()
+pad_token = processor.tokenizer.pad_token
+word_delimiter = processor.tokenizer.word_delimiter_token
+
+with (onnx_dir / "vocab.txt").open("wt") as f:
+    for token, idx in sorted(vocab.items(), key=lambda kv: kv[1]):
+        token = "<blk>" if token == pad_token else "▁" if token == word_delimiter else token
+        f.write(f"{token} {idx}\n")
+
+subsampling_factor = 1
+for layer in model.wav2vec2.feature_extractor.conv_layers:
+    stride = layer.conv.stride
+    subsampling_factor *= stride[0] if isinstance(stride, tuple) else stride
+
+with (onnx_dir / "config.json").open("wt") as f:
+    json.dump({"model_type": "wav2vec2-ctc", "subsampling_factor": subsampling_factor}, f, indent=2)
+```
+
+The pad token becomes `<blk>` (CTC blank, auto-detected by the vocab loader) and the
+word-delimiter token (`|`) becomes `▁`, which onnx-asr converts to a literal space
+when decoding. `subsampling_factor` is the product of the feature-encoder conv strides
+(320 for the standard wav2vec2/XLS-R conv stack) and is only used to scale token
+timestamps.
