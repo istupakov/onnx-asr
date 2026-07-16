@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import soundfile as sf
 
 from onnx_asr.cli import parse_args, run
 
@@ -42,10 +43,6 @@ def test_file_not_found_error(args_list: list[str]) -> None:
 
 
 def test_cli_run(args_list: list[str]) -> None:
-    try:
-        import soundfile as sf  # noqa: PLC0415
-    except (ImportError, OSError):
-        pytest.skip("soundfile not available")
     args = parse_args(args_list)
     args.model_path = None
 

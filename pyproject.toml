@@ -65,7 +65,7 @@ benchmark = [
     "jinja2>=3.1.6",
     "jiwer>=3.1.0",
     "pandas>=2.3.3",
-    "soundfile>=0.13.1",
+    "soundfile>=0.14.0",
     "tqdm>=4.67.3",
     { include-group = "jupyter" },
 ]
@@ -92,13 +92,12 @@ docs = [
     "ruff>=0.15.11",
 ]
 jupyter = ["ipykernel<7", "ipywidgets>=8.1.8", "nbstripout>=0.9.1"]
-test = ["pytest>=9.0.3", "pytest-cov>=7.0.0"]
+test = ["pytest>=9.0.3", "pytest-cov>=7.0.0", "soundfile>=0.14.0"]
 test-all = [
     "kaldi-native-fbank>=1.22.3",
     "nemo-toolkit[asr]>=2.7.2",
     "onnx>=1.21.0",
     "openai-whisper>=20250625",
-    "soundfile>=0.13.1",
     "torch>=2.11.0",
     "torchaudio>=2.11.0",
     { include-group = "build" },

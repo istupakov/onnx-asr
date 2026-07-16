@@ -91,7 +91,6 @@ jobs:
             windows-11-arm,
           ]
         include:
-          - soundfile: soundfile
           - python-version: "3.10"
             numpy: numpy==1.22.4
             onnxruntime: onnxruntime==1.18.1
@@ -108,18 +107,10 @@ jobs:
           - python-version: "3.13"
             numpy: numpy~=2.3.5
             onnxruntime: onnxruntime~=1.24.4
-          - python-version: "3.13t"
-            os: ubuntu-latest
-            soundfile: ""
-          - python-version: "3.13t"
-            os: ubuntu-24.04-arm
-            soundfile: ""
           - python-version: "3.14t"
             os: ubuntu-latest
-            soundfile: soundfile
           - python-version: "3.14t"
             os: ubuntu-24.04-arm
-            soundfile: soundfile
           - os: windows-11-arm
             numpy: numpy~=2.3.5
             onnxruntime: onnxruntime~=1.24.4
@@ -150,7 +141,6 @@ jobs:
           ${{ matrix.onnxruntime }}
           ${{ matrix.hf-hub }}
           ${{ matrix.typing }}
-          ${{ matrix.soundfile }}
 
       - name: Cache HF models
         uses: actions/cache@v6
@@ -167,7 +157,7 @@ jobs:
           flags: ${{ matrix.os }},python-${{ matrix.python-version }}
 
       - name: Build dist
-        if: ${{ matrix.python-version != '3.13t' && matrix.python-version != '3.14t' }}
+        if: ${{ matrix.python-version != '3.14t' }}
         run: uv build
 
   complete:
