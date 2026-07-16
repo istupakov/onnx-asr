@@ -3,11 +3,7 @@ from typing import Literal, get_args
 
 import numpy as np
 import pytest
-
-try:
-    import soundfile as sf
-except (ImportError, OSError):
-    pytest.skip("soundfile not available", allow_module_level=True)
+import soundfile as sf
 
 from onnx_asr.utils import (
     DifferentSampleRatesError,
