@@ -85,6 +85,10 @@ When these models are saved in ONNX format, typically only the encoder and decod
 * Log-mel spectrogram preprocessors
 * Greedy search decoding
 
+## Community Models
+
+The Hugging Face community publishes additional onnx-asr-compatible language fine-tunes and optimized exports. See the [curated community models](https://istupakov.github.io/onnx-asr/community-models/) or [browse all models tagged `onnx-asr`](https://huggingface.co/models?other=onnx-asr&sort=trending). Community models are maintained by their publishers and may not be tested by this project.
+
 ## Benchmarks
 
 **Inverse Real-Time Factor (RTFx)** is the ratio of audio duration to processing time. An RTFx greater than 1 indicates faster-than-real-time processing; higher values indicate better performance.

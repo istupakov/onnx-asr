@@ -55,6 +55,7 @@ nav:
   - Docs:
       - Installation: installation.md
       - Usage: usage.md
+      - Community Models: community-models.md
       - Benchmarks: benchmarks.md
       - Troubleshooting: troubleshooting.md
       - Comparison: comparison.md
