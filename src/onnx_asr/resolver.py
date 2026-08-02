@@ -102,6 +102,7 @@ class Resolver(Generic[T]):
 
     def _download_model(self, quantization: str | None, *, local_files_only: bool) -> Path:
         from huggingface_hub import snapshot_download  # noqa: PLC0415
+        from huggingface_hub.errors import LocalEntryNotFoundError  # noqa: PLC0415
 
         files = list(self.model_type._get_model_files(quantization).values())
         files = [
@@ -116,11 +117,18 @@ class Resolver(Generic[T]):
         ]
 
         assert self.repo_id is not None
-        return Path(
-            snapshot_download(
-                self.repo_id, local_dir=self.local_dir, local_files_only=local_files_only, allow_patterns=files
-            )  # nosec
-        )
+        try:
+            return Path(
+                snapshot_download(
+                    self.repo_id, local_dir=self.local_dir, local_files_only=local_files_only, allow_patterns=files
+                )  # nosec
+            )
+        except LocalEntryNotFoundError as e:
+            # raised with local_files_only=True when files are missing from the local
+            # snapshot (also as IncompleteSnapshotError in newer huggingface_hub);
+            # translate so offline resolution reports a missing model file
+            filename = "<missing files in local snapshot>"
+            raise ModelFileNotFoundError(filename, self.repo_id) from e
 
     def _resolve_model_files(self, path: Path, quantization: str | None) -> dict[str, Path]:
         files = self.model_type._get_model_files(quantization)
