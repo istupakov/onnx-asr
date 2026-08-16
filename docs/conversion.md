@@ -175,3 +175,59 @@ word-delimiter token (`|`) becomes `▁`, which onnx-asr converts to a literal s
 when decoding. `subsampling_factor` is the product of the feature-encoder conv strides
 (320 for the standard wav2vec2/XLS-R conv stack) and is only used to scale token
 timestamps.
+
+## Nvidia NeMo QuartzNet/Jasper
+
+Install **NeMo Toolkit**:
+
+```sh
+pip install nemo_toolkit['asr']
+```
+
+QuartzNet and Jasper are convolutional character CTC models. They take 64 log-mel
+features, not 80, and `ConvASREncoder._prepare_for_export` turns off every
+`MaskedConv1d` before the trace, so the exported graph has no time mask and the
+exporter drops the unused `length` input. onnx-asr feeds `length` only when the graph
+declares it, so the length-free export loads as `nemo-conformer-ctc`:
+
+```py
+import json
+from pathlib import Path
+
+import nemo.collections.asr as nemo_asr
+
+model = nemo_asr.models.ASRModel.from_pretrained("stt_en_jasper10x5dr")
+# QuartzNet checkpoints are on the NGC catalog as `stt_<lang>_quartznet15x5`. Names
+# that NeMo does not list are loaded from the downloaded file instead:
+# model = nemo_asr.models.ASRModel.restore_from("stt_en_quartznet15x5.nemo")
+
+onnx_dir = Path("quartznet-onnx")
+onnx_dir.mkdir(exist_ok=True)
+model.export(str(onnx_dir / "model.onnx"))
+
+# Character models have a vocabulary, not a tokenizer. onnx-asr renders the space
+# token as U+2581 and the CTC blank, which NeMo keeps implicit, as the last id.
+with Path(onnx_dir, "vocab.txt").open("wt") as f:
+    for i, token in enumerate([*model.decoder.vocabulary, "<blk>"]):
+        f.write(f"{'▁' if token == ' ' else token} {i}\n")
+
+with Path(onnx_dir, "config.json").open("wt") as f:
+    json.dump(
+        {
+            "model_type": "nemo-conformer-ctc",
+            "features_size": model.cfg.preprocessor.features,
+            "subsampling_factor": 2,
+        },
+        f,
+        indent=2,
+    )
+```
+
+`features_size` is 64 for QuartzNet15x5 and Jasper10x5, and onnx-asr then uses the
+`nemo64` preprocessor. `subsampling_factor` is 2, the stride of the first convolution;
+it only scales token timestamps.
+
+Do not ship a dynamically quantized variant of these models. The architecture is
+convolution dominated, so dynamic quantization produces `ConvInteger` nodes that the
+onnxruntime CPU provider cannot execute. int8 needs static QDQ quantization with
+calibration data.

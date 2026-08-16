@@ -10,7 +10,7 @@ from onnx_asr.utils import pad_list
 from preprocessors import nemo
 
 
-@pytest.fixture(scope="module", params=[80, 128])
+@pytest.fixture(scope="module", params=[64, 80, 128])
 def n_mels(request):
     return request.param
 
@@ -48,7 +48,7 @@ def preprocessor_torch(waveforms, lens, n_mels):
     )
     mel_spectrogram = torch.matmul(
         spectrogram.transpose(-1, -2),
-        torch.from_numpy(nemo.melscale_fbanks80 if n_mels == 80 else nemo.melscale_fbanks128),
+        torch.from_numpy(getattr(nemo, f"melscale_fbanks{n_mels}")),
     ).transpose(-1, -2)
     log_mel_spectrogram = torch.log(mel_spectrogram + nemo.log_zero_guard_value)
 
@@ -73,13 +73,13 @@ def preprocessor(request, n_mels):
         case "numpy":
             return NemoPreprocessorNumpy(f"nemo{n_mels}")
         case "onnx_func":
-            return nemo.NemoPreprocessor80 if n_mels == 80 else nemo.NemoPreprocessor128
+            return getattr(nemo, f"NemoPreprocessor{n_mels}")
         case "onnx_model":
             return OnnxPreprocessor(f"nemo{n_mels}", {})
         case "onnx_model_mt":
             return ConcurrentPreprocessor(OnnxPreprocessor(f"nemo{n_mels}", {}), 2)
         case "onnx_func_conv":
-            return nemo.NemoPreprocessor80Conv if n_mels == 80 else nemo.NemoPreprocessor128Conv
+            return getattr(nemo, f"NemoPreprocessor{n_mels}Conv")
         case "onnx_model_conv":
             return OnnxPreprocessor(f"nemo{n_mels}_conv", {})
 
@@ -99,6 +99,6 @@ def test_nemo_preprocessor(preprocessor_origin, preprocessor, waveforms):
 
 def test_nemo_melscale_fbanks(preprocessor_origin, n_mels):
     expected = preprocessor_origin.filter_banks[0].T.numpy()
-    melscale_fbanks = nemo.melscale_fbanks80 if n_mels == 80 else nemo.melscale_fbanks128
+    melscale_fbanks = getattr(nemo, f"melscale_fbanks{n_mels}")
 
     np.testing.assert_allclose(melscale_fbanks, expected, atol=5e-7)
