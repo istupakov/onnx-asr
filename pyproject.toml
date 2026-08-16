@@ -134,7 +134,7 @@ only-packages = true
 [tool.hatch.build.targets.wheel.hooks.custom]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true
 pretty = true
 untyped_calls_exclude = "onnxruntime"
@@ -166,6 +166,7 @@ ignore = [
     "ANN204",
     "ARG002",
     "ARG004",
+    "CPY001",
     "D203",
     "D213",
     "COM812",
