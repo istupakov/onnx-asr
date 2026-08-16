@@ -6,6 +6,7 @@ Load ONNX model from Hugging Face and recognize WAV file:
 
 ```py
 import onnx_asr
+
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 print(model.recognize("test.wav"))
 ```
@@ -61,6 +62,7 @@ API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter
 
 ```py
 import onnx_asr
+
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 print(model.recognize(["test1.wav", "test2.wav", "test3.wav", "test4.wav"]))
 ```
@@ -73,6 +75,7 @@ Most models have quantized versions:
 
 ```py
 import onnx_asr
+
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", quantization="int8")
 print(model.recognize("test.wav"))
 ```
@@ -85,6 +88,7 @@ Return tokens, timestamps and log probabilities:
 
 ```py
 import onnx_asr
+
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3").with_timestamps()
 print(model.recognize("test1.wav"))
 ```
@@ -97,14 +101,14 @@ Running an ONNX model on the TensorRT provider with fp16 precision:
 
 ```py
 import onnx_asr
-import tensorrt_libs # If installed via pip tensorrt-cu12-libs
+import tensorrt_libs  # If installed via pip tensorrt-cu12-libs
 
 providers = [
     (
         "TensorrtExecutionProvider",
         {
-            "trt_max_workspace_size": 6 * 1024**3, # for big models
-            "trt_fp16_enable": True,               # for auto conversion to fp16 
+            "trt_max_workspace_size": 6 * 1024**3,  # for big models
+            "trt_fp16_enable": True,  # for auto conversion to fp16
         },
     )
 ]
@@ -120,6 +124,7 @@ Load a VAD ONNX model from Hugging Face and recognize a WAV file:
 
 ```py
 import onnx_asr
+
 vad = onnx_asr.load_vad("silero")
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3").with_vad(vad)
 for res in model.recognize("test.wav"):
@@ -161,6 +166,7 @@ import gradio as gr
 
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3")
 
+
 def recognize(audio):
     if not audio:
         return None
@@ -168,6 +174,7 @@ def recognize(audio):
     sample_rate, waveform = audio
     waveform = waveform / 2**15
     return model.recognize(waveform, sample_rate=sample_rate, channel="mean")
+
 
 demo = gr.Interface(fn=recognize, inputs="audio", outputs="text")
 demo.launch()
@@ -181,6 +188,7 @@ Load ONNX model from local directory and recognize WAV file:
 
 ```py
 import onnx_asr
+
 model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", "models/parakeet-v3")
 print(model.recognize("test.wav"))
 ```
@@ -196,6 +204,7 @@ Load the Canary 180M Flash model from Hugging Face [repo](https://huggingface.co
 
 ```py
 import onnx_asr
+
 model = onnx_asr.load_model("istupakov/canary-180m-flash-onnx")
 print(model.recognize("test.wav"))
 ```
