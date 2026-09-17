@@ -36,6 +36,34 @@ onnx-asr export.
 | [`AlinClaudiu/SpeD-ParakeetRo-110M-onnx`](https://huggingface.co/AlinClaudiu/SpeD-ParakeetRo-110M-onnx) | AlinClaudiu | Romanian | NeMo Conformer CTC | [`gabrielpirlo/SpeD_ParakeetRo_110M_TDT-CTC`](https://huggingface.co/gabrielpirlo/SpeD_ParakeetRo_110M_TDT-CTC) | FP32 | Apache-2.0 | Metadata inspected |
 | [`AigizK/GigaAM-Bashkir-CV25-ONNX`](https://huggingface.co/AigizK/GigaAM-Bashkir-CV25-ONNX) | AigizK | Bashkir | GigaAM Multilingual CTC | [`AigizK/GigaAM-Bashkir-CV25`](https://huggingface.co/AigizK/GigaAM-Bashkir-CV25) | FP32, INT8 | MIT | Metadata inspected |
 
+## Orukeet multilingual TDT
+
+[Orukeet](https://huggingface.co/oruk/orukeet) is a Parakeet TDT v3 fine-tune for
+25 European languages, published under CC BY-SA 4.0. Its combined INT8 ONNX
+export works with the existing `nemo-conformer-tdt` loader. The Hugging Face
+repository contains several formats, so download the combined ONNX subdirectory
+rather than passing the repository ID directly to `load_model`.
+
+The [Orukeet example](https://github.com/istupakov/onnx-asr/blob/main/examples/orukeet.py)
+pins the release, verifies its manifest and each required file, and keeps downloads
+in the Hugging Face cache:
+
+```sh
+python -m pip install "onnx-asr[cpu,hub]" soundfile
+python examples/orukeet.py recording.wav
+python examples/orukeet.py recording.wav --offline
+```
+
+Use a 16 kHz mono WAV file. Only model files are downloaded; recognition runs
+locally. The example fetches the actual integrity manifest used to verify the
+weights, which participates in Hugging Face's normal download statistics. Cached
+runs require no network. Keep the downloaded weight license and attribution files.
+
+This is offline transcription, without translation or streaming partial results.
+The example has been checked with repeated speech recognition in English, German,
+Spanish and French, silence, and a fully cached run with networking disabled.
+These are integration checks, not an accuracy or latency comparison.
+
 ## OpenVoiceOS model families
 
 [OpenVoiceOS](https://huggingface.co/OpenVoiceOS) publishes a large coordinated set of
