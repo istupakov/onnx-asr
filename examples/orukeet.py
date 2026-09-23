@@ -43,18 +43,27 @@ def download_model(cache_dir: str | None = None, *, offline: bool = False) -> Pa
     """Return a verified Hub snapshot directory, reusing cached files first."""
 
     def fetch(filename: str) -> Path:
-        kwargs = {
-            "repo_id": REPO_ID,
-            "revision": REVISION,
-            "filename": f"{SUBFOLDER}/{filename}",
-            "cache_dir": cache_dir,
-        }
         try:
-            return Path(hf_hub_download(**kwargs, local_files_only=True))
+            return Path(
+                hf_hub_download(
+                    repo_id=REPO_ID,
+                    revision=REVISION,
+                    filename=f"{SUBFOLDER}/{filename}",
+                    cache_dir=cache_dir,
+                    local_files_only=True,
+                )
+            )
         except LocalEntryNotFoundError:
             if offline:
                 raise
-            return Path(hf_hub_download(**kwargs))
+            return Path(
+                hf_hub_download(
+                    repo_id=REPO_ID,
+                    revision=REVISION,
+                    filename=f"{SUBFOLDER}/{filename}",
+                    cache_dir=cache_dir,
+                )
+            )
 
     manifest_path = fetch("manifest.json")
     if sha256(manifest_path) != MANIFEST_SHA256:
