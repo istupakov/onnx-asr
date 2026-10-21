@@ -69,12 +69,12 @@ extra_javascript:
   - path: https://gradio.s3-us-west-2.amazonaws.com/6.20.0/gradio.js
     type: module
   - javascripts/gradio-fix.js
-  - https://unpkg.com/katex@0/dist/katex.min.js
-  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+  - https://unpkg.com/katex@0.19.0/dist/katex.min.js
+  - https://unpkg.com/katex@0.19.0/dist/contrib/auto-render.min.js
   - javascripts/katex.js
 
 extra_css:
-  - https://unpkg.com/katex@0/dist/katex.min.css
+  - https://unpkg.com/katex@0.19.0/dist/katex.min.css
 
 markdown_extensions:
   - admonition

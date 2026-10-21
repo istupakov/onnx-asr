@@ -9,7 +9,7 @@
 		"gpu": true
 	},
 	"features": {
-		"ghcr.io/devcontainers/features/common-utils:2": {
+		"ghcr.io/devcontainers/features/common-utils:2.7.1": {
 			"username": "ubuntu"
 		}
 	},
