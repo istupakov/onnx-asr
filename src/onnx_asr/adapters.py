@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import sys
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Generic, Literal, TypedDict, TypeVar, overload
+from typing import Generic, Literal, TypedDict, TypeVar, Unpack, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -16,11 +15,6 @@ from onnx_asr.preprocessors.resampler import Resampler
 from onnx_asr.se import SpeakerEmbedding
 from onnx_asr.utils import SampleRates, read_wav_files
 from onnx_asr.vad import SegmentResult, TimestampedSegmentResult, Vad
-
-if sys.version_info >= (3, 11):
-    from typing import Unpack
-else:
-    from typing_extensions import Unpack
 
 R = TypeVar("R")
 

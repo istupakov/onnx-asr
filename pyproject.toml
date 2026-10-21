@@ -5,11 +5,8 @@ build-backend = "hatchling.build"
 [project]
 name = "onnx-asr"
 dynamic = ["version"]
-dependencies = [
-    "numpy>=1.22.4",
-    "typing-extensions>=4.6.0; python_version < '3.11'",
-]
-requires-python = ">=3.10"
+dependencies = ["numpy>=1.23.5"]
+requires-python = ">=3.11"
 authors = [{ name = "Ilya Stupakov", email = "istupakov@gmail.com" }]
 description = "A lightweight Python package for Automatic Speech Recognition using ONNX models"
 readme = "README.md"
@@ -24,7 +21,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -39,14 +35,8 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-cpu = [
-    "onnxruntime<1.24; python_version < '3.11'",
-    "onnxruntime>=1.18.1, != 1.24.1, != 1.25.*, != 1.26.0",
-]
-gpu = [
-    "onnxruntime-gpu<1.24; python_version < '3.11'",
-    "onnxruntime-gpu>=1.18.1, != 1.24.1, != 1.25.*, != 1.26.0",
-]
+cpu = ["onnxruntime>=1.18.1, != 1.24.1, != 1.25.*, != 1.26.0"]
+gpu = ["onnxruntime-gpu>=1.18.1, != 1.24.1, != 1.25.*, != 1.26.0"]
 hub = ["huggingface-hub>=0.30.2"]
 
 [project.urls]
@@ -156,7 +146,6 @@ follow_imports = "silent"
 [tool.ruff]
 line-length = 120
 indent-width = 4
-target-version = "py310"
 
 [tool.ruff.lint]
 select = ["ALL"]
