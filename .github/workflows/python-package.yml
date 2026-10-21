@@ -67,7 +67,7 @@ jobs:
         run: mkdocs build --strict
       - name: Build package dist
         run: |
-          uv pip compile --group build --generate-hashes -o build-constraints.txt
+          uv export --locked --only-group build --no-emit-project --format requirements.txt -o build-constraints.txt
           uv build -b build-constraints.txt --require-hashes
       - uses: actions/upload-artifact@v7
         with:
@@ -161,7 +161,10 @@ jobs:
         run: uv build
 
   complete:
-    needs: test
-    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [lint, build, test]
+    runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v7
+      - name: Check CI results
+        run: |
+          [[ '${{ join(needs.*.result, ' ') }}' == 'success success success' ]]

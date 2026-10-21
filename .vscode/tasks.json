@@ -6,28 +6,28 @@
         {
             "label": "uv: ruff format",
             "type": "shell",
-            "command": "uv run --extra cpu ruff format",
+            "command": "uv run --no-sync ruff format",
             "problemMatcher": [],
             "detail": "Format code using Ruff"
         },
         {
             "label": "uv: nbstripout",
             "type": "shell",
-            "command": "find . -name '*.ipynb' -exec uv run nbstripout {} +",
+            "command": "find . -name '*.ipynb' -exec uv run --no-sync nbstripout {} +",
             "problemMatcher": [],
             "detail": "Clean Jupyter outputs"
         },
         {
             "label": "uv: ruff check",
             "type": "shell",
-            "command": "uv run --extra cpu ruff check",
+            "command": "uv run --no-sync ruff check",
             "problemMatcher": [],
             "detail": "Lint with Ruff"
         },
         {
             "label": "uv: mypy",
             "type": "shell",
-            "command": "uv run --extra cpu mypy .",
+            "command": "uv run --no-sync mypy .",
             "problemMatcher": [],
             "detail": "Check types with mypy"
         },
@@ -70,13 +70,13 @@
         {
             "label": "uv: pytest",
             "type": "shell",
-            "command": "uv run --extra cpu --group test-all pytest --cov",
+            "command": "uv run --no-sync pytest --cov",
             "problemMatcher": [],
             "group": {
                 "kind": "test",
                 "isDefault": true
             },
-            "detail": "Run all tests with pytest"
+            "detail": "Run all tests in the current environment (install test-all dependencies first)"
         },
         {
             "label": "clean",
