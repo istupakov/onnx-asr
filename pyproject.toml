@@ -51,44 +51,44 @@ onnx-asr = "onnx_asr.cli:main"
 
 [dependency-groups]
 benchmark = [
-    "datasets>=4.8.4",
+    "datasets>=5.1.0",
     "jinja2>=3.1.6",
-    "jiwer>=3.1.0",
-    "pandas>=2.3.3",
+    "jiwer>=4.0.0",
+    "pandas>=3.0.6",
     "soundfile>=0.14.0",
-    "tqdm>=4.67.3",
+    "tqdm>=4.70.1",
     { include-group = "jupyter" },
 ]
 build = [
     "hatch-vcs>=0.5.0",
-    "hatchling>=1.28.0",
-    "ml-dtypes>=0.5.4",
-    "numpy>=2.2.6",
-    "onnxscript>=0.6.2",
+    "hatchling>=1.32.4",
+    "ml-dtypes>=0.6.0",
+    "numpy>=2.4.6",
+    "onnxscript>=0.7.2",
 ]
 dev = [
-    "mypy>=1.20.1",
-    "ruff>=0.15.11",
+    "mypy>=2.4.0",
+    "ruff>=0.17.1",
     "onnx-asr[hub]",
     { include-group = "build" },
     { include-group = "jupyter" },
     { include-group = "test" },
 ]
 docs = [
-    "click>=8.3.2",
+    "click>=8.5.0",
     "markdown-callouts>=0.4.0",
-    "mkdocs-material[imaging]>=9.7.2",
-    "mkdocstrings[python]>=1.0.4",
-    "ruff>=0.15.11",
+    "mkdocs-material[imaging]>=9.7.7",
+    "mkdocstrings[python]>=1.0.8",
+    "ruff>=0.17.1",
 ]
-jupyter = ["ipykernel<7", "ipywidgets>=8.1.8", "nbstripout>=0.9.1"]
-test = ["pytest>=9.0.3", "pytest-cov>=7.0.0", "soundfile>=0.14.0"]
+jupyter = ["ipykernel>=7.4.0", "ipywidgets>=8.1.9", "nbstripout>=0.9.1"]
+test = ["pytest>=9.1.1", "pytest-cov>=7.1.0", "soundfile>=0.14.0"]
 test-all = [
-    "kaldi-native-fbank>=1.22.3",
-    "nemo-toolkit[asr]>=2.7.2",
-    "onnx>=1.21.0",
+    "kaldi-native-fbank>=1.22.4",
+    "nemo-toolkit[asr]>=3.0.0",
+    "onnx>=1.23.2",
     "openai-whisper>=20250625",
-    "torch>=2.11.0",
+    "torch>=2.14.1",
     "torchaudio>=2.11.0",
     { include-group = "build" },
     { include-group = "test" },
