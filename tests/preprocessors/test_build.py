@@ -8,7 +8,7 @@ from preprocessors import build
 
 def test_build(tmp_path: Path):
     build.build(tmp_path, "tests")
-    assert len(list(tmp_path.glob("*.onnx"))) == 29
+    assert len(list(tmp_path.glob("*.onnx"))) == 31
     assert len(list(tmp_path.glob("*.npz"))) == 1
 
 
@@ -16,7 +16,7 @@ def test_save_preprocessor_models(tmp_path: Path):
     build.save_preprocessor_models(tmp_path, "tests")
     files = list(tmp_path.glob("*.onnx"))
 
-    assert len(files) == 15
+    assert len(files) == 17
     for filename in files:
         onnx.checker.check_model(filename, full_check=True)
         model = onnx.load_model(filename)
@@ -54,4 +54,4 @@ def test_save_fbanks(tmp_path: Path):
 
     assert filename.exists()
     with np.load(filename) as data:
-        assert len(data.keys()) == 9
+        assert len(data.keys()) == 10

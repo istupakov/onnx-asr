@@ -15,6 +15,9 @@ preemph = 0.97
 
 log_zero_guard_value = float(2**-24)
 
+melscale_fbanks64 = melscale_fbanks(n_fft // 2 + 1, 0, sample_rate // 2, 64, sample_rate, "slaney", "slaney").astype(
+    np.float32
+)
 melscale_fbanks80 = melscale_fbanks(n_fft // 2 + 1, 0, sample_rate // 2, 80, sample_rate, "slaney", "slaney").astype(
     np.float32
 )
@@ -68,6 +71,19 @@ def nemo_preprocessor(
 
 
 @script(doc_string="LogMelSpectrogram feature extractor for Nemo models", default_opset=op)
+def NemoPreprocessor64(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", 64, "T"], INT64["batch_size"]]:
+    features, features_lens = nemo_preprocessor(
+        waveforms,
+        waveforms_lens,
+        melscale_fbanks64,
+    )
+    return features, features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Nemo models", default_opset=op)
 def NemoPreprocessor80(
     waveforms: FLOAT["batch_size", "N"],
     waveforms_lens: INT64["batch_size"],
@@ -118,6 +134,20 @@ def nemo_preprocessor_conv(
 
     features_lens = waveforms_lens / hop_length
     return normalize(op.Transpose(log_mel_spectrogram, perm=[0, 2, 1]), features_lens), features_lens
+
+
+@script(doc_string="LogMelSpectrogram feature extractor for Nemo models (Conv-based STFT)", default_opset=op)
+def NemoPreprocessor64Conv(
+    waveforms: FLOAT["batch_size", "N"],
+    waveforms_lens: INT64["batch_size"],
+) -> tuple[FLOAT["batch_size", 64, "T"], INT64["batch_size"]]:
+    features, features_lens = nemo_preprocessor_conv(
+        waveforms,
+        waveforms_lens,
+        melscale_fbanks64,
+        stft_conv_weights_nemo,
+    )
+    return features, features_lens
 
 
 @script(doc_string="LogMelSpectrogram feature extractor for Nemo models (Conv-based STFT)", default_opset=op)

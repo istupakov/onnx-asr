@@ -48,6 +48,9 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
         self._model = rt.InferenceSession(
             model_files["model"], **TensorRtOptions.add_profile(onnx_options, self._encoder_shapes)
         )
+        # QuartzNet/Jasper exports (masked convolutions disabled) have no
+        # "length" input — the graph is time-mask free.
+        self._model_has_length = any(i.name == "length" for i in self._model.get_inputs())
 
     @staticmethod
     def _get_model_files(quantization: str | None = None) -> dict[str, str]:
@@ -57,7 +60,10 @@ class NemoConformerCtc(_AsrWithCtcDecoding, _NemoConformer):
     def _encode(
         self, features: npt.NDArray[np.float32], features_lens: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
-        (logprobs,) = self._model.run(["logprobs"], {"audio_signal": features, "length": features_lens})
+        inputs: dict[str, npt.NDArray[np.float32] | npt.NDArray[np.int64]] = {"audio_signal": features}
+        if self._model_has_length:
+            inputs["length"] = features_lens
+        (logprobs,) = self._model.run(["logprobs"], inputs)
         assert is_float32_array(logprobs)
         return logprobs, (features_lens - 1) // self._subsampling_factor + 1
 
