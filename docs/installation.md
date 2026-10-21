@@ -44,23 +44,22 @@ Additional ONNX Runtime packages (not tested):
 
 The supported platforms are primarily determined by available ONNX Runtime wheels.
 
-| OS / CPU | Python 3.10 | Python 3.11 | Python 3.12 | Python 3.13 | Python 3.14 | Python 3.13t | Python 3.14t |
-|----------|-------------|-------------|-------------|-------------|-------------|--------------|--------------|
-| Linux x86_64 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Linux Arm64 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Windows x86_64 | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Windows Arm64 | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| macOS Arm64 (Apple Silicon) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| macOS x86_64 | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| OS / CPU | Python 3.11 | Python 3.12 | Python 3.13 | Python 3.14 | Python 3.13t | Python 3.14t |
+|----------|-------------|-------------|-------------|-------------|--------------|--------------|
+| Linux x86_64 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Linux Arm64 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Windows x86_64 | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Windows Arm64 | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| macOS Arm64 (Apple Silicon) | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| macOS x86_64 | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ### Minimum Dependency Versions
 
 | Package | Minimum Version |
 |---------|-----------------|
-| numpy | 1.22.4 |
+| numpy | 1.23.5 |
 | onnxruntime | 1.18.1 (or any ONNX Runtime package) |
 | huggingface-hub | 0.30.2 (optional, for model downloading) |
-| typing-extensions | 4.6.0 (Python < 3.11 only) |
 
 > [!NOTE]
 > Older versions of ONNX Runtime packages may work but are not tested. The minimum version listed is the one used in CI testing.

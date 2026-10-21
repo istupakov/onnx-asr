@@ -24,7 +24,7 @@ Key features of **onnx-asr** include:
 * Supports many modern ASR [models](https://istupakov.github.io/onnx-asr/usage/#supported-model-names)
 * Runs on a wide range of devices, from small IoT/edge devices to servers with powerful GPUs ([benchmarks](https://istupakov.github.io/onnx-asr/benchmarks/))
 * Works on Windows, Linux, and macOS on x86 and Arm CPUs, with support for CUDA, TensorRT, CoreML, DirectML, ROCm, and WebGPU
-* Supports NumPy versions from 1.22 to 2.4+ and Python versions from 3.10 to 3.14
+* Supports NumPy versions from 1.23.5 to 2.5+ and Python versions from 3.11 to 3.14
 * Loads models from Hugging Face or local directories, including quantized versions
 * Accepts WAV files or NumPy arrays, with built-in file reading and resampling
 * Supports custom models (see the [Conversion Guide](https://istupakov.github.io/onnx-asr/conversion/) for instructions)

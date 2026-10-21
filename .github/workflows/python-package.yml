@@ -81,7 +81,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
         os:
           [
             ubuntu-latest,
@@ -91,15 +91,10 @@ jobs:
             windows-11-arm,
           ]
         include:
-          - python-version: "3.10"
-            numpy: numpy==1.22.4
+          - python-version: "3.11"
+            numpy: numpy==1.23.5
             onnxruntime: onnxruntime==1.18.1
             hf-hub: huggingface-hub==0.30.2
-            typing: typing-extensions==4.6.0
-          - python-version: "3.11"
-            numpy: numpy~=1.26
-            onnxruntime: onnxruntime~=1.20.1
-            hf-hub: huggingface-hub~=0.36
           - python-version: "3.12"
             numpy: numpy~=2.0.2
             onnxruntime: onnxruntime~=1.23.2
@@ -118,9 +113,6 @@ jobs:
             python-version: "3.14"
             numpy: ""
             onnxruntime: ""
-        exclude:
-          - os: windows-11-arm
-            python-version: "3.10"
     steps:
       - uses: actions/checkout@v7
       - name: Install uv with Python ${{ matrix.python-version }}
@@ -140,7 +132,6 @@ jobs:
           ${{ matrix.numpy }} 
           ${{ matrix.onnxruntime }}
           ${{ matrix.hf-hub }}
-          ${{ matrix.typing }}
 
       - name: Cache HF models
         uses: actions/cache@v6
