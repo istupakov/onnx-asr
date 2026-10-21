@@ -41,23 +41,26 @@ onnx-asr export.
 [Orukeet](https://huggingface.co/oruk/orukeet) is a Parakeet TDT v3 fine-tune for
 25 European languages, published under CC BY-SA 4.0. Its combined INT8 ONNX
 export works with the existing `nemo-conformer-tdt` loader. The Hugging Face
-repository contains several formats, so download the combined ONNX subdirectory
-rather than passing the repository ID directly to `load_model`.
+repository contains several formats, so select the combined ONNX subdirectory
+with `subfolder` when calling `load_model`.
 
-The [Orukeet example](https://github.com/istupakov/onnx-asr/blob/main/examples/orukeet.py)
-pins the release, verifies its manifest and each required file, and keeps downloads
-in the Hugging Face cache:
+The example pins the release and keeps downloads in the Hugging Face cache:
 
-```sh
-python -m pip install "onnx-asr[cpu,hub]" soundfile
-python examples/orukeet.py recording.wav
-python examples/orukeet.py recording.wav --offline
+```py
+import onnx_asr
+
+model = onnx_asr.load_model(
+    "oruk/orukeet",
+    subfolder="onnx/combined-v0.1.0-int8",
+    revision="eac739d754bb171287930e6e63386f5b88f8179e",
+    quantization="int8",
+    providers=["CPUExecutionProvider"],
+)
+print(model.recognize("test.wav"))
 ```
 
 Use a 16 kHz mono WAV file. Only model files are downloaded; recognition runs
-locally. The example fetches the actual integrity manifest used to verify the
-weights, which participates in Hugging Face's normal download statistics. Cached
-runs require no network. Keep the downloaded weight license and attribution files.
+locally. See the model repository for weight license and attribution files.
 
 This is offline transcription, without translation or streaming partial results.
 The example has been checked with repeated speech recognition in English, German,
