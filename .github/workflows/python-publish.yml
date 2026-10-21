@@ -26,7 +26,7 @@ jobs:
           activate-environment: true
       - name: Build package dist
         run: |
-          uv pip compile --group build --generate-hashes -o build-constraints.txt
+          uv export --locked --only-group build --no-emit-project --format requirements.txt -o build-constraints.txt
           uv build -b build-constraints.txt --require-hashes
       - name: Publish package distributions to PyPI
         run: uv publish

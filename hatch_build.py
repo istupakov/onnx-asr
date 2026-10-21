@@ -17,6 +17,9 @@ class _BuildPreprocessorsHook(BuildHookInterface):  # type: ignore[type-arg]
         from preprocessors.build import build  # noqa: PLC0415
 
         self.artifacts_path.mkdir(exist_ok=True)
+        for artifact in self.artifacts_path.iterdir():
+            if artifact.is_file() and artifact.suffix in {".onnx", ".npz"}:
+                artifact.unlink()
         build(self.artifacts_path, self.metadata.version)
         build_data["artifacts"] = [
             str(self.artifacts_path.joinpath("*.onnx").as_posix()),
