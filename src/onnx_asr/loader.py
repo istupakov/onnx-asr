@@ -92,7 +92,12 @@ AsrTypes: TypeAlias = (
 
 
 def create_asr_resolver(
-    model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
+    model: str | None = None,
+    local_dir: str | Path | None = None,
+    *,
+    subfolder: str | None = None,
+    revision: str | None = None,
+    offline: bool | None = None,
 ) -> Resolver[AsrTypes]:
     """Create resolver for ASR models."""
     model_types: dict[str, type[AsrTypes]] = {
@@ -126,28 +131,38 @@ def create_asr_resolver(
         "alphacep/vosk-model-small-ru": KaldiTransducer,
         "t-tech/t-one": TOneCtc,
     }
-    return Resolver(model_types, model, local_dir, offline=offline)
+    return Resolver(model_types, model, local_dir, subfolder=subfolder, revision=revision, offline=offline)
 
 
 VadTypes: TypeAlias = SileroVad | PyAnnoteVad
 
 
 def create_vad_resolver(
-    model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
+    model: str | None = None,
+    local_dir: str | Path | None = None,
+    *,
+    subfolder: str | None = None,
+    revision: str | None = None,
+    offline: bool | None = None,
 ) -> Resolver[VadTypes]:
     """Create resolver for VAD models."""
     model_types: dict[str, type[VadTypes]] = {
         "silero": SileroVad,
         "pyannote": PyAnnoteVad,
     }
-    return Resolver(model_types, model, local_dir, offline=offline)
+    return Resolver(model_types, model, local_dir, subfolder=subfolder, revision=revision, offline=offline)
 
 
 def create_se_resolver(
-    model: str | None = None, local_dir: str | Path | None = None, *, offline: bool | None = None
+    model: str | None = None,
+    local_dir: str | Path | None = None,
+    *,
+    subfolder: str | None = None,
+    revision: str | None = None,
+    offline: bool | None = None,
 ) -> Resolver[WespeakerEmbeddings]:
     """Create resolver for SE models."""
-    return Resolver(WespeakerEmbeddings, model, local_dir, offline=offline)
+    return Resolver(WespeakerEmbeddings, model, local_dir, subfolder=subfolder, revision=revision, offline=offline)
 
 
 class PreprocessorRuntimeConfig(OnnxSessionOptions, total=False):
@@ -257,11 +272,13 @@ class Manager:
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
+        subfolder: str | None = None,
+        revision: str | None = None,
         offline: bool | None = None,
         config: OnnxSessionOptions | None = None,
     ) -> TextResultsAsrAdapter:
         """Create ASR model."""
-        resolver = create_asr_resolver(model, local_dir, offline=offline)
+        resolver = create_asr_resolver(model, local_dir, subfolder=subfolder, revision=revision, offline=offline)
         if config is None:
             config = update_onnx_providers(
                 self.default_onnx_config, excluded_providers=resolver.model_type._get_excluded_providers()
@@ -276,11 +293,13 @@ class Manager:
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
+        subfolder: str | None = None,
+        revision: str | None = None,
         offline: bool | None = None,
         config: OnnxSessionOptions | None = None,
     ) -> Vad:
         """Create VAD model."""
-        resolver = create_vad_resolver(model, local_dir, offline=offline)
+        resolver = create_vad_resolver(model, local_dir, subfolder=subfolder, revision=revision, offline=offline)
         if config is None:
             config = update_onnx_providers(
                 self.default_onnx_config, excluded_providers=resolver.model_type._get_excluded_providers()
@@ -293,11 +312,13 @@ class Manager:
         local_dir: str | Path | None = None,
         *,
         quantization: str | None = None,
+        subfolder: str | None = None,
+        revision: str | None = None,
         offline: bool | None = None,
         config: OnnxSessionOptions | None = None,
     ) -> SeAdapter:
         """Create SE model."""
-        resolver = create_se_resolver(model, local_dir, offline=offline)
+        resolver = create_se_resolver(model, local_dir, subfolder=subfolder, revision=revision, offline=offline)
         if config is None:
             config = update_onnx_providers(
                 self.default_onnx_config, excluded_providers=resolver.model_type._get_excluded_providers()
@@ -312,6 +333,8 @@ def load_model(
     path: str | Path | None = None,
     *,
     quantization: str | None = None,
+    subfolder: str | None = None,
+    revision: str | None = None,
     sess_options: rt.SessionOptions | None = None,
     providers: Sequence[str | Provider | tuple[str | Provider, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
@@ -346,6 +369,10 @@ def load_model(
                                              `onnx-community/*whisper*`)
         path: Path to directory with model files.
         quantization: Model quantization (`None` | `int8` | ... ).
+        subfolder: Relative directory or glob selecting the model export ("", "*", "**", ...).
+            Globs require a unique config.json; all model paths are relative to its directory.
+            None or an empty string selects the root. A literal directory may omit the config.
+        revision: Hugging Face branch, tag or commit hash. Ignored when loading local files.
         sess_options: Default SessionOptions for onnxruntime.
         providers: Default providers for onnxruntime.
         provider_options: Default provider_options for onnxruntime.
@@ -368,7 +395,9 @@ def load_model(
         )
 
     manager = Manager(sess_options, providers, provider_options, preprocessor_config, resampler_config)
-    return manager.create_asr(model, path, quantization=quantization, config=asr_config)
+    return manager.create_asr(
+        model, path, quantization=quantization, subfolder=subfolder, revision=revision, config=asr_config
+    )
 
 
 def load_vad(
@@ -376,6 +405,8 @@ def load_vad(
     path: str | Path | None = None,
     *,
     quantization: str | None = None,
+    subfolder: str | None = None,
+    revision: str | None = None,
     sess_options: rt.SessionOptions | None = None,
     providers: Sequence[str | Provider | tuple[str | Provider, dict[Any, Any]]] | None = None,
     provider_options: Sequence[dict[Any, Any]] | None = None,
@@ -386,6 +417,10 @@ def load_vad(
         model: VAD model name or type (download from Hugging Face supported if full model name is provided).
         path: Path to directory with model files.
         quantization: Model quantization (`None` | `int8` | ... ).
+        subfolder: Relative directory or glob selecting the model export ("", "*", "**", ...).
+            Globs require a unique config.json; all model paths are relative to its directory.
+            None or an empty string selects the root. A literal directory may omit the config.
+        revision: Hugging Face branch, tag or commit hash. Ignored when loading local files.
         sess_options: Optional SessionOptions for onnxruntime.
         providers: Optional providers for onnxruntime.
         provider_options: Optional provider_options for onnxruntime.
@@ -408,5 +443,7 @@ def load_vad(
         model,
         path,
         quantization=quantization,
+        subfolder=subfolder,
+        revision=revision,
         config=config if any(value is not None for value in config.values()) else None,
     )

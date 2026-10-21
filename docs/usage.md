@@ -198,6 +198,22 @@ API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter
 > [!NOTE]
 > If the directory does not exist, it will be created and the model will be loaded into it.
 
+## Model revisions
+
+Use `revision` to select a Hugging Face branch, tag, or full commit hash.
+This works with both supported model names and custom repository IDs:
+
+```py
+model = onnx_asr.load_model(
+    "nemo-parakeet-tdt-0.6b-v3",
+    revision="main",
+)
+```
+
+Use a full commit hash to pin a specific version of the model files.
+`revision` also works with `load_vad` and `Manager.create_asr/create_vad`.
+It is ignored when loading existing local files.
+
 ## Load a custom ONNX model from Hugging Face
 
 Load the Canary 180M Flash model from Hugging Face [repo](https://huggingface.co/istupakov/canary-180m-flash-onnx) and recognize the WAV file:
@@ -211,6 +227,27 @@ print(model.recognize("test.wav"))
 
 API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
 
+
+### Model subfolders
+
+Use `subfolder` to load a model from a directory within a repository:
+
+```py
+import onnx_asr
+
+model = onnx_asr.load_model(
+    "oruk/orukeet",
+    subfolder="onnx/combined-v0.1.0-int8",
+    quantization="int8",
+)
+print(model.recognize("test.wav"))
+```
+
+API reference: [onnx_asr.load_model][], [recognize][onnx_asr.adapters.AsrAdapter.recognize]
+
+`subfolder` also supports glob patterns such as `"*"` and `"**"`, which must
+match exactly one `config.json`. For local models, the path is relative to
+the model directory.
 
 ### Supported model types
 

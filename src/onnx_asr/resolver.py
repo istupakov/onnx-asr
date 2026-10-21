@@ -1,6 +1,7 @@
-"""Resolver for ASR and VAD models."""
+"""Resolve model files from local directories or Hugging Face Hub."""
 
 import json
+from glob import has_magic
 from pathlib import Path
 from typing import Generic, Protocol, TypeVar
 
@@ -48,6 +49,9 @@ class Resolver(Generic[T]):
     offline: bool = False
     local_dir: Path | None = None
     repo_id: str | None = None
+    model_type: type[T]
+    revision: str | None
+    subfolder: Path | None
 
     def __init__(  # noqa: C901
         self,
@@ -55,9 +59,22 @@ class Resolver(Generic[T]):
         model: str | None = None,
         local_dir: str | Path | None = None,
         *,
+        subfolder: str | None = None,
+        revision: str | None = None,
         offline: bool | None = None,
     ):
-        """Create model loader."""
+        """Create model resolver."""
+        subfolder_pattern = Path(subfolder or "")
+        if subfolder_pattern.anchor or ".." in subfolder_pattern.parts:
+            msg = f"Subfolder must be a relative path without '..': {subfolder_pattern}"
+            raise ValueError(msg)
+        if subfolder_pattern.parts.count("**") > 1:
+            msg = f"At most one '**' component is allowed in subfolder: {subfolder_pattern}"
+            raise ValueError(msg)
+        self.revision = revision
+        self._config_pattern = (subfolder_pattern / "config.json").as_posix()
+        self.subfolder = None if has_magic(subfolder_pattern.as_posix()) else subfolder_pattern
+
         if model is not None:
             if "/" in model:
                 self.repo_id = model
@@ -68,13 +85,10 @@ class Resolver(Generic[T]):
 
         if local_dir is not None:
             self.local_dir = Path(local_dir)
-            if self.local_dir.exists():
-                self.offline = True
-                if not self.local_dir.is_dir():
-                    raise ModelPathNotDirectoryError(self.local_dir)
+            if self.local_dir.exists() and not self.local_dir.is_dir():
+                raise ModelPathNotDirectoryError(self.local_dir)
 
-        if offline is not None:
-            self.offline = offline
+        self.offline = offline if offline is not None else self.local_dir is not None and self.local_dir.exists()
 
         if not (self.repo_id or (self.offline and self.local_dir)):
             raise NoModelNameOrPathSpecifiedError
@@ -87,80 +101,97 @@ class Resolver(Generic[T]):
             with self.resolve_config().open("rt", encoding="utf-8") as f:
                 config = json.load(f)
 
-            config_model_type: str = config.get("model_type")
-            if "/" in config_model_type or config_model_type not in model_type:
-                raise InvalidModelTypeInConfigError(config_model_type)
+            config_model_type = config.get("model_type") if isinstance(config, dict) else None
+            if (
+                not isinstance(config_model_type, str)
+                or "/" in config_model_type
+                or config_model_type not in model_type
+            ):
+                raise InvalidModelTypeInConfigError(str(config_model_type))
             self.model_type = model_type[config_model_type]
 
-    def _download_config(self, *, local_files_only: bool) -> Path:
-        from huggingface_hub import hf_hub_download  # noqa: PLC0415
+    def _resolve_model_path(self, snapshot_path: Path) -> Path:
+        if self.subfolder is None:
+            config_path = self._find_file(snapshot_path, self._config_pattern)
+            self.subfolder = config_path.parent.relative_to(snapshot_path)
+        return snapshot_path / self.subfolder
 
-        assert self.repo_id is not None
-        return Path(
-            hf_hub_download(self.repo_id, "config.json", local_dir=self.local_dir, local_files_only=local_files_only)  # nosec
-        )
+    def _download_config(self, *, local_files_only: bool) -> Path:
+        snapshot_path = self._download([self._config_pattern], local_files_only=local_files_only)
+        return self._find_file(self._resolve_model_path(snapshot_path), "config.json")
 
     def _download_model(self, quantization: str | None, *, local_files_only: bool) -> Path:
+        if self.subfolder is None:
+            self._download_config(local_files_only=local_files_only)
+        assert self.subfolder is not None
+        files = ["config.json", "config.yaml", *self.model_type._get_model_files(quantization).values()]
+        files += [
+            str(file_path.with_suffix(suffix))
+            for file in files
+            if (file_path := Path(file)).suffix == ".onnx"
+            for suffix in (".ort", ".onnx?data")
+        ]
+        snapshot_path = self._download(
+            [(self.subfolder / file).as_posix() for file in files], local_files_only=local_files_only
+        )
+        return snapshot_path / self.subfolder
+
+    def _download(self, files: list[str], *, local_files_only: bool) -> Path:
         from huggingface_hub import snapshot_download  # noqa: PLC0415
         from huggingface_hub.errors import LocalEntryNotFoundError  # noqa: PLC0415
 
-        files = list(self.model_type._get_model_files(quantization).values())
+        for file in files:
+            if Path(file).parts.count("**") > 1:
+                msg = f"At most one '**' component is allowed in file pattern: {file}"
+                raise ValueError(msg)
+        # Hub filters require a separate pattern for zero directory levels.
         files = [
             *files,
-            *(file.removeprefix("**/") for file in files if file.startswith("**/")),
-        ]
-        files = [
-            "config.json",
-            "config.yaml",
-            *files,
-            *(str(path.with_suffix(".onnx?data")) for file in files if (path := Path(file)).suffix == ".onnx"),
+            *(file.replace("**/", "") for file in files if "**/" in file),
         ]
 
         assert self.repo_id is not None
         try:
             return Path(
                 snapshot_download(
-                    self.repo_id, local_dir=self.local_dir, local_files_only=local_files_only, allow_patterns=files
-                )  # nosec
+                    self.repo_id,
+                    revision=self.revision,
+                    local_dir=self.local_dir,
+                    local_files_only=local_files_only,
+                    allow_patterns=files,
+                )
             )
         except LocalEntryNotFoundError as e:
-            # raised with local_files_only=True when files are missing from the local
-            # snapshot (also as IncompleteSnapshotError in newer huggingface_hub);
-            # translate so offline resolution reports a missing model file
+            # Use the same missing-file error for local paths and Hub snapshots.
             filename = "<missing files in local snapshot>"
             raise ModelFileNotFoundError(filename, self.repo_id) from e
 
-    def _resolve_model_files(self, path: Path, quantization: str | None) -> dict[str, Path]:
-        files = self.model_type._get_model_files(quantization)
-        if Path(path, "config.json").exists():
-            files |= {"config": "config.json"}
-
-        def find(filename: str) -> Path:
-            files = list(path.glob(filename))
-            if len(files) > 1:
-                raise MoreThanOneModelFileFoundError(filename, path)
-            if len(files) == 0:
-                orig_path = Path(filename)
-                if orig_path.suffix == ".onnx":
-                    files = list(path.glob(str(orig_path.with_suffix(".ort"))))
-                    if len(files) == 1 and files[0].is_file():
-                        return files[0]
-                raise ModelFileNotFoundError(filename, path)
-            if not files[0].is_file():
-                raise ModelFileNotFoundError(filename, path)
+    @staticmethod
+    def _find_file(path: Path, filename: str) -> Path:
+        files = [file for file in path.glob(filename) if file.is_file()]
+        if not files and Path(filename).suffix == ".onnx":
+            files = [file for file in path.glob(str(Path(filename).with_suffix(".ort"))) if file.is_file()]
+        if len(files) > 1:
+            raise MoreThanOneModelFileFoundError(filename, path)
+        if files:
             return files[0]
+        raise ModelFileNotFoundError(filename, path)
 
-        return {key: find(filename) for key, filename in files.items()}
+    def _resolve_model_files(self, path: Path, quantization: str | None) -> dict[str, Path]:
+        files = {
+            key: self._find_file(path, filename)
+            for key, filename in self.model_type._get_model_files(quantization).items()
+        }
+        config_path = path / "config.json"
+        if config_path.is_file():
+            files["config"] = config_path
+        return files
 
     def resolve_config(self) -> Path:
         """Resolve path to model config."""
         try:
             if self.local_dir:
-                config_path = Path(self.local_dir, "config.json")
-                if not config_path.is_file():
-                    raise ModelFileNotFoundError(config_path.name, self.local_dir)
-                return config_path
-
+                return self._find_file(self._resolve_model_path(self.local_dir), "config.json")
             return self._download_config(local_files_only=True)
         except FileNotFoundError:
             if self.offline:
@@ -170,9 +201,12 @@ class Resolver(Generic[T]):
     def resolve_model(self, *, quantization: str | None = None) -> dict[str, Path]:
         """Resolve paths to model files."""
         try:
-            return self._resolve_model_files(
-                self.local_dir or self._download_model(quantization, local_files_only=True), quantization
+            model_path = (
+                self._resolve_model_path(self.local_dir)
+                if self.local_dir
+                else self._download_model(quantization, local_files_only=True)
             )
+            return self._resolve_model_files(model_path, quantization)
         except FileNotFoundError:
             if self.offline:
                 raise
