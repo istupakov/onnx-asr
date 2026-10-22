@@ -1,0 +1,17 @@
+# ONNX ASR
+
+> A lightweight Python package for Automatic Speech Recognition using ONNX models with minimal dependencies.
+
+It supports Python 3.10 to 3.14 and runs on Windows, Linux, and macOS with various accelerators. The package loads models from Hugging Face or local directories and provides a typed API and CLI.
+
+## Docs
+
+- [ONNX ASR](https://raw.githubusercontent.com/istupakov/onnx-asr/main/README.md): Overview of the onnx-asr package, its key features, supported models, and quick start installation instructions.
+- [Installation](https://raw.githubusercontent.com/istupakov/onnx-asr/main/docs/installation.md): Installation from PyPI, ONNX Runtime package options, supported platforms, and minimum dependency version requirements.
+- [Usage Examples](https://raw.githubusercontent.com/istupakov/onnx-asr/main/docs/usage.md): Code examples for loading models and recognizing audio, plus a list of supported model names.
+- [Community Models](https://raw.githubusercontent.com/istupakov/onnx-asr/main/docs/community-models.md): Community-published models on Hugging Face, including language fine-tunes, OpenVoiceOS families, and optimized variants.
+- [Benchmarks](https://raw.githubusercontent.com/istupakov/onnx-asr/main/docs/benchmarks.md): Hardware specifications, RTFx metric definition, and performance benchmarks for Russian and English ASR models.
+- [Troubleshooting / FAQ](https://raw.githubusercontent.com/istupakov/onnx-asr/main/docs/troubleshooting.md): Common issues with model downloads, loading, audio formats, and performance, plus guidance on getting help.
+- [Comparison with Original Implementations](https://raw.githubusercontent.com/istupakov/onnx-asr/main/docs/comparison.md): Benchmark results for Russian and English ASR models against original implementations on CPU and GPU.
+- [Convert Model to ONNX](https://raw.githubusercontent.com/istupakov/onnx-asr/main/docs/conversion.md): Instructions for exporting NeMo, GigaAM, Whisper, and Wav2Vec2 models to ONNX format with configuration details.
+- [API Reference](https://raw.githubusercontent.com/istupakov/onnx-asr/main/docs/reference.md): Documentation for onnx_asr classes, loaders, adapters, and utility functions including error handling and session options.
